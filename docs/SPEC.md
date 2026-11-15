@@ -229,6 +229,47 @@ Tailwind v4, shadcn/ui primitives restyled to these tokens, Motion for gestures 
 - Apple Music / YouTube ambient mode for colour bleeding from media into the background.
 - Real neon signage and night-city photography for how glow falls off.
 
+### 4.7 Roadside theme: the motel and diner motifs
+
+The neon logo is one piece of a larger setting: a roadside motel and diner at night. These motifs carry that setting through the whole app, so it feels like one place and not a dark app with a fancy logo.
+
+**Rules for using them**
+
+- **Theme lives in moments, not controls.** The landing page, the match, empty states, loaders, section headers and status indicators get the motifs. Buttons, forms, filters and the chat box stay plain and familiar.
+- **Plain words on anything a person acts on.** Themed wording is for headings and empty states, and it always sits next to a plain explanation.
+- **One showpiece per screen.** A screen with a marquee, a postcard and a flickering sign all at once is a theme park.
+- **Drawn in code.** Every motif is CSS or inline SVG: no texture photos, no new colours, no new fonts.
+- **Every animated motif has a still version** for people who prefer reduced motion.
+
+**Core motifs (build each with the screen it belongs to)**
+
+| Motif                | Where it appears                                       | What it does                                                                                                                                 |
+| -------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lit and unlit tubes  | Tab bar, toggles, any on/off state                     | Active is lit neon, inactive is the dark glass tube. The same language as the logo.                                                          |
+| VACANCY / NO VACANCY | Listing status everywhere; the lister's on/off switch  | An open listing shows VACANCY lit. A filled or paused one shows NO VACANCY with "NO" lit. A lister opens a listing by switching the sign on. |
+| Marquee bulbs        | Onboarding progress, loaders, the frame around a match | A row of bulbs that light one by one as steps complete. Chasing lights are reserved for a match or a superlike.                              |
+| Amenity plaques      | Listing detail, card chips                             | Amenities as the small stacked plaques that hang under a motel sign: WIFI, AC, PARKING, LIFT.                                                |
+| Guest check          | The real monthly cost breakdown                        | The costs laid out as a diner bill: mono type, dotted leaders, a total line, a torn bottom edge.                                             |
+| Room key             | Match moment, Matches tab, address unlock              | A match hands over a motel key tag with the flat's locality on it. The Matches tab is a key rack. Revealing the address is using the key.    |
+| Neon line drawings   | Empty and error states                                 | Single-line neon sketches (coffee cup, key, arrow, bed) that flicker on like the logo.                                                       |
+| The sign assembly    | Landing page hero                                      | A roadside sign on a pole: the logo on top, a VACANCY plaque, amenity plaques, and a bulb arrow pointing at the live deck.                   |
+
+**Second wave (add when their screen is built)**
+
+- **Front desk bell:** lister notifications ("someone's at the desk") and the header of the Interested queue.
+- **House rules placard:** rules printed like a motel's framed house rules, numbered, with small roadside-sign icons.
+- **Management notice:** the chat safety banner as a placard ("Management reminds guests: never pay before visiting").
+- **Do Not Disturb hanger:** pausing your profile or muting a chat.
+- **Postcards:** "Greetings from HSR Layout" large-letter cards for neighbourhood headers, and as the share image for a listing.
+- **Starburst sticker:** "New" and "below area average" badges.
+- **OPEN sign:** lit when the other person is online in chat.
+
+**Voice**
+
+Light motel and diner wording in headings and empty states: "Check in" (sign in), "Check out" (sign out), "Today's specials" (top picks), "Off the menu" (stretch picks), "Kitchen's closed" (empty deck), "Front desk" (lister mode). Actions keep plain labels: Like, Pass, Save, Send.
+
+**The setting is American, the product is local.** Prices stay in rupees, places are real Bangalore localities, and a postcard says "Greetings from Koramangala". The mix is part of the charm; do not swap in dollars, diners or highways as content.
+
 ---
 
 ## 5. Architecture
@@ -487,7 +528,7 @@ Monorepo, TypeScript strict, lint/format, CI, design tokens and fonts, an empty 
 _Done when:_ the production URL shows the styled shell and CI is green.
 
 **M1. The feel (front end on mock data)**
-Deck with full gesture spec, card anatomy, detail sheet, tab bar, desktop layout, landing page with the live deck, empty/loading states. Mock API behind the shared contracts.
+Deck with full gesture spec, card anatomy, detail sheet, tab bar, desktop layout, landing page with the live deck, empty/loading states. Each screen brings its roadside motifs from 4.7 (lit/unlit tab bar, sign assembly on the landing page, amenity plaques, guest check, neon line drawings). Mock API behind the shared contracts.
 _Done when:_ swiping on a real phone feels right, every action works by keyboard, and the desktop layout looks deliberate.
 
 **M2. Data and a real feed (v0)**
