@@ -8,6 +8,7 @@ import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { KeyTag } from "@/components/motifs/key-tag";
 import { CoffeeCupDrawing } from "@/components/motifs/neon-drawing";
+import { SignLink } from "@/components/sign-link";
 import { SiteHeader } from "@/components/site-header";
 import { BulbsDemo, TabBarDemo, VacancyDemo } from "./motif-demos";
 
@@ -115,12 +116,7 @@ export default function StyleguidePage() {
               <IconComponent className="size-6" />
             </button>
           ))}
-          <button
-            type="button"
-            className="rounded-full bg-gradient-to-r from-brand-a to-brand-b px-6 py-3 font-semibold text-sm text-white shadow-[0_8px_32px_-8px_var(--brand-b)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-          >
-            Try the demo
-          </button>
+          <SignLink href="/discover">Start swiping</SignLink>
         </div>
       </Section>
 

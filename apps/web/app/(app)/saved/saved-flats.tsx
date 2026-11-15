@@ -2,7 +2,6 @@
 
 import { formatRent, type Listing } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ScreenMessage } from "@/components/app-shell/screen-message";
@@ -12,11 +11,9 @@ import { DetailSheet } from "@/components/listing/detail-sheet";
 import { FadeImage } from "@/components/listing/fade-image";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { BedDrawing } from "@/components/motifs/neon-drawing";
+import { SignLink } from "@/components/sign-link";
 import { api } from "@/lib/api/client";
 import { SAVED_KEY } from "@/lib/deck/use-deck";
-
-const PRIMARY_LINK =
-  "inline-block rounded-full bg-gradient-to-r from-brand-a to-brand-b px-6 py-3 font-semibold text-sm text-white";
 
 /** The flats saved with a swipe up. From here each one can be liked or removed. */
 export function SavedFlats() {
@@ -87,9 +84,9 @@ export function SavedFlats() {
         title="Nothing saved yet"
         body="Swipe up on a flat you are not sure about, and it waits for you here."
       >
-        <Link href="/discover" className={PRIMARY_LINK}>
+        <SignLink href="/discover" size="sm">
           Back to the deck
-        </Link>
+        </SignLink>
       </ScreenMessage>
     );
   }

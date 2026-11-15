@@ -9,10 +9,12 @@ import {
   KeyIcon,
   SwipeIcon,
 } from "@/components/icons";
-import { LandingDeck } from "@/components/landing/landing-deck";
+import { ShowcaseDeck } from "@/components/landing/showcase-deck";
 import { SignAssembly } from "@/components/landing/sign-assembly";
 import { CompatRing } from "@/components/listing/compat-ring";
-import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
+import { GuestCheck } from "@/components/motifs/guest-check";
+import { KeyTag } from "@/components/motifs/key-tag";
+import { SignLink } from "@/components/sign-link";
 
 const STEPS = [
   {
@@ -32,9 +34,6 @@ const STEPS = [
   },
 ];
 
-const PRIMARY_BUTTON =
-  "rounded-full bg-gradient-to-r from-brand-a to-brand-b px-7 py-3.5 font-semibold text-white shadow-[0_8px_32px_-8px_var(--brand-b)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]";
-
 export default function HomePage() {
   return (
     <div className="relative isolate overflow-x-clip">
@@ -53,9 +52,7 @@ export default function HomePage() {
               with the people who live there.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <Link href="/discover" className={PRIMARY_BUTTON}>
-                Start swiping
-              </Link>
+              <SignLink href="/discover">Start swiping</SignLink>
               <a
                 href="#how-it-works"
                 className="group inline-flex items-center gap-1.5 font-medium text-like text-sm"
@@ -66,14 +63,36 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center lg:items-end">
-            <div className="flex w-full max-w-[22rem] flex-col items-center gap-4">
-              <p className="flex items-center gap-3 text-fg-2 text-sm">
-                <MarqueeBulbs total={5} />
-                This one is live. Swipe it.
+          {/* A moving picture of the product. It cannot be used here: the whole
+              scene is one link into the app. */}
+          <div className="flex justify-center lg:justify-end lg:pr-6">
+            <Link
+              href="/discover"
+              aria-label="See the deck: start swiping"
+              className="group relative block w-full max-w-[20rem] rounded-[2rem]"
+            >
+              <div aria-hidden="true" className="relative h-[31rem]">
+                {/* What a flat really costs, peeking out from behind the deck */}
+                <div className="absolute bottom-10 -left-52 hidden w-72 origin-bottom-right -rotate-[8deg] scale-[0.72] opacity-90 transition-transform duration-500 group-hover:-translate-x-2 lg:block">
+                  <GuestCheck
+                    number="0427"
+                    lines={[
+                      { label: "Rent", amount: 18500 },
+                      { label: "Maintenance", amount: 2000 },
+                      { label: "Electricity + wifi", amount: 1400 },
+                    ]}
+                  />
+                </div>
+                <ShowcaseDeck />
+                {/* The key you get when you match */}
+                <div className="absolute -top-12 -right-5 z-10 rotate-[7deg] scale-[0.8] sm:-right-10">
+                  <KeyTag locality="HSR Layout" detail="It's a match" />
+                </div>
+              </div>
+              <p className="mt-8 text-center text-fg-3 text-sm">
+                A preview of the deck. Follow the sign to take over.
               </p>
-              <LandingDeck />
-            </div>
+            </Link>
           </div>
         </section>
 

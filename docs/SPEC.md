@@ -21,7 +21,7 @@ A swipe-based app for finding a flat and the people in it. Tenants swipe through
 
 - Payments, monetization, KYC, phone OTP, email sending.
 - Native apps. This is a PWA; a native wrapper is a later project.
-- Multi-city coverage. One city, done well (default: Bangalore).
+- Many cities. Two are covered, Bangalore and Gurgaon, each done properly. The city is something the tenant chooses, and the feed, the locality list and the landing sign's city plaque all follow it.
 - ML models. Ranking is hand-built features plus simple online learning.
 
 ---
@@ -60,8 +60,8 @@ Swipe actions: `like`, `pass`, `save` (swipe up, a "maybe" pile), `superlike` (l
 Most portfolio visitors arrive on a desktop and will not sign in with Google. The landing page must sell the app by itself.
 
 - The neon sign logo flickers on.
-- A **live, interactive deck** in a phone frame, running the real deck component on demo data.
-- Primary button: **Try the demo** (creates a guest session with a persona and drops straight into the feed). Secondary: Sign in with Google.
+- A **showcase deck that swipes itself**: the real card component, playing a loop of likes, passes and saves with the stamps showing. It cannot be dragged or tapped; the whole scene is one link into the app. A room key and a guest check peek out around it. The working deck is deliberately kept behind the "Start swiping" sign, so there is a reason to go in.
+- Primary button: **Try the demo** (creates a guest session with a persona and drops straight into the feed). Secondary: Sign in with Google. Primary calls to action use `SignLink`, a neon arrow sign that flickers on when hovered, never a plain gradient pill.
 - A short "How the feed works" section linking to the ranking lab (`/lab`) and the GitHub repo.
 - `/privacy` and `/terms` pages exist (needed to publish the Google OAuth consent screen).
 
@@ -69,7 +69,7 @@ Most portfolio visitors arrive on a desktop and will not sign in with Google. Th
 
 One question per screen, large type, a thin neon progress line. Every step has a sensible default and can be skipped.
 
-1. Role (tenant / lister).
+1. Role (tenant / lister), then city (Bangalore or Gurgaon).
 2. Budget: dual slider. **A live counter shows "42 flats match" and updates as the user drags.** This is the first moment the feed engine is visible; make it feel instant (debounced call to `POST /feed/count`).
 3. Where: pick localities from our own list, and/or pick a work/college anchor plus a max commute.
 4. Move-in date and expected stay.
@@ -244,16 +244,16 @@ The neon logo is one piece of a larger setting: a roadside motel and diner at ni
 
 **Core motifs (build each with the screen it belongs to)**
 
-| Motif                | Where it appears                                       | What it does                                                                                                                                 |
-| -------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Lit and unlit tubes  | Tab bar, toggles, any on/off state                     | Active is lit neon, inactive is the dark glass tube. The same language as the logo.                                                          |
-| VACANCY / NO VACANCY | Listing status everywhere; the lister's on/off switch  | An open listing shows VACANCY lit. A filled or paused one shows NO VACANCY with "NO" lit. A lister opens a listing by switching the sign on. |
-| Marquee bulbs        | Onboarding progress, loaders, the frame around a match | A row of bulbs that light one by one as steps complete. Chasing lights are reserved for a match or a superlike.                              |
-| Amenity plaques      | Listing detail, card chips                             | Amenities as the small stacked plaques that hang under a motel sign: WIFI, AC, PARKING, LIFT.                                                |
-| Guest check          | The real monthly cost breakdown                        | The costs laid out as a diner bill: mono type, dotted leaders, a total line, a torn bottom edge.                                             |
-| Room key             | Match moment, Matches tab, address unlock              | A match hands over a motel key tag with the flat's locality on it. The Matches tab is a key rack. Revealing the address is using the key.    |
-| Neon line drawings   | Empty and error states                                 | Single-line neon sketches (coffee cup, key, arrow, bed) that flicker on like the logo.                                                       |
-| The sign assembly    | Landing page hero                                      | A roadside sign on a pole: the logo on top, a VACANCY plaque, amenity plaques, and a bulb arrow pointing at the live deck.                   |
+| Motif                | Where it appears                                       | What it does                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lit and unlit tubes  | Tab bar, toggles, any on/off state                     | Active is lit neon, inactive is the dark glass tube. The same language as the logo.                                                                                                                       |
+| VACANCY / NO VACANCY | Listing status everywhere; the lister's on/off switch  | An open listing shows VACANCY lit. A filled or paused one shows NO VACANCY with "NO" lit. A lister opens a listing by switching the sign on.                                                              |
+| Marquee bulbs        | Onboarding progress, loaders, the frame around a match | A row of bulbs that light one by one as steps complete. Chasing lights are reserved for a match or a superlike.                                                                                           |
+| Amenity plaques      | Listing detail, card chips                             | Amenities as the small stacked plaques that hang under a motel sign: WIFI, AC, PARKING, LIFT.                                                                                                             |
+| Guest check          | The real monthly cost breakdown                        | The costs laid out as a diner bill: mono type, dotted leaders, a total line, a torn bottom edge.                                                                                                          |
+| Room key             | Match moment, Matches tab, address unlock              | A match hands over a motel key tag with the flat's locality on it. The Matches tab is a key rack. Revealing the address is using the key.                                                                 |
+| Neon line drawings   | Empty and error states                                 | Single-line neon sketches (coffee cup, key, arrow, bed) that flicker on like the logo.                                                                                                                    |
+| The sign assembly    | Landing page hero                                      | A roadside sign on a pole: the logo on top, a VACANCY plaque, and hanging plaques. The last plaque names the person's chosen city (`SignAssembly city`), so it reads GURGAON for someone searching there. |
 
 **Second wave (add when their screen is built)**
 
@@ -440,7 +440,7 @@ A script creates synthetic tenants with hidden "true" preferences, lets them swi
 
 ## 9. Seed data and bots
 
-- **One city, real geography.** A hand-checked file of ~25 localities with centroids and typical rent ranges, and ~10 commute anchors (major tech parks, colleges, metro hubs). Society names are invented.
+- **Two cities, real geography.** For each of Bangalore and Gurgaon, a hand-checked file of ~20 localities with centroids and typical rent ranges, and ~10 commute anchors (major tech parks, colleges, metro hubs). Society names are invented.
 - **~200 listings, ~80 tenants**, generated with Faker from those ranges so prices and commutes are believable.
 - **Coherent photo sets.** Photos are curated into sets that plausibly belong to one flat (bedroom, living room, kitchen, bathroom, balcony, building), ~40 sets with variation. Random stock photos per listing look fake immediately. Downloaded once from free-licence sources and uploaded to Cloudinary by the seed script.
 - **Rolling dates.** Seed `available_from` and `published_at` are stored relative to "today" and refreshed by the daily job, so the demo never looks abandoned.
@@ -576,7 +576,7 @@ Learning from swipes, duplicate-photo detection with perceptual hashes, visit sc
 
 ## 15. Defaults chosen (change any of these by telling me)
 
-- City: Bangalore.
+- Cities: Bangalore (shown by default) and Gurgaon.
 - Name: Flatch.
 - Guests can only interact with seed listings.
 - Declines are silent.

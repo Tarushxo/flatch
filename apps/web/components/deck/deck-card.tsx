@@ -74,7 +74,6 @@ export function DeckCard({
   onEntered,
   onOpenDetails,
   onPhotoChange,
-  sidewaysOnly = false,
   ref,
 }: {
   listing: Listing;
@@ -89,8 +88,6 @@ export function DeckCard({
   onEntered?: () => void;
   onOpenDetails: () => void;
   onPhotoChange?: (dominantColor: string) => void;
-  /** Leave vertical drags to the page (for a deck inside a scrolling page). */
-  sidewaysOnly?: boolean;
   ref?: Ref<DeckCardHandle>;
 }) {
   const isTop = index === 0;
@@ -193,13 +190,12 @@ export function DeckCard({
   function onPan(_event: PointerEvent, info: PanInfo) {
     if (flying.current) return;
     x.set(info.offset.x);
-    if (!sidewaysOnly) y.set(info.offset.y);
+    y.set(info.offset.y);
   }
 
   function onPanEnd(_event: PointerEvent, info: PanInfo) {
     if (flying.current) return;
-    const offset = sidewaysOnly ? { x: info.offset.x, y: 0 } : info.offset;
-    const gesture = decideSwipe(offset, info.velocity, size.current);
+    const gesture = decideSwipe(info.offset, info.velocity, size.current);
     if (gesture && gesture !== "details") {
       flyOut(gesture, info.offset, info.velocity);
       return;
@@ -226,9 +222,7 @@ export function DeckCard({
     <motion.div
       ref={element}
       aria-hidden={!isTop}
-      className={`absolute inset-0 select-none will-change-transform ${
-        sidewaysOnly ? "touch-pan-y" : "touch-none"
-      } ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+      className={`absolute inset-0 touch-none select-none will-change-transform ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
       style={{ x, y: shownY, rotate, scale, zIndex: 10 - index }}
       onPointerDown={() => {
         panned.current = false;
