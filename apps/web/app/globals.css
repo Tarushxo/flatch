@@ -68,6 +68,18 @@
   --animate-chase: bulb-chase 1.4s ease-in-out infinite;
   --animate-swing: swing 1.8s ease-out 0.15s 1 both;
 
+  /* The deck's ambient light fading in when the photo changes. */
+  --animate-glow-in: glow-in 0.9s ease-out both;
+
+  @keyframes glow-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.3;
+    }
+  }
+
   /* A light running along a row of marquee bulbs (stagger with animation-delay). */
   @keyframes bulb-chase {
     0%,

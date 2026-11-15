@@ -1,8 +1,8 @@
 import type { SVGProps } from "react";
 
 /*
- * A few hand-drawn icons for the M0 shell. They are decorative here; the full
- * icon set (Phosphor) arrives with the deck in M1.
+ * A small hand-drawn icon set. Icons are decorative (aria-hidden); the control
+ * that holds one carries the label.
  */
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -70,6 +70,32 @@ export function UserIcon(props: IconProps) {
     <Icon {...props}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+    </Icon>
+  );
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v6M12 7.5v.01" />
+    </Icon>
+  );
+}
+
+export function UndoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 5 4 9l4 4" />
+      <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+    </Icon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
     </Icon>
   );
 }

@@ -22,13 +22,12 @@ export default function HomePage() {
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-            <span className="surface inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-fg-2 text-sm">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-win opacity-60" />
-                <span className="relative inline-flex size-2 rounded-full bg-win" />
-              </span>
-              Under construction. The swipe deck lands next.
-            </span>
+            <Link
+              href="/discover"
+              className="rounded-full bg-gradient-to-r from-brand-a to-brand-b px-7 py-3.5 font-semibold text-white shadow-[0_8px_32px_-8px_var(--brand-b)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            >
+              Start swiping
+            </Link>
             <Link
               href="/styleguide"
               className="group inline-flex items-center gap-1.5 font-medium text-like text-sm"
