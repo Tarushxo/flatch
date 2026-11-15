@@ -1,6 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 import { getDb, hasDatabase } from "@repo/db";
-import { type Account, CITIES, MESSAGE_MAX_LENGTH, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
+import {
+  type Account,
+  CITIES,
+  hasCheckedIn,
+  MESSAGE_MAX_LENGTH,
+  preferencesToFilters,
+  ROOM_TYPES,
+  SWIPE_ACTIONS,
+} from "@repo/shared";
 import {
   DevicePositionSchema,
   FeedFiltersSchema,
@@ -63,6 +71,14 @@ const FeedQuerySchema = z.object({
   cursor: z.string().max(200).optional(),
 });
 
+/** What the page asks for as it opens: `deck=1` when it is the deck, plus any filters in its address. */
+const StartQuerySchema = z.object({
+  deck: z.literal("1").optional(),
+  max: z.coerce.number().int().positive().optional(),
+  area: many(z.string().min(1).max(80)),
+  room: many(z.enum(ROOM_TYPES)),
+});
+
 const SwipeBatchSchema = z.object({
   swipes: z
     .array(
@@ -99,6 +115,42 @@ const routes = new Hono<Env>()
   .get("/me", async (c) =>
     c.json({ profile: await getProfile(getDb(), c.get("userId")), account: c.get("account") }),
   )
+
+  /**
+   * Everything a page needs as it opens, in one trip: who the person is and,
+   * for the deck, its first cards. The page asks for this before its own code
+   * has loaded, so the first card is not kept waiting behind two requests made
+   * one after the other. The deck starts from the saved preferences, or from
+   * the filters in the page's address if it carries any (the same rule the app
+   * itself uses), and the answer says which filters were used.
+   */
+  .get("/start", zValidator("query", StartQuerySchema, invalid), async (c) => {
+    const query = c.req.valid("query");
+    const db = getDb();
+    const profile = await getProfile(db, c.get("userId"));
+    const account = c.get("account");
+    // Only someone who will be shown the deck gets one dealt.
+    if (query.deck !== "1" || profile.mode !== "tenant" || !hasCheckedIn(profile)) {
+      return c.json({ profile, account, deck: null });
+    }
+    const saved = preferencesToFilters(profile.preferences);
+    const inAddress = query.max !== undefined || query.area.length > 0 || query.room.length > 0;
+    const filters = inAddress
+      ? {
+          city: saved.city,
+          budgetMax: query.max ?? null,
+          localities: query.area,
+          roomTypes: query.room,
+        }
+      : saved;
+    const page = await getFeedPage(db, {
+      filters,
+      viewer: viewer(c),
+      cursor: null,
+      tenant: profile.preferences,
+    });
+    return c.json({ profile, account, deck: { filters, page } });
+  })
 
   .patch("/me/tenant-profile", zValidator("json", TenantProfileSchema, invalid), async (c) =>
     c.json({ profile: await saveProfile(getDb(), c.get("userId"), c.req.valid("json")) }),

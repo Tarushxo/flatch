@@ -21,6 +21,7 @@ import {
   startGuestSession,
 } from "@/lib/auth/client";
 import { preparePhoto, sendPhoto } from "@/lib/photo-upload";
+import { dropEarly, sameFilters, takeEarly } from "@/lib/start/early";
 import type { Api } from "./client";
 
 /*
@@ -96,8 +97,14 @@ function forgetBrowserCopies() {
 }
 
 export const httpApi: Api = {
-  getFeed: (cursor, filters) =>
-    answer<FeedPage>(() => v1.feed.$get({ query: feedQuery(filters, cursor) })),
+  getFeed: async (cursor, filters) => {
+    // The page may already have asked for the top of this very deck (lib/start).
+    if (cursor === null) {
+      const early = (await takeEarly("deck"))?.deck;
+      if (early && sameFilters(early.filters, filters)) return early.page;
+    }
+    return answer<FeedPage>(() => v1.feed.$get({ query: feedQuery(filters, cursor) }));
+  },
 
   countFeed: async (filters) =>
     (await answer<{ count: number }>(() => v1.feed.count.$post({ json: filters }))).count,
@@ -120,16 +127,18 @@ export const httpApi: Api = {
     await answer(() => v1.swipes["reset-passes"].$post());
   },
 
-  getProfile: async () => (await me()).profile,
+  getProfile: async () => ((await takeEarly("profile")) ?? (await me())).profile,
 
-  getAccount: async () => (await me()).account,
+  getAccount: async () => ((await takeEarly("account")) ?? (await me())).account,
 
-  saveProfile: async (profile) =>
-    (
+  saveProfile: async (profile) => {
+    dropEarly();
+    return (
       await answer<{ profile: TenantProfile }>(() =>
         v1.me["tenant-profile"].$patch({ json: profile }),
       )
-    ).profile,
+    ).profile;
+  },
 
   /**
    * Leave for good: the account and everything of this person's on the server
@@ -137,6 +146,7 @@ export const httpApi: Api = {
    * recent sign-in first), the person is at least signed out of this browser.
    */
   resetProfile: async () => {
+    dropEarly();
     const session = await authClient.getSession();
     const guest = Boolean(
       (session.data?.user as { isAnonymous?: boolean } | undefined)?.isAnonymous,

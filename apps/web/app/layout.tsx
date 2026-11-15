@@ -58,8 +58,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${tiltNeon.variable} ${logoFace.variable}`}
     >
       <head>
-        {/* Photos come from another server. Connecting early saves the first photo a round trip. */}
-        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        {/* Photos come from other servers. Connecting early saves the first photo a few round
+            trips. No crossOrigin here: photos are plain <img> requests, and a connection opened
+            for the other kind would not be reused for them. */}
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body className="min-h-dvh">{children}</body>
     </html>

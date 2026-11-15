@@ -3,9 +3,14 @@ import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
 import { AppNav } from "@/components/app-shell/app-nav";
 import { OnboardingGate } from "@/components/app-shell/onboarding-gate";
+import { HeadStart } from "@/components/head-start";
 import { Logo } from "@/components/logo";
 import { MatchWatcher } from "@/components/match/match-watcher";
 import { Providers } from "@/components/providers";
+import { earlyStartScript } from "@/lib/start/early-script";
+
+/** With no server to ask (the in-browser stand-in), there is no head start to take. */
+const HEAD_START = process.env.NEXT_PUBLIC_DATA_SOURCE === "api" ? earlyStartScript() : null;
 
 /**
  * The signed-in app's frame. On a phone: logo on top, screen in the middle,
@@ -15,6 +20,8 @@ import { Providers } from "@/components/providers";
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <Providers>
+      {/* First in the page, so the profile and the deck are asked for before the app's code arrives. */}
+      {HEAD_START ? <HeadStart script={HEAD_START} /> : null}
       {/* data-vaul-drawer-wrapper: this is what steps back when a bottom sheet opens. */}
       <div
         data-vaul-drawer-wrapper=""

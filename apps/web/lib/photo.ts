@@ -17,7 +17,8 @@ export const PHOTO_WIDTHS = {
 
 export type PhotoUse = keyof typeof PHOTO_WIDTHS;
 
-const QUALITY = "60";
+/** How hard demo photos are compressed (Unsplash's `q`). */
+export const PHOTO_QUALITY = "60";
 
 /** The address of a photo at a given pixel width. Unknown hosts are returned unchanged. */
 export function photoUrl(url: string, width: number): string {
@@ -32,7 +33,7 @@ export function photoUrl(url: string, width: number): string {
   parsed.searchParams.set("auto", "format");
   parsed.searchParams.set("fit", "crop");
   parsed.searchParams.set("w", String(width));
-  parsed.searchParams.set("q", QUALITY);
+  parsed.searchParams.set("q", PHOTO_QUALITY);
   return parsed.toString();
 }
 

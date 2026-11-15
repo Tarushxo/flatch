@@ -192,7 +192,13 @@ export function publicListings(db: Db) {
 
 export async function getFeedPage(
   db: Db,
-  input: { filters: FeedFilters; viewer: Viewer; cursor: string | null },
+  input: {
+    filters: FeedFilters;
+    viewer: Viewer;
+    cursor: string | null;
+    /** What the person is looking for, when the caller has already read it. Saves a lookup. */
+    tenant?: ScoredTenant;
+  },
 ): Promise<FeedPage> {
   const today = new Date();
   // Both at once: the flats that could be in the deck, and what the person is looking for.
@@ -201,7 +207,7 @@ export async function getFeedPage(
       .where(inDeck(db, input.filters, input.viewer))
       .orderBy(desc(listings.publishedAt), asc(listings.id))
       .limit(CANDIDATE_LIMIT),
-    tenantFor(db, input.viewer?.userId ?? null),
+    input.tenant ?? tenantFor(db, input.viewer?.userId ?? null),
   ]);
   const tenant = saved ?? DEFAULT_PREFERENCES;
 

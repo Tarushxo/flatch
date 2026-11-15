@@ -55,10 +55,15 @@ export function useDeck() {
     if (feed.data) addCards(feed.data.pages.flatMap((page) => page.items));
   }, [feed.data, addCards]);
 
-  // Top up before the deck runs dry.
+  // Top up before the deck runs dry. The count is read from the store as it is now, not as
+  // it was when this screen was last drawn: when a page arrives, the effect above has just
+  // put its cards in, and going by the old count (none) asked for a second page at once,
+  // on every visit, in competition with the first photo.
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = feed;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cards.length is what says the deck changed
   useEffect(() => {
-    if (cards.length <= REFILL_AT && hasNextPage && !isFetchingNextPage) fetchNextPage();
+    const inHand = useDeckStore.getState().cards.length;
+    if (inHand <= REFILL_AT && hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [cards.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Send queued swipes in the background.
