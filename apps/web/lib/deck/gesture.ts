@@ -7,6 +7,8 @@
 export type Point = { x: number; y: number };
 export type Size = { width: number; height: number };
 export type DeckAction = "like" | "pass" | "save";
+/** Everything a drag can mean. "details" opens the flat's details; the card stays in the deck. */
+export type DeckGesture = DeckAction | "details";
 
 export const SWIPE = {
   /** Drag past this share of the card's width to like or pass. */
@@ -15,20 +17,27 @@ export const SWIPE = {
   flickVelocity: 600,
   /** Drag up past this share of the card's height to save. */
   saveRatio: 0.3,
+  /** Pull down past this share of the card's height to open the details. */
+  detailsRatio: 0.15,
   /** Degrees of tilt when the card has been dragged one full width. */
   maxRotation: 12,
   /** How much of an upward / downward drag the card visibly follows. */
   upwardFollow: 0.85,
-  downwardFollow: 0.35,
+  downwardFollow: 0.5,
 } as const;
 
-/** What a released drag means: an action, or null to spring back. */
-export function decideSwipe(offset: Point, velocity: Point, size: Size): DeckAction | null {
+/** What a released drag means: a gesture, or null to spring back. */
+export function decideSwipe(offset: Point, velocity: Point, size: Size): DeckGesture | null {
   const mostlyVertical = Math.abs(offset.y) > Math.abs(offset.x);
 
   if (mostlyVertical) {
-    const draggedUpFarEnough = offset.y < 0 && -offset.y > size.height * SWIPE.saveRatio;
-    return draggedUpFarEnough ? "save" : null;
+    if (offset.y < 0) {
+      return -offset.y > size.height * SWIPE.saveRatio ? "save" : null;
+    }
+    // A pull down, or a quick downward flick, asks for the details.
+    const pulledFarEnough = offset.y > size.height * SWIPE.detailsRatio;
+    const flickedDown = velocity.y > SWIPE.flickVelocity && offset.y > 16;
+    return pulledFarEnough || flickedDown ? "details" : null;
   }
 
   // A fast flick wins, in the direction it is moving, even after a short drag.
@@ -44,20 +53,30 @@ export function decideSwipe(offset: Point, velocity: Point, size: Size): DeckAct
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 /** How lit each stamp is, 0 to 1. At most one is non-zero. */
-export function stampOpacity(offset: Point, size: Size): Record<DeckAction, number> {
+export function stampOpacity(offset: Point, size: Size): Record<DeckGesture, number> {
   const mostlyVertical = Math.abs(offset.y) > Math.abs(offset.x);
   if (mostlyVertical) {
     return {
       like: 0,
       pass: 0,
       save: offset.y < 0 ? clamp01(-offset.y / (size.height * SWIPE.saveRatio)) : 0,
+      details: offset.y > 0 ? clamp01(offset.y / (size.height * SWIPE.detailsRatio)) : 0,
     };
   }
   const strength = clamp01(Math.abs(offset.x) / (size.width * SWIPE.distanceRatio));
-  return { like: offset.x > 0 ? strength : 0, pass: offset.x < 0 ? strength : 0, save: 0 };
+  return {
+    like: offset.x > 0 ? strength : 0,
+    pass: offset.x < 0 ? strength : 0,
+    save: 0,
+    details: 0,
+  };
 }
 
-/** How close the drag is to committing, 0 to 1. Drives the card behind and the haptic tick. */
+/**
+ * How close the drag is to sending the card away, 0 to 1. Drives the card
+ * behind and the haptic tick. A pull down for details does not count: the
+ * card is staying, so the one behind should not move.
+ */
 export function dragProgress(offset: Point, size: Size): number {
   const stamps = stampOpacity(offset, size);
   return Math.max(stamps.like, stamps.pass, stamps.save);
@@ -73,7 +92,7 @@ export function rotationFor(x: number, width: number, grabbedBottomHalf: boolean
   return grabbedBottomHalf ? -degrees : degrees;
 }
 
-/** How far the card visibly moves for a vertical drag (it resists being pulled down). */
+/** How far the card visibly moves for a vertical drag. It resists a pull down, because it is not leaving. */
 export function followY(y: number): number {
   return y < 0 ? y * SWIPE.upwardFollow : y * SWIPE.downwardFollow;
 }

@@ -95,12 +95,13 @@ Deferred to first like: photo, name, age range, gender, occupation, bio, two Hin
 - Drag moves the top card in x and (dampened) y. Rotation = `x / cardWidth × 12°`; the sign flips when the card is grabbed in its bottom half, the way a physical card pivots.
 - Commit when `|x| > 35%` of card width **or** horizontal velocity `> 600 px/s`. The card then flies out along its velocity vector in 250–350 ms. Otherwise it springs back (stiffness ≈ 300, damping ≈ 25).
 - A mostly-vertical drag past 30% of card height is `save`.
-- Stamps fade in with drag distance: **MOVE IN** (cyan, right), **PASS** (coral, left), **MAYBE** (amber, up), set in the neon display face.
+- A mostly-vertical pull **down** past 15% of card height (or a quick downward flick) opens the details. The card does not leave: it follows the finger at half speed, shows a **DETAILS** stamp, and settles back as the details open. The card behind does not move.
+- Stamps fade in with drag distance: **MOVE IN** (cyan, right), **PASS** (coral, left), **MAYBE** (amber, up), **DETAILS** (violet, down), set in the neon display face.
 - The card's edge glow shifts toward the action colour as the drag progresses. The card behind scales `0.94 → 1`, rises 12 px and brightens.
 - A short haptic tick fires when the threshold is crossed (`navigator.vibrate(10)`; a no-op on iOS).
 - Animate only `transform` and `opacity`. Set `touch-action` so horizontal drags never scroll the page, and `overscroll-behavior: none` so pull-to-refresh never fires.
 
-**Buttons and keyboard.** Below the deck: Pass, Undo, Save, Like. Keyboard: `←` pass, `→` like, `↑` save, `Z` undo, `Space` details, `A`/`D` previous/next photo. Every gesture has a button and a key equivalent; swiping is never the only way to act.
+**Buttons and keyboard.** Below the deck: Pass, Undo, Save, Like. Keyboard: `←` pass, `→` like, `↑` save, `↓` or `Space` details, `Z` undo, `A`/`D` previous/next photo. Every gesture has a button and a key equivalent; swiping is never the only way to act.
 
 **Optimistic swipes.** The card leaves immediately. Swipes go into a client queue, each with a client-generated id, and are sent in small batches with retry and backoff. The server treats repeats as no-ops. If a swipe fails permanently, show a toast and put the card back.
 

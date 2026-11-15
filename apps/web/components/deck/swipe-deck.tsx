@@ -19,7 +19,7 @@ const SHORTCUTS = [
   ["→", "like"],
   ["↑", "save"],
   ["Z", "undo"],
-  ["Space", "details"],
+  ["↓", "details"],
   ["A / D", "photos"],
 ] as const;
 
@@ -93,6 +93,9 @@ export function SwipeDeck({
         break;
       case "ArrowUp":
         act("save");
+        break;
+      case "ArrowDown":
+        openDetails();
         break;
       case "z":
       case "Z":

@@ -41,8 +41,22 @@ describe("decideSwipe", () => {
     expect(decideSwipe({ x: 20, y: -179 }, still, card)).toBeNull();
   });
 
-  it("does nothing for a drag downwards", () => {
-    expect(decideSwipe({ x: 0, y: 400 }, still, card)).toBeNull();
+  it("opens the details on a pull down past 15% of the height", () => {
+    expect(decideSwipe({ x: 0, y: 91 }, still, card)).toBe("details");
+    expect(decideSwipe({ x: 10, y: 400 }, still, card)).toBe("details");
+  });
+
+  it("springs back from a short pull down", () => {
+    expect(decideSwipe({ x: 0, y: 89 }, still, card)).toBeNull();
+  });
+
+  it("opens the details on a quick downward flick", () => {
+    expect(decideSwipe({ x: 0, y: 30 }, { x: 0, y: 700 }, card)).toBe("details");
+    expect(decideSwipe({ x: 0, y: 10 }, { x: 0, y: 700 }, card)).toBeNull();
+  });
+
+  it("does not treat a mostly-sideways drag that drifts down as details", () => {
+    expect(decideSwipe({ x: 120, y: 100 }, still, card)).toBeNull();
   });
 
   it("treats a diagonal drag by its larger direction", () => {
@@ -53,9 +67,11 @@ describe("decideSwipe", () => {
 
 describe("stampOpacity and dragProgress", () => {
   it("lights one stamp at a time, in proportion to the drag", () => {
-    expect(stampOpacity({ x: 70, y: 0 }, card)).toEqual({ like: 0.5, pass: 0, save: 0 });
-    expect(stampOpacity({ x: -70, y: 0 }, card)).toEqual({ like: 0, pass: 0.5, save: 0 });
-    expect(stampOpacity({ x: 0, y: -90 }, card)).toEqual({ like: 0, pass: 0, save: 0.5 });
+    const none = { like: 0, pass: 0, save: 0, details: 0 };
+    expect(stampOpacity({ x: 70, y: 0 }, card)).toEqual({ ...none, like: 0.5 });
+    expect(stampOpacity({ x: -70, y: 0 }, card)).toEqual({ ...none, pass: 0.5 });
+    expect(stampOpacity({ x: 0, y: -90 }, card)).toEqual({ ...none, save: 0.5 });
+    expect(stampOpacity({ x: 0, y: 45 }, card)).toEqual({ ...none, details: 0.5 });
   });
 
   it("is fully lit exactly where a release would commit", () => {
@@ -64,7 +80,7 @@ describe("stampOpacity and dragProgress", () => {
     expect(dragProgress({ x: 0, y: -180 }, card)).toBe(1);
   });
 
-  it("shows nothing for a downward drag or no drag", () => {
+  it("does not move the card behind for a pull down, because the top card is staying", () => {
     expect(dragProgress({ x: 0, y: 300 }, card)).toBe(0);
     expect(dragProgress(still, card)).toBe(0);
   });
@@ -88,7 +104,7 @@ describe("rotationFor", () => {
 describe("followY", () => {
   it("follows an upward drag closely and resists a downward one", () => {
     expect(followY(-100)).toBe(-85);
-    expect(followY(100)).toBe(35);
+    expect(followY(100)).toBe(50);
   });
 });
 

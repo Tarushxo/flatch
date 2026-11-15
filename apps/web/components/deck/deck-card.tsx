@@ -45,6 +45,12 @@ const STAMPS = [
     colour: "var(--save)",
     place: "bottom-40 left-1/2 -translate-x-1/2 -rotate-6",
   },
+  {
+    action: "details",
+    label: "DETAILS",
+    colour: "var(--brand-a)",
+    place: "top-28 left-1/2 -translate-x-1/2",
+  },
 ] as const;
 
 function viewport() {
@@ -107,6 +113,7 @@ export function DeckCard({
     like: useTransform(() => stampOpacity({ x: x.get(), y: y.get() }, size.current).like),
     pass: useTransform(() => stampOpacity({ x: x.get(), y: y.get() }, size.current).pass),
     save: useTransform(() => stampOpacity({ x: x.get(), y: y.get() }, size.current).save),
+    details: useTransform(() => stampOpacity({ x: x.get(), y: y.get() }, size.current).details),
   };
 
   /** The top card tells the rest of the deck how far it has been dragged. */
@@ -183,13 +190,15 @@ export function DeckCard({
 
   function onPanEnd(_event: PointerEvent, info: PanInfo) {
     if (flying.current) return;
-    const action = decideSwipe(info.offset, info.velocity, size.current);
-    if (action) {
-      flyOut(action, info.offset, info.velocity);
-    } else {
-      animate(x, 0, SPRING_BACK);
-      animate(y, 0, SPRING_BACK);
+    const gesture = decideSwipe(info.offset, info.velocity, size.current);
+    if (gesture && gesture !== "details") {
+      flyOut(gesture, info.offset, info.velocity);
+      return;
     }
+    // The card stays: it settles back, and a pull down opens the details.
+    animate(x, 0, SPRING_BACK);
+    animate(y, 0, SPRING_BACK);
+    if (gesture === "details") onOpenDetails();
   }
 
   /** A tap on the left or right third of the photo flips through the photos. */
