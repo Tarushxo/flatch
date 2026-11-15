@@ -27,6 +27,8 @@ type DeckState = {
   takeOutbox: () => PendingSwipe[];
   /** Put cards back on top after their swipes could not be saved. */
   reinstate: (failed: PendingSwipe[]) => void;
+  /** Empty the deck for a new set of filters. Swipes still waiting to be sent are kept. */
+  clearCards: () => void;
   reset: () => void;
 };
 
@@ -94,6 +96,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
         last: state.last && failedIds.has(state.last.swipe.clientId) ? null : state.last,
       };
     }),
+
+  clearCards: () => set({ cards: [], known: new Set(), returning: null }),
 
   reset: () => set({ cards: [], known: new Set(), last: null, outbox: [], returning: null }),
 }));

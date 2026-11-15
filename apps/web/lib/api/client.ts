@@ -1,4 +1,4 @@
-import type { FeedPage, Listing, Swipe } from "@repo/shared";
+import type { FeedFilters, FeedPage, Listing, Swipe } from "@repo/shared";
 import { mockApi } from "./mock";
 
 /**
@@ -8,7 +8,11 @@ import { mockApi } from "./mock";
  */
 export interface Api {
   /** One page of the ranked feed. Pass the previous page's `nextCursor` to continue. */
-  getFeed(cursor: string | null): Promise<FeedPage>;
+  getFeed(cursor: string | null, filters: FeedFilters): Promise<FeedPage>;
+  /** How many flats the filters would leave in the deck. Powers the live counter. */
+  countFeed(filters: FeedFilters): Promise<number>;
+  /** The areas a tenant can filter by, in alphabetical order. */
+  getLocalities(): Promise<string[]>;
   /** Record a batch of swipes. Safe to retry: repeats of a `clientId` are ignored. */
   sendSwipes(swipes: Swipe[]): Promise<void>;
   /** Take back a swipe so the listing can be shown again. */

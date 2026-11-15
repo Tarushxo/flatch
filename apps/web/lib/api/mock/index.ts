@@ -1,4 +1,10 @@
-import { FeedPageSchema, type Swipe, type SwipeAction, SwipeSchema } from "@repo/shared";
+import {
+  FeedPageSchema,
+  matchesFilters,
+  type Swipe,
+  type SwipeAction,
+  SwipeSchema,
+} from "@repo/shared";
 import type { Api } from "../client";
 import { MOCK_LISTINGS } from "./listings";
 
@@ -21,15 +27,28 @@ function delay(ms: number) {
 }
 
 export const mockApi: Api = {
-  async getFeed(cursor) {
+  async getFeed(cursor, filters) {
     await delay(450);
+    // The cursor is a position in the list of flats that pass the filters.
+    const matching = ranked.filter((listing) => matchesFilters(listing, filters));
     const start = cursor ? Number.parseInt(cursor, 10) : 0;
-    const window = ranked.slice(start, start + PAGE_SIZE);
+    const window = matching.slice(start, start + PAGE_SIZE);
     const end = start + window.length;
     return FeedPageSchema.parse({
       items: window.filter((listing) => !swipes.has(listing.id)),
-      nextCursor: end < ranked.length ? String(end) : null,
+      nextCursor: end < matching.length ? String(end) : null,
     });
+  },
+
+  async countFeed(filters) {
+    await delay(120);
+    return ranked.filter((listing) => !swipes.has(listing.id) && matchesFilters(listing, filters))
+      .length;
+  },
+
+  async getLocalities() {
+    await delay(120);
+    return [...new Set(MOCK_LISTINGS.map((listing) => listing.locality))].sort();
   },
 
   async sendSwipes(batch: Swipe[]) {

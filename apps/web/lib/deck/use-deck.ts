@@ -1,9 +1,11 @@
 "use client";
 
+import { countActiveFilters } from "@repo/shared";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
+import { useFilterStore } from "./filters";
 import { type PendingSwipe, useDeckStore } from "./store";
 
 const FEED_KEY = ["feed"] as const;
@@ -24,14 +26,29 @@ export function useDeck() {
   const outboxSize = useDeckStore((state) => state.outbox.length);
   const addCards = useDeckStore((state) => state.addCards);
 
+  const filters = useFilterStore((state) => state.filters);
+  const clearFilters = useFilterStore((state) => state.clearFilters);
+
   const feed = useInfiniteQuery({
-    queryKey: FEED_KEY,
-    queryFn: ({ pageParam }) => api.getFeed(pageParam),
+    // One feed per set of filters. Old ones are dropped at once (gcTime 0), so
+    // coming back to a filter always asks the server again.
+    queryKey: [...FEED_KEY, filters],
+    queryFn: ({ pageParam }) => api.getFeed(pageParam, filters),
+    gcTime: 0,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnWindowFocus: false,
   });
+
+  // New filters mean a new deck: drop the cards that belonged to the old ones.
+  const filterKey = JSON.stringify(filters);
+  const lastFilterKey = useRef(filterKey);
+  useEffect(() => {
+    if (lastFilterKey.current === filterKey) return;
+    lastFilterKey.current = filterKey;
+    useDeckStore.getState().clearCards();
+  }, [filterKey]);
 
   // Move fetched pages into the deck. The store ignores anything it has seen before.
   useEffect(() => {
@@ -80,6 +97,8 @@ export function useDeck() {
     canUndo,
     undo,
     revisitPassed,
+    clearFilters,
+    isFiltered: countActiveFilters(filters) > 0,
     retry: () => feed.refetch(),
     isLoading: empty && (feed.isPending || feed.isFetching),
     isError: empty && feed.isError,

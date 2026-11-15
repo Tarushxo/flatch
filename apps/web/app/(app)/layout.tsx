@@ -13,7 +13,11 @@ import { Providers } from "@/components/providers";
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <Providers>
-      <div className="relative isolate flex h-dvh overflow-hidden">
+      {/* data-vaul-drawer-wrapper: this is what steps back when a bottom sheet opens. */}
+      <div
+        data-vaul-drawer-wrapper=""
+        className="relative isolate flex h-dvh overflow-hidden bg-ink"
+      >
         <Ambient />
 
         <aside className="hidden w-60 shrink-0 flex-col gap-10 border-hairline border-r px-5 py-6 lg:flex">

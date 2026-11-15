@@ -10,6 +10,8 @@ import {
   Heart,
   Info,
   Key,
+  MapPin,
+  SlidersHorizontal,
   Trash,
   User,
   X,
@@ -34,10 +36,12 @@ export const BookmarkIcon = themed(BookmarkSimple);
 export const CardsIcon = themed(Cards);
 export const CheckIcon = themed(Check);
 export const CrossIcon = themed(X);
+export const FiltersIcon = themed(SlidersHorizontal);
 export const GithubIcon = themed(GithubLogo);
 export const HeartIcon = themed(Heart);
 export const InfoIcon = themed(Info);
 export const KeyIcon = themed(Key);
+export const MapPinIcon = themed(MapPin);
 export const SwipeIcon = themed(HandSwipeRight);
 export const TrashIcon = themed(Trash);
 export const UndoIcon = themed(ArrowCounterClockwise);

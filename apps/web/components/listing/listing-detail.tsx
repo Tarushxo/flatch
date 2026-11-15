@@ -1,9 +1,10 @@
-import { FURNISHING_LABELS, formatRupees, type Listing, ROOM_TYPE_LABELS } from "@repo/shared";
+import { FURNISHING_LABELS, type Listing, ROOM_TYPE_LABELS } from "@repo/shared";
 import type { ReactNode } from "react";
-import { CheckIcon, CrossIcon } from "@/components/icons";
+import { CheckIcon, CrossIcon, MapPinIcon } from "@/components/icons";
 import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
+import { AreaMap } from "./area-map";
 import { CompatRing } from "./compat-ring";
 import { FadeImage } from "./fade-image";
 
@@ -138,10 +139,27 @@ export function ListingDetail({
         </div>
       </Block>
 
-      <p className="rounded-xl border border-hairline border-dashed px-4 py-3 text-fg-3 text-sm">
-        Exact address shared after you match. Deposit is {formatRupees(listing.deposit)}; never pay
-        anything before you have visited.
-      </p>
+      <Block title="Neighbourhood">
+        <AreaMap centre={listing.area} label={listing.locality} />
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {[
+            ...(listing.commuteMinutes === null ? [] : [`${listing.commuteMinutes} min to work`]),
+            ...listing.nearby,
+          ].map((place) => (
+            <li
+              key={place}
+              className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm"
+            >
+              <MapPinIcon className="size-3.5 text-like" />
+              {place}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-fg-3 text-sm">
+          The circle shows the area, not the building. The exact address is shared after you match.
+          Never pay anything before you have visited.
+        </p>
+      </Block>
     </article>
   );
 }

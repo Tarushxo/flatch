@@ -321,3 +321,17 @@
   }
   /* biome-ignore-end lint/complexity/noImportantStyles: end of the reduced-motion override */
 }
+
+/* The map's credits, restyled for the dark theme. They must stay available. */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background-color: rgb(7 7 12 / 0.8);
+  color: var(--text-2);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--like);
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}

@@ -20,8 +20,29 @@ export function DeckLoading() {
   );
 }
 
-/** Shown when every flat that fits has been swiped. */
-export function DeckEmpty({ onRevisit }: { onRevisit: () => void }) {
+/** Shown when every flat that fits has been swiped, or when the filters leave none. */
+export function DeckEmpty({
+  filtered,
+  onRevisit,
+  onClearFilters,
+}: {
+  filtered: boolean;
+  onRevisit: () => void;
+  onClearFilters: () => void;
+}) {
+  if (filtered) {
+    return (
+      <DeckMessage
+        title="Nothing on the menu"
+        body="No flats are left that match your filters. Widen them to see more."
+      >
+        <button type="button" className={QUIET_BUTTON} onClick={onClearFilters}>
+          Clear filters
+        </button>
+      </DeckMessage>
+    );
+  }
+
   return (
     <DeckMessage
       title="Kitchen's closed"

@@ -6,7 +6,8 @@ import { ListingDetail } from "./listing-detail";
 
 /**
  * The flat's details as a bottom sheet, for phones. Drag it down or tap
- * outside to close.
+ * outside to close. As it rises, the screen behind steps back and dims, so
+ * the deck and its details read as two layers of one place.
  */
 export function DetailSheet({
   listing,
@@ -16,7 +17,11 @@ export function DetailSheet({
   onClose: () => void;
 }) {
   return (
-    <Drawer.Root open={listing !== null} onOpenChange={(open) => !open && onClose()}>
+    <Drawer.Root
+      open={listing !== null}
+      onOpenChange={(open) => !open && onClose()}
+      shouldScaleBackground
+    >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-ink/70 backdrop-blur-sm" />
         <Drawer.Content

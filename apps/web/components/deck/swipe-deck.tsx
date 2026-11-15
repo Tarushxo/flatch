@@ -136,7 +136,13 @@ export function SwipeDeck({
       <div className="relative mx-auto min-h-0 w-full max-w-[26rem] flex-1">
         {deck.isLoading ? <DeckLoading /> : null}
         {deck.isError ? <DeckError onRetry={deck.retry} /> : null}
-        {deck.isExhausted ? <DeckEmpty onRevisit={deck.revisitPassed} /> : null}
+        {deck.isExhausted ? (
+          <DeckEmpty
+            filtered={deck.isFiltered}
+            onRevisit={deck.revisitPassed}
+            onClearFilters={deck.clearFilters}
+          />
+        ) : null}
 
         {top ? <DeckHints /> : null}
 

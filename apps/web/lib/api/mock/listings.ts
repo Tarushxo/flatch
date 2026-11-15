@@ -140,6 +140,42 @@ const EXPECT = {
   easy: ["Pay rent by the 5th", "Tell us before guests stay over", "Be kind to the cat"],
 };
 
+// Approximate centres of real Bangalore localities.
+const LOCALITY_CENTRES: Record<string, { lat: number; lng: number }> = {
+  "HSR Layout": { lat: 12.9116, lng: 77.6474 },
+  Indiranagar: { lat: 12.9719, lng: 77.6412 },
+  Jayanagar: { lat: 12.9308, lng: 77.5838 },
+  Bellandur: { lat: 12.9304, lng: 77.6784 },
+  Koramangala: { lat: 12.9352, lng: 77.6245 },
+  "BTM Layout": { lat: 12.9166, lng: 77.6101 },
+  Domlur: { lat: 12.961, lng: 77.6387 },
+  Whitefield: { lat: 12.9698, lng: 77.75 },
+  "JP Nagar": { lat: 12.9063, lng: 77.5857 },
+  Hebbal: { lat: 13.0358, lng: 77.597 },
+  Marathahalli: { lat: 12.9591, lng: 77.6974 },
+  Malleshwaram: { lat: 13.0031, lng: 77.5643 },
+  "Electronic City": { lat: 12.8452, lng: 77.6602 },
+};
+const CITY_CENTRE = { lat: 12.9716, lng: 77.5946 };
+
+/** A point a few hundred metres from the locality centre, different for each flat. */
+function areaFor(locality: string, position: number) {
+  const centre = LOCALITY_CENTRES[locality] ?? CITY_CENTRE;
+  const angle = position * 2.4;
+  const reach = 0.002 + (position % 4) * 0.0012;
+  return {
+    lat: Number((centre.lat + Math.sin(angle) * reach).toFixed(5)),
+    lng: Number((centre.lng + Math.cos(angle) * reach).toFixed(5)),
+  };
+}
+
+const NEARBY = [
+  ["Metro 600 m", "Grocery 200 m", "Gym nearby"],
+  ["Bus stop 150 m", "Park 300 m", "Pharmacy 250 m"],
+  ["Metro 1.1 km", "Supermarket 400 m", "Cafes on the street"],
+  ["Tech park 900 m", "Hospital 1.5 km", "Grocery 300 m"],
+];
+
 type Spec = Pick<
   Listing,
   | "title"
@@ -607,6 +643,8 @@ export const MOCK_LISTINGS: Listing[] = SPECS.map((spec, position) => {
     deposit: spec.rent * depositMonths,
     availableFrom: inDays(availableIn),
     photos: photosFor(position),
+    area: areaFor(spec.locality, position),
+    nearby: NEARBY[position % NEARBY.length] ?? [],
     houseRules: RULES[rules],
     societyRules: SOCIETY[society],
     expectations: EXPECT[expect],
