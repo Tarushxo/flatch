@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms" updated="15 November 2026">
+    <LegalPage title="Terms" updated="16 November 2026">
       <LegalSection title="What this is">
         <p>
           {APP_NAME} is a personal portfolio project that shows how a flat and flatmate finder could
@@ -36,8 +36,10 @@ export default function TermsPage() {
       <LegalSection title="What to expect">
         <p>
           It is provided as it is, free, with no promise that it will be available, correct or kept.
-          Accounts and data may be reset or removed at any time, for example to tidy the demo. Posts
-          that break these rules may be taken down and their accounts closed.
+          Accounts and data may be reset or removed at any time, for example to tidy the demo. A
+          posted flat comes off the board after thirty days unless you say it is still available,
+          and one that several people report is taken off the board. Posts that break these rules
+          may be taken down and their accounts closed.
         </p>
       </LegalSection>
 
