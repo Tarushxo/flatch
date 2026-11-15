@@ -10,6 +10,7 @@ import {
   Check,
   DotsThree,
   GithubLogo,
+  GoogleLogo,
   HandSwipeRight,
   Heart,
   Info,
@@ -49,6 +50,7 @@ export const CheckIcon = themed(Check);
 export const CrossIcon = themed(X);
 export const FiltersIcon = themed(SlidersHorizontal);
 export const GithubIcon = themed(GithubLogo);
+export const GoogleIcon = themed(GoogleLogo);
 export const HeartIcon = themed(Heart);
 export const InfoIcon = themed(Info);
 export const DirectionsIcon = themed(NavigationArrow);

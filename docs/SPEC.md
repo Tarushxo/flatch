@@ -544,7 +544,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0 is done. M1 is done and live. Every screen exists on the mock API: the match flow, the tenant side and the lister side (see 3.6); only the profile prompt at the first like is missing. **M2 is done:** the Neon database (US East, created through Vercel's storage tab) holds the 142 demo flats, and the deck, filters, live count, swipes, undo and saved flats run on it through the API. Checked end to end: a swiped flat does not come back after a reload, and the feed answers in about 300 ms from India in one database round trip. Next: M3 accounts, M4 real matching, M5 feed engine, M6 scale.
+**Progress (15 Nov 2026).** M0, M1 and M2 are done and live. Every screen exists on the mock API (see 3.6); only the profile prompt at the first like is missing. **M3 is in progress.** Done: guest accounts for every visitor (Better Auth), the profile and preferences stored in the database, check-out that deletes the guest, and Google sign-in wired up but switched off until its two keys are set. Still to do for M3: the Google keys, "Try the demo" with a persona, the profile prompt at the first like, and posting a flat to the database with photo uploads. Then M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 
@@ -575,6 +575,16 @@ _As built._ `packages/db` holds the Drizzle schema (users, localities, listings,
 **M3. Accounts and onboarding**
 Better Auth (Google + guest), "Try the demo", tenant onboarding with the live match counter, profile-at-first-like, lister onboarding and the create-listing wizard with signed uploads.
 _Done when:_ a stranger reaches a personalised feed in under 10 seconds via the demo, and a Google user can publish a listing with photos.
+
+_As built so far._ Sign-in is Better Auth, mounted by the API at `/api/auth/*`, with its tables in `packages/db` (`users`, `sessions`, `accounts`, `verifications`) and UUID ids. Choices made where the plan was silent:
+
+- **Everyone is a guest first.** The app starts a guest session the first time it needs one (`apps/web/lib/auth/client.ts`); nobody sees a sign-in wall. Every `/api/v1` route needs a session and answers 401 without one, and the app then starts a new one and retries once. This replaces M2's visitor cookie.
+- **Signing in with Google** carries the guest's swipes and profile to the account (`moveGuestData`). Untested until the keys exist.
+- **Profile storage.** The name and "about" live on the user; the rest is one `profiles` row with the preferences kept whole as JSON. M5 will pull out the columns it needs to rank by.
+- **Session cookie signing.** `BETTER_AUTH_SECRET` if set, otherwise a key worked out from `DATABASE_URL`, so a deployment needs no extra setting.
+- **Check out** deletes a guest's account and everything of theirs. A signed-in person gets "Sign out" and "Delete my account" instead.
+- **Check-in belongs to the tenant side.** A lister is let in without it; switching to the tenant side takes someone who never answered it to check-in (`hasCheckedIn`).
+- **Browser copy.** The profile is also kept in the browser, because the mock's chats and bot tenants read the person's name from there until M4. Answers given before accounts existed are sent up once.
 
 **M4. The match loop**
 Interests, lister deck, accept/decline, bot responses, match moment, conversations and chat (polling behind the transport interface, then Pusher), in-app notifications, address unlock, report/block.

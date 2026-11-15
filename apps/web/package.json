@@ -17,6 +17,7 @@
     "@repo/feed": "workspace:*",
     "@repo/shared": "workspace:*",
     "@tanstack/react-query": "^5.107.1",
+    "better-auth": "^1.7.24",
     "hono": "^4.13.18",
     "maplibre-gl": "^5.24.1",
     "motion": "^14.14.0",

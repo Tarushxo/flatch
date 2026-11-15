@@ -8,6 +8,13 @@
       "when": 1794756889788,
       "tag": "0000_safe_martin_li",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794759516918,
+      "tag": "0001_classy_zuras",
+      "breakpoints": true
     }
   ]
 }

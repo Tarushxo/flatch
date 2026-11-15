@@ -1,26 +1,24 @@
 import { zValidator } from "@hono/zod-validator";
 import { getDb, hasDatabase } from "@repo/db";
-import { CITIES, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
-import { FeedFiltersSchema } from "@repo/shared/schemas";
+import { type Account, CITIES, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
+import { FeedFiltersSchema, TenantProfileSchema } from "@repo/shared/schemas";
 import { Hono } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
+import { getAuth, googleEnabled } from "./auth";
 import { countFeed, getFeedPage, getLocalityNames } from "./services/feed";
+import { getProfile, saveProfile } from "./services/me";
 import { getSaved, recordSwipes, resetPasses, undoSwipe } from "./services/swipes";
 
 /*
  * The HTTP API, mounted by the web app at /api (see apps/web/app/api). Routes
  * check their input and call a service; the logic lives in the services.
  *
- * Until sign-in arrives (M3) a person is a "visitor": a random id kept in a
- * cookie the page's own scripts cannot read. Swipes are stored against it.
+ * /api/auth/* belongs to the sign-in library. Everything under /api/v1 needs
+ * a session, which every visitor has: the app makes a guest account for anyone
+ * who arrives without one.
  */
 
-const VISITOR_COOKIE = "flatch_visitor";
-const YEAR_SECONDS = 60 * 60 * 24 * 365;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-type Env = { Variables: { visitorId: string; requestId: string } };
+type Env = { Variables: { userId: string; account: Account; requestId: string } };
 
 /** One value or several under the same name in the address, always as a list. */
 const many = <T extends z.ZodType>(item: T) =>
@@ -63,7 +61,13 @@ const invalid = (
     : c.json(problem("invalid_input", "That request was not understood."), 400);
 
 const routes = new Hono<Env>()
-  .get("/health", (c) => c.json({ ok: true, database: hasDatabase() }))
+  .get("/me", async (c) =>
+    c.json({ profile: await getProfile(getDb(), c.get("userId")), account: c.get("account") }),
+  )
+
+  .patch("/me/tenant-profile", zValidator("json", TenantProfileSchema, invalid), async (c) =>
+    c.json({ profile: await saveProfile(getDb(), c.get("userId"), c.req.valid("json")) }),
+  )
 
   .get(
     "/localities",
@@ -83,7 +87,7 @@ const routes = new Hono<Env>()
         localities: query.area,
         roomTypes: query.room,
       },
-      userId: c.get("visitorId"),
+      userId: c.get("userId"),
       cursor: query.cursor ?? null,
     });
     return c.json(page);
@@ -92,18 +96,18 @@ const routes = new Hono<Env>()
   .post("/feed/count", zValidator("json", FeedFiltersSchema, invalid), async (c) => {
     const count = await countFeed(getDb(), {
       filters: c.req.valid("json"),
-      userId: c.get("visitorId"),
+      userId: c.get("userId"),
     });
     return c.json({ count });
   })
 
   .post("/swipes", zValidator("json", SwipeBatchSchema, invalid), async (c) => {
-    await recordSwipes(getDb(), c.get("visitorId"), c.req.valid("json").swipes);
+    await recordSwipes(getDb(), c.get("userId"), c.req.valid("json").swipes);
     return c.json({ ok: true });
   })
 
   .post("/swipes/reset-passes", async (c) => {
-    await resetPasses(getDb(), c.get("visitorId"));
+    await resetPasses(getDb(), c.get("userId"));
     return c.json({ ok: true });
   })
 
@@ -111,38 +115,51 @@ const routes = new Hono<Env>()
     "/swipes/:listingId",
     zValidator("param", z.object({ listingId: z.uuid() }), invalid),
     async (c) => {
-      await undoSwipe(getDb(), c.get("visitorId"), c.req.valid("param").listingId);
+      await undoSwipe(getDb(), c.get("userId"), c.req.valid("param").listingId);
       return c.json({ ok: true });
     },
   )
 
-  .get("/saved", async (c) => c.json({ items: await getSaved(getDb(), c.get("visitorId")) }));
+  .get("/saved", async (c) => c.json({ items: await getSaved(getDb(), c.get("userId")) }));
+
+/** Routes that need to know who is asking. */
+const signedIn = new Hono<Env>()
+  .use(async (c, next) => {
+    const session = await getAuth().api.getSession({ headers: c.req.raw.headers });
+    if (!session) {
+      return c.json(
+        problem("signed_out", "Your session has ended. Reload to start a new one."),
+        401,
+      );
+    }
+    const guest = Boolean((session.user as { isAnonymous?: boolean | null }).isAnonymous);
+    c.set("userId", session.user.id);
+    c.set("account", {
+      isGuest: guest,
+      email: guest ? null : session.user.email,
+      canSignIn: googleEnabled(),
+    });
+    await next();
+  })
+  .route("/", routes);
 
 export const app = new Hono<Env>()
-  .basePath("/api/v1")
+  .basePath("/api")
   .use(async (c, next) => {
     const requestId = crypto.randomUUID();
     c.set("requestId", requestId);
     c.header("x-request-id", requestId);
-
-    let visitorId = getCookie(c, VISITOR_COOKIE);
-    if (!visitorId || !UUID.test(visitorId)) {
-      visitorId = crypto.randomUUID();
-      setCookie(c, VISITOR_COOKIE, visitorId, {
-        httpOnly: true,
-        sameSite: "Lax",
-        secure: new URL(c.req.url).protocol === "https:",
-        path: "/",
-        maxAge: YEAR_SECONDS,
-      });
-    }
-    c.set("visitorId", visitorId);
-
+    await next();
+  })
+  // Sign-in, sign-out and the session itself.
+  .on(["GET", "POST"], "/auth/*", (c) => getAuth().handler(c.req.raw))
+  .get("/v1/health", (c) => c.json({ ok: true, database: hasDatabase(), google: googleEnabled() }))
+  .use("/v1/*", async (c, next) => {
     // Personal answers must never be kept by a shared cache.
     c.header("cache-control", "private, no-store");
     await next();
   })
-  .route("/", routes)
+  .route("/v1", signedIn)
   .notFound((c) => c.json(problem("not_found", "There is nothing at this address."), 404))
   .onError((error, c) => {
     console.error(`[${c.get("requestId")}] ${c.req.method} ${c.req.path}`, error);

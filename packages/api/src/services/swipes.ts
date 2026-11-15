@@ -1,4 +1,4 @@
-import { type Db, listings, swipes, users } from "@repo/db";
+import { type Db, listings, swipes } from "@repo/db";
 import type { Listing, SwipeAction } from "@repo/shared";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { publicListings, toListings } from "./feed";
@@ -36,8 +36,6 @@ export async function recordSwipes(db: Db, userId: string, batch: SwipeInput[]):
   if (latest.size === 0) return;
 
   await db.transaction(async (tx) => {
-    // A visitor becomes a row the first time they do something worth keeping.
-    await tx.insert(users).values({ id: userId, isGuest: true }).onConflictDoNothing();
     await tx
       .insert(swipes)
       .values([...latest.values()].map((swipe) => ({ userId, ...swipe })))

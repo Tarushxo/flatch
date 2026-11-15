@@ -20,7 +20,7 @@ function fullRow(index: number) {
     createdAt: TODAY,
     city: locality.city,
     locality: locality.name,
-    listerName: lister.displayName ?? "",
+    listerName: lister.name ?? "",
     listerAbout: lister.about ?? "",
   };
 }

@@ -17,11 +17,12 @@ import {
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { GoogleIcon } from "@/components/icons";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { api } from "@/lib/api/client";
 import { initial } from "@/lib/names";
 import { useSwitchMode } from "@/lib/profile/use-mode";
-import { useProfile, useSaveProfile } from "@/lib/profile/use-profile";
+import { useAccount, useProfile, useSaveProfile } from "@/lib/profile/use-profile";
 
 const SIDES = [
   { mode: "tenant", sign: "Find a flat", label: "Swipe on rooms and flats" },
@@ -48,6 +49,8 @@ export function ProfileScreen() {
   const [draft, setDraft] = useState<About | null>(null);
   const [leaving, setLeaving] = useState(false);
   const { switchTo, switching } = useSwitchMode();
+  const account = useAccount();
+  const signedIn = account.data ? !account.data.isGuest : false;
 
   useEffect(() => {
     if (profile.data && draft === null) setDraft(aboutOf(profile.data));
@@ -79,6 +82,23 @@ export function ProfileScreen() {
         onError: () => toast.error("That didn't save. Try again in a moment."),
       },
     );
+  }
+
+  async function signIn() {
+    try {
+      await api.signInWithGoogle();
+    } catch {
+      toast.error("Couldn't reach Google just now. Try again in a moment.");
+    }
+  }
+
+  async function signOut() {
+    try {
+      await api.signOut();
+      window.location.assign("/");
+    } catch {
+      toast.error("Couldn't sign out just now. Try again in a moment.");
+    }
   }
 
   async function checkOut() {
@@ -212,18 +232,63 @@ export function ProfileScreen() {
           </section>
         )}
 
+        <section aria-labelledby="account-heading">
+          <SectionHeading id="account-heading">Your account</SectionHeading>
+          {signedIn ? (
+            <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
+              <p className="min-w-0 text-sm">
+                <span className="block text-fg-2">Signed in as</span>
+                <span className="block truncate font-medium">{account.data?.email}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-full border border-hairline bg-surface-2 px-5 py-2.5 font-medium text-sm transition-colors hover:bg-fg/10"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="surface rounded-2xl p-4">
+              <p className="font-sign text-save text-sm uppercase tracking-[0.18em]">Guest pass</p>
+              <p className="mt-2 max-w-md text-fg-2 text-sm leading-relaxed">
+                {account.data?.canSignIn
+                  ? "Your swipes and profile are kept for this browser only. Sign in to keep them and pick up on any device."
+                  : "Your swipes and profile are kept for this browser only. Signing in, to carry them between devices, is on its way."}
+              </p>
+              {account.data?.canSignIn ? (
+                <button
+                  type="button"
+                  onClick={() => void signIn()}
+                  className="mt-4 flex items-center gap-2.5 rounded-full border border-like/40 px-5 py-2.5 font-medium text-like text-sm transition-colors hover:bg-like/10"
+                >
+                  <GoogleIcon className="size-4" />
+                  Continue with Google
+                </button>
+              ) : null}
+            </div>
+          )}
+        </section>
+
         <section aria-labelledby="checkout-heading">
-          <SectionHeading id="checkout-heading">Check out</SectionHeading>
+          <SectionHeading id="checkout-heading">
+            {signedIn ? "Delete account" : "Check out"}
+          </SectionHeading>
           <p className="mb-4 max-w-md text-fg-2 text-sm leading-relaxed">
-            Clears your profile, preferences, swipes, chats and any flats you posted from this
-            browser, and takes you back to the start.
+            {signedIn
+              ? "Deletes your account for good, with your profile, preferences, swipes, chats and any flats you posted."
+              : "Clears your profile, preferences, swipes, chats and any flats you posted, and takes you back to the start."}
           </p>
           <button
             type="button"
             onClick={() => (leaving ? void checkOut() : setLeaving(true))}
             className="rounded-full border border-pass/40 px-5 py-2.5 font-medium text-pass text-sm transition-colors hover:bg-pass/10"
           >
-            {leaving ? "Tap again to check out" : "Check out"}
+            {leaving
+              ? `Tap again to ${signedIn ? "delete it" : "check out"}`
+              : signedIn
+                ? "Delete my account"
+                : "Check out"}
           </button>
         </section>
       </div>

@@ -1,4 +1,5 @@
 import type {
+  Account,
   Applicant,
   City,
   FeedFilters,
@@ -15,12 +16,13 @@ import type {
 } from "@repo/shared";
 import { httpApi } from "./http";
 import { mockApi, rememberListings } from "./mock";
+import { readProfile, writeProfile } from "./mock/profile-store";
 
 /**
  * Everything the app asks the server for. Components and hooks depend on this
  * interface only. The real server takes it over a piece at a time: flats and
- * swipes come from the database (M2), while profiles, matches, chat and the
- * lister side are still the in-browser mock until their milestones.
+ * swipes (M2), then accounts and profiles (M3). Matches, chat and the lister
+ * side are still the in-browser mock until their milestones.
  */
 export interface Api {
   /** One page of the ranked feed. Pass the previous page's `nextCursor` to continue. */
@@ -58,8 +60,15 @@ export interface Api {
   getProfile(): Promise<TenantProfile>;
   /** Save the profile. Returns it as stored. */
   saveProfile(profile: TenantProfile): Promise<TenantProfile>;
-  /** Forget the profile, as if the person had never been here. */
+  /** Forget the person entirely, as if they had never been here. Deletes a guest's account. */
   resetProfile(): Promise<void>;
+
+  /** How the person is signed in, and whether signing in is on offer. */
+  getAccount(): Promise<Account>;
+  /** Start signing in with Google. The page leaves for Google and comes back signed in. */
+  signInWithGoogle(): Promise<void>;
+  /** Sign out of this browser. The account and its data stay. */
+  signOut(): Promise<void>;
 
   /** The flats the person has posted, newest first. */
   getMyListings(): Promise<MyListing[]>;
@@ -99,6 +108,37 @@ const withServer: Api = {
     const saved = await httpApi.getSaved();
     rememberListings(saved);
     return saved;
+  },
+
+  // The profile lives on the server. A copy is kept in the browser because the
+  // mock's bot tenants and chats read the person's name from there.
+  async getProfile() {
+    const stored = await httpApi.getProfile();
+    const local = readProfile();
+    // Someone who used the app before accounts existed still has their answers in this
+    // browser only. The first time the server has nothing for them, those are sent up.
+    const untouched = stored.onboardedAt === null && stored.mode === "tenant" && stored.name === "";
+    const carried = local.onboardedAt !== null || local.mode === "lister";
+    const profile = untouched && carried ? await httpApi.saveProfile(local) : stored;
+    writeProfile(profile);
+    return profile;
+  },
+
+  async saveProfile(profile) {
+    const saved = await httpApi.saveProfile(profile);
+    writeProfile(saved);
+    return saved;
+  },
+
+  async resetProfile() {
+    await httpApi.resetProfile();
+    await mockApi.resetProfile();
+  },
+
+  async signOut() {
+    await httpApi.signOut();
+    // The next person at this browser should not find the last one's answers.
+    await mockApi.resetProfile();
   },
 
   // Both at once, so the bot lister's answer is not held up by the trip to the server.

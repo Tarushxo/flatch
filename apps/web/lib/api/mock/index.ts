@@ -1,15 +1,13 @@
 import {
-  ABOUT_MAX_LENGTH,
   cleanMessage,
-  cleanPreferences,
+  cleanProfile,
   draftProblems,
+  GUEST_ACCOUNT,
   type Listing,
   type Match,
   matchesFilters,
-  NAME_MAX_LENGTH,
   type Swipe,
   type SwipeAction,
-  type TenantProfile,
 } from "@repo/shared";
 import type { Api } from "../client";
 import {
@@ -310,13 +308,7 @@ export const mockApi: Api = {
 
   async saveProfile(profile) {
     await delay(100);
-    const previous = readProfile();
-    const saved: TenantProfile = {
-      ...profile,
-      name: profile.name.trim().slice(0, NAME_MAX_LENGTH),
-      about: profile.about.trim().slice(0, ABOUT_MAX_LENGTH),
-      preferences: cleanPreferences(profile.preferences, previous.preferences),
-    };
+    const saved = cleanProfile(profile, readProfile());
     writeProfile(saved);
     return saved;
   },
@@ -325,6 +317,20 @@ export const mockApi: Api = {
     await delay(60);
     clearProfile();
     clearListings();
+  },
+
+  // The mock has no accounts: everyone is a guest, and there is nothing to sign in to.
+  async getAccount() {
+    await delay(20);
+    return GUEST_ACCOUNT;
+  },
+
+  async signInWithGoogle() {
+    throw new Error("Sign-in is not available in the demo data mode.");
+  },
+
+  async signOut() {
+    await delay(20);
   },
 
   async getMyListings() {

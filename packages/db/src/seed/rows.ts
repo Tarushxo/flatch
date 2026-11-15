@@ -82,10 +82,12 @@ export function buildSeedRows(today = new Date(), flats: Listing[] = SEED_FLATS)
 
     rows.users.push({
       id: listerId,
-      displayName: flat.lister.name,
+      name: flat.lister.name,
+      // Bot listers never sign in; the address only has to be unique.
+      email: `${listerId}@seed.flatch.invalid`,
       about: flat.lister.about,
       isSeed: true,
-      isGuest: false,
+      isAnonymous: false,
     });
 
     rows.listings.push({

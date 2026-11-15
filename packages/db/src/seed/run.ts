@@ -43,7 +43,7 @@ try {
         .values(batch)
         .onConflictDoUpdate({
           target: users.id,
-          set: overwrite(users, ["displayName", "about", "isSeed", "isGuest"]),
+          set: overwrite(users, ["name", "email", "about", "isSeed", "isAnonymous"]),
         });
     }
 

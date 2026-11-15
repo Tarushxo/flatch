@@ -260,3 +260,11 @@ export const MyListingSchema = ListingDraftSchema.extend({
   interestedCount: z.number().int().min(0),
   matchCount: z.number().int().min(0),
 });
+
+/** How the person is signed in. A guest has no email and lives in one browser. */
+export const AccountSchema = z.object({
+  isGuest: z.boolean(),
+  email: z.email().nullable(),
+  /** Whether this server offers Google sign-in at all. */
+  canSignIn: z.boolean(),
+});

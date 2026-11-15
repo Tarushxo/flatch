@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { DEFAULT_CITY } from "./constants";
 import type { FeedFilters } from "./listing";
-import type { TenantPreferencesSchema, TenantProfileSchema } from "./schemas";
+import type { AccountSchema, TenantPreferencesSchema, TenantProfileSchema } from "./schemas";
 
 /*
  * The tenant: who they are and what they are looking for. The fixed lists of
@@ -79,6 +79,10 @@ export const ABOUT_MAX_LENGTH = 280;
 
 export type TenantPreferences = z.infer<typeof TenantPreferencesSchema>;
 export type TenantProfile = z.infer<typeof TenantProfileSchema>;
+export type Account = z.infer<typeof AccountSchema>;
+
+/** Someone who has not signed in, on a server (or a mock) with no sign-in to offer. */
+export const GUEST_ACCOUNT: Account = { isGuest: true, email: null, canSignIn: false };
 
 /** What a brand-new visitor starts with: the default city and no other limits. */
 export const DEFAULT_PREFERENCES: TenantPreferences = {
@@ -125,6 +129,19 @@ export function hasCheckedIn(profile: Pick<TenantProfile, "mode" | "onboardedAt"
 /** How many of the eight lifestyle questions have an answer. */
 export function lifestyleAnswered(preferences: TenantPreferences): number {
   return LIFESTYLE_KEYS.filter((key) => preferences.lifestyle[key] !== undefined).length;
+}
+
+/**
+ * Tidy a whole profile before it is saved: trim and cap the free text, and
+ * tidy the preferences. `previous` is what was saved before, if anything.
+ */
+export function cleanProfile(next: TenantProfile, previous?: TenantProfile): TenantProfile {
+  return {
+    ...next,
+    name: next.name.trim().slice(0, NAME_MAX_LENGTH),
+    about: next.about.trim().slice(0, ABOUT_MAX_LENGTH),
+    preferences: cleanPreferences(next.preferences, previous?.preferences),
+  };
 }
 
 /**

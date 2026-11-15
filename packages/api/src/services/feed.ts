@@ -45,7 +45,7 @@ const PUBLIC_COLUMNS = {
   createdAt: listings.createdAt,
   city: localities.city,
   locality: localities.name,
-  listerName: users.displayName,
+  listerName: users.name,
   listerAbout: users.about,
 } satisfies Record<keyof PublicListingRow, unknown>;
 

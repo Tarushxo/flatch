@@ -30,3 +30,14 @@ export function useSaveProfile() {
     },
   });
 }
+
+export const ACCOUNT_KEY = ["account"] as const;
+
+/** How the person is signed in: as a guest, or with an account. */
+export function useAccount() {
+  return useQuery({
+    queryKey: ACCOUNT_KEY,
+    queryFn: () => api.getAccount(),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+}

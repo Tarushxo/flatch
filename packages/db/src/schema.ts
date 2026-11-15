@@ -1,4 +1,4 @@
-import type { Compatibility, HouseRule } from "@repo/shared";
+import type { Compatibility, HouseRule, TenantPreferences, TenantProfile } from "@repo/shared";
 import { CITIES, FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
 import { sql } from "drizzle-orm";
 import {
@@ -18,9 +18,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 /*
- * The database tables, as of M2: enough for a real feed and persisted swipes.
- * Later milestones add accounts (M3), interests and chat (M4) and impressions
- * (M5). The full plan is in docs/SPEC.md section 6.
+ * The database tables: flats and swipes (M2), accounts and profiles (M3).
+ * Later milestones add interests and chat (M4) and impressions (M5). The full plan is in docs/SPEC.md section 6.
  *
  * Money is whole rupees. Times are UTC. Points are PostGIS geometry holding
  * longitude and latitude, read and written as { x: lng, y: lat }.
@@ -44,16 +43,99 @@ const createdAt = timestamp("created_at", { withTimezone: true }).notNull().defa
 const point = (name: string) => geometry(name, { type: "point", mode: "xy" });
 
 /**
- * A person. Until sign-in arrives (M3) the only real users are visitors,
- * known by a random id kept in a cookie; seed users are the bot listers.
+ * A person. The sign-in library (Better Auth) owns this table and the three
+ * after it; the property names here are the ones it expects. A visitor who has
+ * not signed in is a guest account (`isAnonymous`) with a made-up email.
+ * Seed users are the bot listers.
  */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  displayName: text("display_name").notNull().default(""),
+  name: text("display_name").notNull().default(""),
+  // The sign-in library always supplies an email. The default only exists so rows written
+  // before this column was added, or by code that does not know about it, stay valid.
+  email: text("email")
+    .notNull()
+    .unique()
+    .default(sql`(gen_random_uuid()::text || '@guest.flatch.invalid')`),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
   about: text("about").notNull().default(""),
   isSeed: boolean("is_seed").notNull().default(false),
-  isGuest: boolean("is_guest").notNull().default(true),
+  isAnonymous: boolean("is_guest").notNull().default(true),
   createdAt,
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A signed-in browser. Deleted when the person signs out or the session runs out. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt,
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("sessions_user").on(table.userId)],
+);
+
+/** A way of signing in that belongs to a user, such as their Google account. */
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt,
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("accounts_user").on(table.userId)],
+);
+
+/** Short-lived values the sign-in library needs between steps of a sign-in. */
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt,
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("verifications_identifier").on(table.identifier)],
+);
+
+/**
+ * What a person told the app about themselves and what they are looking for.
+ * The name lives on the user. Preferences are kept whole, as the app sends
+ * them; the ranking engine (M5) will pull out the columns it needs to query.
+ */
+export const profiles = pgTable("profiles", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  ageRange: text("age_range").$type<TenantProfile["ageRange"]>(),
+  occupation: text("occupation").$type<TenantProfile["occupation"]>(),
+  mode: text("mode").$type<TenantProfile["mode"]>().notNull().default("tenant"),
+  preferences: jsonb("preferences").$type<TenantPreferences>().notNull(),
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const localities = pgTable(
