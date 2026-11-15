@@ -4,6 +4,8 @@ Swipe right on your next flat. A swipe-based way to find a flat and the people i
 
 This is a portfolio project. The two things it is built to show are a front end that feels like a top consumer app, and a feed engine that ranks flats by how well both sides would fit.
 
+**Live:** https://flatch-lac.vercel.app
+
 **Status:** Milestone 0 of 7 (foundations). The full plan is in [docs/SPEC.md](docs/SPEC.md).
 
 ## Run it
