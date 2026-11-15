@@ -2,7 +2,13 @@ import type { Listing } from "@repo/shared";
 import { FadeImage } from "@/components/listing/fade-image";
 
 /** A small square photo of a flat, for rows in a list. */
-export function ListingThumb({ listing, lazy = false }: { listing: Listing; lazy?: boolean }) {
+export function ListingThumb({
+  listing,
+  lazy = false,
+}: {
+  listing: Pick<Listing, "photos">;
+  lazy?: boolean;
+}) {
   const photo = listing.photos[0];
   return (
     <span

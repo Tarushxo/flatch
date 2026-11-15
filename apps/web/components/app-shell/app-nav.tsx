@@ -1,34 +1,58 @@
 "use client";
 
-import { totalUnread } from "@repo/shared";
+import { type Mode, totalUnread } from "@repo/shared";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookmarkIcon, CardsIcon, KeyIcon, UserIcon } from "@/components/icons";
+import {
+  BellIcon,
+  BookmarkIcon,
+  BuildingsIcon,
+  CardsIcon,
+  KeyIcon,
+  UserIcon,
+} from "@/components/icons";
+import { useApplicants } from "@/lib/lister/use-lister";
 import { useMatches } from "@/lib/matches/use-matches";
+import { useMode } from "@/lib/profile/use-mode";
 
-const TABS = [
-  { href: "/discover", label: "Discover", icon: CardsIcon },
-  { href: "/saved", label: "Saved", icon: BookmarkIcon },
-  { href: "/keys", label: "Keys", icon: KeyIcon },
-  { href: "/profile", label: "Profile", icon: UserIcon },
-] as const;
+/** Each side of the app has its own first two tabs; Keys and Profile are shared. */
+const TABS = {
+  tenant: [
+    { href: "/discover", label: "Discover", icon: CardsIcon },
+    { href: "/saved", label: "Saved", icon: BookmarkIcon },
+    { href: "/keys", label: "Keys", icon: KeyIcon },
+    { href: "/profile", label: "Profile", icon: UserIcon },
+  ],
+  lister: [
+    { href: "/listings", label: "Your flats", icon: BuildingsIcon },
+    { href: "/interested", label: "Interested", icon: BellIcon },
+    { href: "/keys", label: "Keys", icon: KeyIcon },
+    { href: "/profile", label: "Profile", icon: UserIcon },
+  ],
+} as const satisfies Record<Mode, readonly unknown[]>;
 
 /**
  * The app's main navigation, in the lit/unlit language of the logo: the
  * current tab is a lit tube, the others are dark glass. The Keys tab carries
- * a badge when there are unread messages.
+ * a badge when there are unread messages, and a lister's Interested tab one
+ * for tenants waiting on an answer.
  *
  * `bar` is the floating bar along the bottom of a phone. `rail` is the column
- * down the left of a wide screen. The bar steps aside inside a chat, where the
- * space belongs to the message box.
+ * down the left of a wide screen. The bar steps aside inside a chat and while
+ * posting a flat, where the space belongs to the message box or the form.
  */
 export function AppNav({ layout }: { layout: "bar" | "rail" }) {
   const pathname = usePathname();
+  const mode = useMode();
   const matches = useMatches();
-  const unread = totalUnread(matches.data ?? []);
+  const applicants = useApplicants({ enabled: mode === "lister" });
+  const badges: Record<string, number> = {
+    "/keys": totalUnread(matches.data ?? []),
+    "/interested": mode === "lister" ? (applicants.data?.length ?? 0) : 0,
+  };
 
-  const inChat = pathname.startsWith("/keys/");
-  if (layout === "bar" && inChat) return null;
+  const needsTheSpace = pathname.startsWith("/keys/") || pathname === "/listings/new";
+  if (layout === "bar" && needsTheSpace) return null;
 
   const nav = (
     <nav
@@ -39,9 +63,9 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
           : "flex flex-col gap-2"
       }
     >
-      {TABS.map(({ href, label, icon: TabIcon }) => {
+      {TABS[mode].map(({ href, label, icon: TabIcon }) => {
         const lit = pathname === href || pathname.startsWith(`${href}/`);
-        const badge = href === "/keys" && unread > 0 ? unread : 0;
+        const badge = badges[href] ?? 0;
         return (
           <Link
             key={href}
@@ -64,7 +88,7 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
               {badge > 0 ? (
                 <span className="absolute -top-1.5 -right-2.5 grid min-w-[1.125rem] place-items-center rounded-full bg-win px-1 font-semibold text-[0.625rem] text-ink leading-[1.125rem]">
                   {badge}
-                  <span className="sr-only"> unread</span>
+                  <span className="sr-only">{href === "/keys" ? " unread" : " waiting"}</span>
                 </span>
               ) : null}
             </span>

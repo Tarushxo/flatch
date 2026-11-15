@@ -2,7 +2,9 @@
 
 import type { Match, Message } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { api } from "@/lib/api/client";
+import { useMode } from "@/lib/profile/use-mode";
 
 export const MATCHES_KEY = ["matches"] as const;
 export const PENDING_LIKES_KEY = ["pending-likes"] as const;
@@ -17,12 +19,30 @@ export const messagesKey = (matchId: string) => ["messages", matchId] as const;
 const MATCHES_EVERY_MS = 2500;
 const MESSAGES_EVERY_MS = 2500;
 
-/** The person's matches, kept fresh. */
-export function useMatches() {
+/** Every match the person is part of, on both sides of the app, kept fresh. */
+export function useAllMatches() {
   return useQuery({
     queryKey: MATCHES_KEY,
     queryFn: () => api.getMatches(),
     refetchInterval: MATCHES_EVERY_MS,
+  });
+}
+
+/**
+ * The matches for the side of the app in use: flats that liked a tenant back,
+ * or tenants a lister said yes to.
+ */
+export function useMatches() {
+  const mode = useMode();
+  const forThisSide = useCallback(
+    (all: Match[]) => all.filter((match) => match.side === mode),
+    [mode],
+  );
+  return useQuery({
+    queryKey: MATCHES_KEY,
+    queryFn: () => api.getMatches(),
+    refetchInterval: MATCHES_EVERY_MS,
+    select: forThisSide,
   });
 }
 

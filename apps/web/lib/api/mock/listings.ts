@@ -85,6 +85,17 @@ function photo(id: string, roomTag: Listing["photos"][number]["roomTag"]) {
   };
 }
 
+/**
+ * The photos a lister can pick from when posting a flat. Uploading your own
+ * arrives with the backend (M2), when there is somewhere to store them.
+ */
+export const SAMPLE_PHOTOS: Listing["photos"] = [
+  ...BEDROOMS.slice(0, 6).map((id) => photo(id, "bedroom")),
+  ...LIVING_ROOMS.slice(0, 6).map((id) => photo(id, "living")),
+  ...KITCHENS.slice(0, 6).map((id) => photo(id, "kitchen")),
+  ...BALCONIES.slice(0, 6).map((id) => photo(id, "balcony")),
+];
+
 function photosFor(position: number): Listing["photos"] {
   const pick = (ids: string[]) => ids[position % ids.length] as string;
   return [

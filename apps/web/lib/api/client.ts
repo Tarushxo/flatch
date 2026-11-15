@@ -1,10 +1,14 @@
 import type {
+  Applicant,
   City,
   FeedFilters,
   FeedPage,
   Listing,
+  ListingDraft,
+  ListingPhoto,
   Match,
   Message,
+  MyListing,
   PendingLike,
   Swipe,
   TenantProfile,
@@ -32,7 +36,10 @@ export interface Api {
   /** Forget every pass, so passed flats can come round again. */
   resetPasses(): Promise<void>;
 
-  /** Likes the lister accepted, most recent activity first. Chat and address are open. */
+  /**
+   * Every match the person is part of, most recent activity first: as a tenant
+   * (`side: "tenant"`) and as a lister (`side: "lister"`). Chat is open on both.
+   */
   getMatches(): Promise<Match[]>;
   /** Likes still waiting for the lister, most recent first. */
   getPendingLikes(): Promise<PendingLike[]>;
@@ -51,6 +58,24 @@ export interface Api {
   saveProfile(profile: TenantProfile): Promise<TenantProfile>;
   /** Forget the profile, as if the person had never been here. */
   resetProfile(): Promise<void>;
+
+  /** The flats the person has posted, newest first. */
+  getMyListings(): Promise<MyListing[]>;
+  /** Post a flat. It starts open to likes. Rejects a draft that is not complete. */
+  createListing(draft: ListingDraft): Promise<MyListing>;
+  /** Switch the vacancy sign on or off. A closed flat takes no new likes. */
+  setListingOpen(listingId: string, isOpen: boolean): Promise<MyListing>;
+  /** Take a flat down for good, with its likes and matches. */
+  deleteListing(listingId: string): Promise<void>;
+  /** Tenants waiting for an answer, oldest first. Pass a listing to see only its tenants. */
+  getApplicants(listingId?: string): Promise<Applicant[]>;
+  /** Say yes or no to a tenant. A yes opens a match; its id is returned. */
+  decideApplicant(
+    applicantId: string,
+    decision: "accept" | "decline",
+  ): Promise<{ matchId: string | null }>;
+  /** Photos to choose from when posting a flat, until uploads arrive with the backend. */
+  getSamplePhotos(): Promise<ListingPhoto[]>;
 }
 
 export const api: Api = mockApi;

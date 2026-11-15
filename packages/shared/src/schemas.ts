@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CITIES } from "./constants";
+import { LISTING_LIMITS } from "./lister";
 import { FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "./listing";
 import { MESSAGE_MAX_LENGTH } from "./match";
 import {
@@ -7,6 +8,7 @@ import {
   AGE_RANGES,
   LIFESTYLE,
   LIFESTYLE_KEYS,
+  MODES,
   MOVE_IN,
   NAME_MAX_LENGTH,
   OCCUPATIONS,
@@ -143,9 +145,13 @@ export const AddressSchema = z.object({
   line: z.string(),
 });
 
-/** A like the lister accepted: chat is open and the address is unlocked. */
-export const MatchSchema = z.object({
+// A match without the applicant, which is defined further down. See MatchSchema.
+const MatchCoreSchema = z.object({
   id: z.string(),
+  /** Whether the person asking is the tenant or the lister in this match. */
+  side: z.enum(["tenant", "lister"]),
+  /** The other person: the lister for a tenant, the tenant for a lister. */
+  person: z.object({ name: z.string(), about: z.string() }),
   listing: ListingSchema,
   address: AddressSchema,
   matchedAt: z.iso.datetime(),
@@ -193,6 +199,64 @@ export const TenantProfileSchema = z.object({
   occupation: z.enum(OCCUPATIONS).nullable(),
   about: z.string().max(ABOUT_MAX_LENGTH),
   preferences: TenantPreferencesSchema,
+  /** Which side of the app they are using: looking for a flat, or listing one. */
+  mode: z.enum(MODES),
   /** When they finished (or skipped) onboarding. Null until then. */
   onboardedAt: z.iso.datetime().nullable(),
+});
+
+/** A tenant who has liked the lister's flat and is waiting for an answer. */
+export const ApplicantSchema = z.object({
+  id: z.string(),
+  listingId: z.string(),
+  name: z.string(),
+  ageRange: z.enum(AGE_RANGES),
+  occupation: z.enum(OCCUPATIONS),
+  about: z.string(),
+  lifestyle: LifestyleSchema,
+  /** How well they fit this household, with the reasons. */
+  compatibility: CompatibilitySchema,
+  /** A short note, if they sent the like with one. */
+  note: z.string().optional(),
+  likedAt: z.iso.datetime(),
+});
+
+/** A like the lister accepted: chat is open and, for the tenant, the address is unlocked. */
+export const MatchSchema = MatchCoreSchema.extend({
+  /** For a lister: the tenant they matched with. Null on the tenant's side. */
+  applicant: ApplicantSchema.nullable(),
+});
+
+/** Everything a lister fills in to post a flat. The society and address line stay private. */
+export const ListingDraftSchema = z.object({
+  title: z.string().trim().min(LISTING_LIMITS.titleMin).max(LISTING_LIMITS.titleMax),
+  description: z.string().max(LISTING_LIMITS.descriptionMax),
+  city: CitySchema,
+  locality: z.string().min(1),
+  society: z.string().trim().min(1),
+  addressLine: z.string().trim().min(1),
+  roomType: RoomTypeSchema,
+  bhk: z.number().int().min(1).max(6),
+  furnishing: FurnishingSchema,
+  availableFrom: z.iso.date(),
+  rent: z.number().int().min(LISTING_LIMITS.rentMin).max(LISTING_LIMITS.rentMax),
+  maintenance: z.number().int().min(0),
+  utilitiesEstimate: z.number().int().min(0),
+  depositMonths: z.number().int().min(0).max(LISTING_LIMITS.depositMonthsMax),
+  photos: z.array(ListingPhotoSchema).min(LISTING_LIMITS.photosMin).max(LISTING_LIMITS.photosMax),
+  amenities: z.array(z.string()),
+  houseRules: z.array(HouseRuleSchema),
+  societyRules: z.array(z.string()),
+  expectations: z.array(z.string()),
+});
+
+/** A flat the person has posted, with its status and how it is doing. */
+export const MyListingSchema = ListingDraftSchema.extend({
+  id: z.string(),
+  /** The VACANCY sign: true while the flat is open to likes. */
+  isOpen: z.boolean(),
+  createdAt: z.iso.datetime(),
+  /** Tenants waiting for an answer. */
+  interestedCount: z.number().int().min(0),
+  matchCount: z.number().int().min(0),
 });

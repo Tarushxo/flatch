@@ -19,6 +19,7 @@ export function CardFace({
   photoIndex,
   sizes = PHOTO_SIZES.deckCard,
   priority = false,
+  showMatch = true,
 }: {
   listing: Listing;
   photoIndex: number;
@@ -26,6 +27,8 @@ export function CardFace({
   sizes?: string;
   /** True for the card on top of the deck: its photo is fetched first. */
   priority?: boolean;
+  /** False for a lister previewing their own flat, where a match score means nothing. */
+  showMatch?: boolean;
 }) {
   const photo = listing.photos[photoIndex] ?? listing.photos[0];
   const place =
@@ -69,7 +72,7 @@ export function CardFace({
           {listing.isVerified ? <Tag tone="like">Verified</Tag> : null}
           {listing.stretchLabel ? <Tag tone="save">{listing.stretchLabel}</Tag> : null}
         </div>
-        <CompatRing percent={listing.compatibility.percent} />
+        {showMatch ? <CompatRing percent={listing.compatibility.percent} /> : null}
       </div>
 
       <div className="absolute inset-x-0 bottom-0 px-5 pb-5">

@@ -124,6 +124,9 @@ export function toMatch(
   const messages = visibleMessages(thread, now);
   return {
     id: like.matchId,
+    side: "tenant",
+    person: { name: listing.lister.name, about: listing.lister.about },
+    applicant: null,
     listing,
     address: addressFor(listing),
     matchedAt: new Date(like.acceptAt ?? now).toISOString(),

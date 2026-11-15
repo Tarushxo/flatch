@@ -2,6 +2,7 @@ import {
   ABOUT_MAX_LENGTH,
   cleanMessage,
   cleanPreferences,
+  draftProblems,
   type Listing,
   type Match,
   matchesFilters,
@@ -11,7 +12,17 @@ import {
   type TenantProfile,
 } from "@repo/shared";
 import type { Api } from "../client";
-import { MOCK_LISTINGS } from "./listings";
+import {
+  acceptedFor,
+  applicantOpener,
+  applicantReplyFor,
+  listerMatchId,
+  toListerMatch,
+  toMyListing,
+  waitingFor,
+} from "./applicants";
+import { clearListings, readListings, type StoredListing, writeListings } from "./lister-store";
+import { MOCK_LISTINGS, SAMPLE_PHOTOS } from "./listings";
 
 import {
   acceptTime,
@@ -90,6 +101,46 @@ function openMatch(matchId: string, now: number) {
     if (listing) return { like, listing };
   }
   return null;
+}
+
+/** How long a bot tenant takes to say hello after being accepted. */
+const HELLO_DELAY_MS = 2500;
+/** A first message older than this can only be one written again after a reload. */
+const REWRITTEN_AFTER_MS = 30_000;
+
+/**
+ * The lister's side of a match they can still see: the flat and the tenant
+ * they accepted. Chats are kept in memory, so after a reload the tenant's
+ * first message is written again.
+ */
+function openListerMatch(matchId: string, now: number) {
+  if (ended.has(matchId)) return null;
+  for (const listing of readListings()) {
+    for (const accepted of acceptedFor(listing, now)) {
+      if (listerMatchId(accepted.applicant.id) !== matchId) continue;
+      if (!threads.has(matchId)) {
+        const hello = applicantOpener(accepted.applicant, listing);
+        const helloAt = accepted.acceptedAt + HELLO_DELAY_MS;
+        storeMessage(matchId, "them", hello, helloAt);
+        // Written again after a reload: it was seen the first time, so it is not new.
+        if (now - helloAt > REWRITTEN_AFTER_MS) lastRead.set(matchId, helloAt);
+      }
+      return { listing, accepted };
+    }
+  }
+  return null;
+}
+
+function updateListing(listingId: string, change: (listing: StoredListing) => StoredListing) {
+  let updated: StoredListing | null = null;
+  const next = readListings().map((listing) => {
+    if (listing.id !== listingId) return listing;
+    updated = change(listing);
+    return updated;
+  });
+  if (!updated) throw new Error("That flat is no longer listed.");
+  writeListings(next);
+  return updated as StoredListing;
 }
 
 function lastActivity(match: Match): number {
@@ -172,6 +223,15 @@ export const mockApi: Api = {
       const thread = threads.get(like.matchId) ?? [];
       matches.push(toMatch(like, listing, thread, lastRead.get(like.matchId) ?? 0, now));
     }
+    const me = readProfile();
+    for (const listing of readListings()) {
+      for (const accepted of acceptedFor(listing, now)) {
+        const matchId = listerMatchId(accepted.applicant.id);
+        if (!openListerMatch(matchId, now)) continue;
+        const thread = threads.get(matchId) ?? [];
+        matches.push(toListerMatch(listing, accepted, me, thread, lastRead.get(matchId) ?? 0, now));
+      }
+    }
     return matches.sort((a, b) => lastActivity(b) - lastActivity(a));
   },
 
@@ -190,7 +250,9 @@ export const mockApi: Api = {
   async getMessages(matchId) {
     await delay(60);
     const now = Date.now();
-    if (!openMatch(matchId, now)) throw new Error("This match is no longer open.");
+    if (!openMatch(matchId, now) && !openListerMatch(matchId, now)) {
+      throw new Error("This match is no longer open.");
+    }
     return visibleMessages(threads.get(matchId) ?? [], now);
   },
 
@@ -199,13 +261,15 @@ export const mockApi: Api = {
     const now = Date.now();
     const text = cleanMessage(body);
     if (!text) throw new Error("A message needs some text.");
-    if (!openMatch(matchId, now)) throw new Error("This match is no longer open.");
+    const asLister = !openMatch(matchId, now);
+    if (asLister && !openListerMatch(matchId, now))
+      throw new Error("This match is no longer open.");
 
     const { visibleAt: _visibleAt, ...sent } = storeMessage(matchId, "me", text, now);
-    // The lister answers a few seconds later.
+    // The other person answers a few seconds later.
     const mine = (threads.get(matchId) ?? []).filter((message) => message.from === "me").length;
     const wait = REPLY_DELAY.min + Math.random() * (REPLY_DELAY.max - REPLY_DELAY.min);
-    storeMessage(matchId, "them", replyFor(mine), now + wait);
+    storeMessage(matchId, "them", asLister ? applicantReplyFor(mine) : replyFor(mine), now + wait);
     return sent;
   },
 
@@ -216,6 +280,18 @@ export const mockApi: Api = {
 
   async unmatch(matchId) {
     await delay(100);
+    const now = Date.now();
+    const asLister = openMatch(matchId, now) ? null : openListerMatch(matchId, now);
+    if (asLister) {
+      // Saved with the flat, so the match stays ended after a reload.
+      updateListing(asLister.listing.id, (listing) => ({
+        ...listing,
+        decisions: {
+          ...listing.decisions,
+          [asLister.accepted.applicant.id]: { decision: "decline", at: now },
+        },
+      }));
+    }
     ended.add(matchId);
   },
 
@@ -240,5 +316,85 @@ export const mockApi: Api = {
   async resetProfile() {
     await delay(60);
     clearProfile();
+    clearListings();
+  },
+
+  async getMyListings() {
+    await delay(80);
+    const now = Date.now();
+    return readListings()
+      .map((listing) => toMyListing(listing, now))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  },
+
+  async createListing(draft) {
+    await delay(350);
+    const problems = draftProblems(draft, "preview");
+    if (problems[0]) throw new Error(problems[0]);
+    const now = Date.now();
+    const listing: StoredListing = {
+      ...draft,
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      society: draft.society.trim(),
+      addressLine: draft.addressLine.trim(),
+      id: `mine-${now.toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
+      isOpen: true,
+      createdAt: new Date(now).toISOString(),
+      opensAt: now,
+      closedAt: null,
+      decisions: {},
+    };
+    writeListings([listing, ...readListings()]);
+    return toMyListing(listing, now);
+  },
+
+  async setListingOpen(listingId, isOpen) {
+    await delay(100);
+    const now = Date.now();
+    const updated = updateListing(listingId, (listing) => {
+      if (listing.isOpen === isOpen) return listing;
+      if (!isOpen) return { ...listing, isOpen: false, closedAt: now };
+      // The clock for new likes picks up where it stopped, so nobody arrives "while closed".
+      const pausedFor = now - (listing.closedAt ?? now);
+      return { ...listing, isOpen: true, closedAt: null, opensAt: listing.opensAt + pausedFor };
+    });
+    return toMyListing(updated, now);
+  },
+
+  async deleteListing(listingId) {
+    await delay(120);
+    writeListings(readListings().filter((listing) => listing.id !== listingId));
+  },
+
+  async getApplicants(listingId) {
+    await delay(80);
+    const now = Date.now();
+    return readListings()
+      .filter((listing) => listingId === undefined || listing.id === listingId)
+      .flatMap((listing) => waitingFor(listing, now))
+      .sort((a, b) => Date.parse(a.likedAt) - Date.parse(b.likedAt));
+  },
+
+  async decideApplicant(applicantId, decision) {
+    await delay(120);
+    const now = Date.now();
+    const listing = readListings().find((each) =>
+      waitingFor(each, now).some((applicant) => applicant.id === applicantId),
+    );
+    if (!listing) throw new Error("That tenant is no longer waiting.");
+    updateListing(listing.id, (each) => ({
+      ...each,
+      decisions: { ...each.decisions, [applicantId]: { decision, at: now } },
+    }));
+    if (decision === "decline") return { matchId: null };
+    const matchId = listerMatchId(applicantId);
+    openListerMatch(matchId, now);
+    return { matchId };
+  },
+
+  async getSamplePhotos() {
+    await delay(60);
+    return SAMPLE_PHOTOS;
   },
 };

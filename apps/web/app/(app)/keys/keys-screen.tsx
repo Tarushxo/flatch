@@ -10,13 +10,16 @@ import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { KeyDrawing } from "@/components/motifs/neon-drawing";
 import { SignLink } from "@/components/sign-link";
 import { useMatches, usePendingLikes } from "@/lib/matches/use-matches";
+import { useMode } from "@/lib/profile/use-mode";
 import { clockTime } from "@/lib/time";
 
 /**
  * The Keys tab: the key rack. Each match is a key to a flat; tapping one opens
- * the chat. Likes the lister has not answered yet are listed underneath.
+ * the chat. For a tenant, likes the lister has not answered yet are listed
+ * underneath. For a lister, the rack shows the tenants they gave a key to.
  */
 export function KeysScreen() {
+  const lister = useMode() === "lister";
   const matches = useMatches();
   const pending = usePendingLikes();
 
@@ -52,6 +55,20 @@ export function KeysScreen() {
     );
   }
 
+  if (lister && matches.data.length === 0) {
+    return (
+      <ScreenMessage
+        art={<KeyDrawing className="[--glow:var(--win)]" />}
+        title="No keys handed out yet"
+        body="Say yes to a tenant under Interested. They get a key, and the chat opens here."
+      >
+        <SignLink href="/interested" size="sm">
+          See who's waiting
+        </SignLink>
+      </ScreenMessage>
+    );
+  }
+
   if (matches.data.length === 0 && pending.data.length === 0) {
     return (
       <ScreenMessage
@@ -70,7 +87,9 @@ export function KeysScreen() {
     <div className="h-full overflow-y-auto px-4 pt-4 pb-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-2xl">
         <h1 className="font-display font-semibold text-2xl tracking-tight">Keys</h1>
-        <p className="mt-1 text-fg-2 text-sm">Flats where the lister liked you back.</p>
+        <p className="mt-1 text-fg-2 text-sm">
+          {lister ? "Tenants you gave a key to." : "Flats where the lister liked you back."}
+        </p>
 
         {matches.data.length > 0 ? (
           <ul className="mt-6 space-y-3">
@@ -87,7 +106,7 @@ export function KeysScreen() {
           </p>
         )}
 
-        {pending.data.length > 0 ? (
+        {!lister && pending.data.length > 0 ? (
           <section className="mt-10">
             <h2 className="font-medium text-fg-3 text-xs uppercase tracking-[0.18em]">
               Likes sent
@@ -108,7 +127,7 @@ export function KeysScreen() {
 
 function MatchRow({ match }: { match: Match }) {
   const { listing, lastMessage, unreadCount } = match;
-  const name = listing.lister.name;
+  const name = match.person.name;
   const unread = unreadCount > 0;
 
   return (
@@ -126,8 +145,10 @@ function MatchRow({ match }: { match: Match }) {
 
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
-          <span className="truncate font-medium">{name}</span>
-          <span className="shrink-0 text-fg-3 text-xs">{listing.locality}</span>
+          <span className="shrink-0 truncate font-medium">{name}</span>
+          <span className="min-w-0 truncate text-fg-3 text-xs">
+            {match.side === "lister" ? listing.title : listing.locality}
+          </span>
         </span>
         <span
           className={`mt-0.5 line-clamp-1 text-sm ${unread ? "font-medium text-fg" : "text-fg-2"}`}

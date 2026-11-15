@@ -20,7 +20,13 @@ import { toast } from "sonner";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { api } from "@/lib/api/client";
 import { initial } from "@/lib/names";
+import { useSwitchMode } from "@/lib/profile/use-mode";
 import { useProfile, useSaveProfile } from "@/lib/profile/use-profile";
+
+const SIDES = [
+  { mode: "tenant", sign: "Find a flat", label: "Swipe on rooms and flats" },
+  { mode: "lister", sign: "List a flat", label: "Post yours and pick a tenant" },
+] as const;
 
 type About = Pick<TenantProfile, "name" | "ageRange" | "occupation" | "about">;
 
@@ -32,14 +38,16 @@ const aboutOf = (profile: TenantProfile): About => ({
 });
 
 /**
- * The Profile tab: a little about the tenant (this is what a lister will see),
- * a summary of what they are looking for, and "check out" to start afresh.
+ * The Profile tab: which side of the app is in use, a little about the person
+ * (this is what the other side sees), a summary of what a tenant is looking
+ * for, and "check out" to start afresh.
  */
 export function ProfileScreen() {
   const profile = useProfile();
   const save = useSaveProfile();
   const [draft, setDraft] = useState<About | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const { switchTo, switching } = useSwitchMode();
 
   useEffect(() => {
     if (profile.data && draft === null) setDraft(aboutOf(profile.data));
@@ -55,6 +63,7 @@ export function ProfileScreen() {
   }
 
   const saved = profile.data;
+  const lister = saved.mode === "lister";
   const changed = JSON.stringify(draft) !== JSON.stringify(aboutOf(saved));
 
   function submit(event: FormEvent) {
@@ -92,14 +101,48 @@ export function ProfileScreen() {
             <h1 className="truncate font-display font-semibold text-2xl tracking-tight">
               {saved.name || "Your profile"}
             </h1>
-            <p className="text-fg-2 text-sm">Looking in {saved.preferences.city}</p>
+            <p className="text-fg-2 text-sm">
+              {lister ? "Listing a flat" : `Looking in ${saved.preferences.city}`}
+            </p>
           </div>
         </header>
+
+        <section aria-labelledby="side-heading">
+          <SectionHeading id="side-heading">You are here to</SectionHeading>
+          <div className="surface grid grid-cols-2 gap-1.5 rounded-2xl p-1.5">
+            {SIDES.map((side) => {
+              const on = saved.mode === side.mode;
+              return (
+                <button
+                  key={side.mode}
+                  type="button"
+                  aria-pressed={on}
+                  disabled={switching}
+                  onClick={() => (on ? null : void switchTo(side.mode))}
+                  className={`rounded-xl px-3 py-3 text-center transition-colors ${
+                    on ? "bg-brand-b/15 ring-1 ring-brand-b" : "hover:bg-fg/5"
+                  }`}
+                >
+                  <span
+                    className={`block font-sign text-base uppercase tracking-[0.16em] ${
+                      on ? "sign [--glow:var(--brand-b)]" : "text-fg-3"
+                    }`}
+                  >
+                    {side.sign}
+                  </span>
+                  <span className="mt-1 block text-fg-2 text-xs">{side.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         <section aria-labelledby="about-heading">
           <SectionHeading id="about-heading">About you</SectionHeading>
           <p className="mb-5 text-fg-2 text-sm">
-            This is what a lister sees when you like their flat.
+            {lister
+              ? "This is what a tenant sees on your flat's card."
+              : "This is what a lister sees when you like their flat."}
           </p>
           <form onSubmit={submit} className="space-y-6">
             <Field label="Name" htmlFor="profile-name">
@@ -109,7 +152,9 @@ export function ProfileScreen() {
                 maxLength={NAME_MAX_LENGTH}
                 autoComplete="given-name"
                 onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-                placeholder="What should listers call you?"
+                placeholder={
+                  lister ? "What should tenants call you?" : "What should listers call you?"
+                }
                 className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-fg placeholder:text-fg-3"
               />
             </Field>
@@ -155,21 +200,23 @@ export function ProfileScreen() {
           </form>
         </section>
 
-        <section aria-labelledby="looking-heading">
-          <div className="flex items-center justify-between">
-            <SectionHeading id="looking-heading">What you're looking for</SectionHeading>
-            <Link href="/welcome" className="mb-4 font-medium text-like text-sm">
-              Change
-            </Link>
-          </div>
-          <Preferences preferences={saved.preferences} />
-        </section>
+        {lister ? null : (
+          <section aria-labelledby="looking-heading">
+            <div className="flex items-center justify-between">
+              <SectionHeading id="looking-heading">What you're looking for</SectionHeading>
+              <Link href="/welcome" className="mb-4 font-medium text-like text-sm">
+                Change
+              </Link>
+            </div>
+            <Preferences preferences={saved.preferences} />
+          </section>
+        )}
 
         <section aria-labelledby="checkout-heading">
           <SectionHeading id="checkout-heading">Check out</SectionHeading>
           <p className="mb-4 max-w-md text-fg-2 text-sm leading-relaxed">
-            Clears your profile, preferences, swipes and chats from this browser, and takes you back
-            to the start.
+            Clears your profile, preferences, swipes, chats and any flats you posted from this
+            browser, and takes you back to the start.
           </p>
           <button
             type="button"

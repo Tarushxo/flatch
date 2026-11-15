@@ -45,7 +45,8 @@ export function readProfile(): TenantProfile {
   if (!raw) return inMemory;
   try {
     const parsed: unknown = JSON.parse(raw);
-    return looksValid(parsed) ? parsed : inMemory;
+    // Fields added since this profile was saved (such as `mode`) take their defaults.
+    return looksValid(parsed) ? { ...DEFAULT_PROFILE, ...parsed } : inMemory;
   } catch {
     return inMemory;
   }

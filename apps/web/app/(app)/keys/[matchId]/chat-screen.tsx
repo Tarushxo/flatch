@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  type Applicant,
   cleanMessage,
   formatRent,
   type Match,
   MESSAGE_MAX_LENGTH,
   type Message,
   mapsLink,
+  OCCUPATION_LABELS,
 } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -30,16 +32,22 @@ import {
 import { initial } from "@/lib/names";
 import { clockTime } from "@/lib/time";
 
-const QUICK_REPLIES = [
-  "When can I visit?",
-  "Is it still available?",
-  "What are the flatmates like?",
-];
+const QUICK_REPLIES = {
+  tenant: ["When can I visit?", "Is it still available?", "What are the flatmates like?"],
+  lister: [
+    "When would you like to visit?",
+    "Tell me a bit about yourself",
+    "When can you move in?",
+  ],
+} as const;
 
 /** How long to show "typing" after a message is sent, if no reply has arrived. */
 const TYPING_FOR_MS = 7000;
 
-/** The chat with one lister, with the unlocked address at the top. */
+/**
+ * The chat for one match. A tenant sees the unlocked address at the top; a
+ * lister sees a reminder of who they gave the key to.
+ */
 export function ChatScreen({ matchId }: { matchId: string }) {
   const matches = useMatches();
   const messages = useMessages(matchId);
@@ -111,7 +119,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
     );
   }
 
-  const name = match.listing.lister.name;
+  const name = match.person.name;
   const haveWritten = thread.some((message) => message.from === "me");
 
   return (
@@ -119,7 +127,11 @@ export function ChatScreen({ matchId }: { matchId: string }) {
       <ChatHeader match={match} />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <AddressCard match={match} />
+        {match.applicant ? (
+          <TenantCard match={match} applicant={match.applicant} />
+        ) : (
+          <AddressCard match={match} />
+        )}
 
         <ol className="mt-6 space-y-2" aria-label={`Messages with ${name}`}>
           {thread.map((message) => (
@@ -135,7 +147,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
 
         {haveWritten ? null : (
           <ul className="mt-5 flex flex-wrap gap-2" aria-label="Quick replies">
-            {QUICK_REPLIES.map((reply) => (
+            {QUICK_REPLIES[match.side].map((reply) => (
               <li key={reply}>
                 <button
                   type="button"
@@ -189,12 +201,13 @@ function ChatHeader({ match }: { match: Match }) {
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
   const { listing } = match;
+  const name = match.person.name;
 
   async function unmatch() {
     try {
       await api.unmatch(match.id);
       await queryClient.invalidateQueries({ queryKey: MATCHES_KEY });
-      toast(`Unmatched from ${listing.lister.name}`);
+      toast(`Unmatched from ${name}`);
       router.push("/keys");
     } catch {
       toast.error("Couldn't unmatch just now. Try again in a moment.");
@@ -214,10 +227,10 @@ function ChatHeader({ match }: { match: Match }) {
         aria-hidden="true"
         className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-a to-brand-b font-display font-semibold text-white"
       >
-        {initial(listing.lister.name)}
+        {initial(name)}
       </span>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-medium">{listing.lister.name}</h1>
+        <h1 className="truncate font-medium">{name}</h1>
         <p className="truncate text-fg-3 text-xs">{listing.title}</p>
       </div>
 
@@ -282,6 +295,36 @@ function AddressCard({ match }: { match: Match }) {
         <span className="mt-1 block text-fg-2">
           Never pay a deposit, token or fee before you have visited the flat in person.
         </span>
+      </p>
+    </section>
+  );
+}
+
+/** The lister's view of the same card: who has the key, and what they were told. */
+function TenantCard({ match, applicant }: { match: Match; applicant: Applicant }) {
+  const { listing, address } = match;
+  return (
+    <section aria-label="The tenant" className="surface rounded-3xl p-4">
+      <div className="flex items-center gap-3">
+        <ListingThumb listing={listing} />
+        <div className="min-w-0">
+          <p className="font-medium text-win text-xs uppercase tracking-[0.18em]">
+            {applicant.name} has a key to
+          </p>
+          <p className="mt-0.5 line-clamp-1 font-medium">{listing.title}</p>
+          <p className="text-fg-2 text-sm">
+            {applicant.ageRange} · {OCCUPATION_LABELS[applicant.occupation]} ·{" "}
+            <span className="font-mono tabular-nums">{applicant.compatibility.percent}%</span> match
+          </p>
+        </div>
+      </div>
+
+      <p className="mt-4 border-hairline border-t pt-4 text-fg-2 text-sm leading-relaxed">
+        {applicant.about}
+      </p>
+
+      <p className="mt-4 rounded-xl border border-hairline px-3 py-2.5 text-fg-3 text-xs leading-relaxed">
+        They can now see the address: {address.society}, {address.line}, {listing.locality}.
       </p>
     </section>
   );

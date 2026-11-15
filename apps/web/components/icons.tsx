@@ -4,6 +4,8 @@ import {
   ArrowLeft,
   ArrowRight,
   BookmarkSimple,
+  Buildings,
+  CallBell,
   Cards,
   Check,
   DotsThree,
@@ -15,6 +17,7 @@ import {
   MapPin,
   NavigationArrow,
   PaperPlaneRight,
+  Plus,
   SlidersHorizontal,
   Star,
   Trash,
@@ -38,7 +41,9 @@ function themed(Glyph: Icon) {
 
 export const ArrowLeftIcon = themed(ArrowLeft);
 export const ArrowRightIcon = themed(ArrowRight);
+export const BellIcon = themed(CallBell);
 export const BookmarkIcon = themed(BookmarkSimple);
+export const BuildingsIcon = themed(Buildings);
 export const CardsIcon = themed(Cards);
 export const CheckIcon = themed(Check);
 export const CrossIcon = themed(X);
@@ -50,6 +55,7 @@ export const DirectionsIcon = themed(NavigationArrow);
 export const KeyIcon = themed(Key);
 export const MapPinIcon = themed(MapPin);
 export const MoreIcon = themed(DotsThree);
+export const PlusIcon = themed(Plus);
 export const SendIcon = themed(PaperPlaneRight);
 export const StarIcon = themed(Star);
 export const SwipeIcon = themed(HandSwipeRight);

@@ -27,6 +27,7 @@ A swipe-based flat and flatmate finder: tenants swipe on flats, listers accept i
 - Use the design tokens in SPEC section 4; do not introduce new colours. Glow is for state and energy, one glowing thing per moment.
 - Show the logo only through the `Logo` component (`apps/web/components/logo.tsx`), never as hand-styled text, so the font and neon flicker stay identical on every screen.
 - Two kinds of primary control: `SignLink` (the neon arrow sign) for a link that takes you somewhere, and the `button-primary` class (a lit pink neon tube, like the logo) for the main action in a form or sheet. Chosen chips and the sender's chat bubbles use the brand pink/violet, toned down. Avoid large blocks of bright cyan; cyan is for links, small accents and the like action.
+- One person, two sides: `mode` on the profile is `tenant` or `lister`. Tabs and side-only screens follow it (`lib/profile/use-mode.ts`, `OnboardingGate`); Keys, chat and Profile are shared and branch on `match.side`.
 - Import icons only from `apps/web/components/icons.tsx` (Phosphor, re-exported under our names). Add new ones there.
 - Photos use `FadeImage` inside a box whose background is the photo's `dominantColor`, so they fade in instead of popping. Always pass `use` and `sizes` (from `lib/photo.ts`) so phones get phone-sized images; mark the first visible photo `priority` and off-screen ones `lazy`.
 - No `backdrop-blur` and no large `blur()` filters or blend modes. They are slow on phones. Use a more opaque background, or a radial gradient for soft light.

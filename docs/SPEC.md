@@ -156,6 +156,16 @@ A public share link `/l/[id]` renders the same content server-side with an Open 
 - **Interested**: a swipe deck of tenants who liked the listing, ordered by compatibility. Card shows photo, name, age range, occupation, compatibility ring, lifestyle chips, prompts, and the note if it was a superlike. Accept or decline.
 - **Listing stats**: views, like rate, pending count.
 
+**As built on the mock API.** A person uses one side of the app at a time (`mode` on the profile: `tenant` or `lister`), switched from the Profile tab, or from "List a flat" on the first check-in screen, which skips the tenant's questions. Lister tabs: `Your flats · Interested · Keys · Profile`. Each side's screens send the other side home.
+
+- **Post a flat** (`/listings/new`): six steps: basics, where, costs (with a live guest check), photos, home and rules, preview as a card. Pressing Next on an unfinished step lists what is missing. A half-filled form survives a reload. The checks are `draftProblems` in `packages/shared`, shared by the form and the mock.
+- **Your flats** (`/listings`): each flat has a VACANCY sign that is the on/off switch for likes, counts of tenants waiting and keys given, and a two-tap "take down". Flats are kept in the browser (`flatch.listings.v1`).
+- **Interested** (`/interested`): one tenant at a time, oldest first. Drag the card, use the buttons, or the arrow keys. Yes gives a key (a match) and opens the chat; the lister is told with a toast rather than the full match moment, since they made the match themselves.
+- **Keys and chat** are shared with tenants. A match carries `side`, the other `person`, and for a lister the `applicant`. A lister sees who has the key instead of the address card.
+- **Bot tenants** (`mock/applicants.ts`): five of eight like each new flat over the first 50 seconds, and reply in chat. A closed flat takes no new likes.
+
+Differences from the plan above, to revisit with the backend: photos are picked from samples (uploads need storage, M2); the area is chosen from a list with no map pin; no "who you're looking for" step and no free-text rules; tenants are ordered by arrival, not compatibility, and their match % is written by hand; no listing stats beyond the two counts; a posted flat does not appear in the tenant deck; there is no editing a flat after posting.
+
 ### 3.7 Match moment and chat
 
 - **Match moment**: the screen dims, a neon sign reading "YOU'RE IN" flickers on (three flickers, then steady), both photos slide in, light particles drift. Buttons: Say hi, Keep swiping. With reduced motion: a simple fade. It can appear over any screen: a watcher in the app's frame queues each new match and shows them one at a time. Matches that already existed when the app opened are not replayed.
@@ -534,7 +544,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch) and the tenant side (check-in, Profile tab, two cities). Still to build on mock: the lister side, and the profile prompt at the first like. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
+**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch), the tenant side (check-in, Profile tab, ten cities) and the lister side (post a flat, Your flats, Interested, lister chat; see 3.6). Still to build on mock: the profile prompt at the first like. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 

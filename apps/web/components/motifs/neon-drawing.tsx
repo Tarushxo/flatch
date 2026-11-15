@@ -93,3 +93,30 @@ export function ArrowSignDrawing({ className }: { className?: string }) {
     </NeonDrawing>
   );
 }
+
+/** A front-desk bell: nobody is waiting yet. */
+export function BellDrawing({ className }: { className?: string }) {
+  return (
+    <NeonDrawing label="A neon front-desk bell" className={className}>
+      <path d="M12 43a18 18 0 0 1 36 0z" />
+      <path d="M7 50h46" />
+      <path d="M30 25v-6" />
+      <path d="M25 19h10" />
+      <path d="M49 17l4-4" />
+      <path d="M53 26h5" />
+    </NeonDrawing>
+  );
+}
+
+/** A roadside vacancy board on a post: no flat posted yet. */
+export function SignboardDrawing({ className }: { className?: string }) {
+  return (
+    <NeonDrawing label="A neon signboard" className={className}>
+      <rect x="9" y="8" width="42" height="24" rx="4" />
+      <path d="M18 17h24" />
+      <path d="M18 24h14" />
+      <path d="M30 32v22" />
+      <path d="M21 54h18" />
+    </NeonDrawing>
+  );
+}

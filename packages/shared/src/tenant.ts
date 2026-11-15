@@ -70,6 +70,10 @@ export const OCCUPATION_LABELS: Record<(typeof OCCUPATIONS)[number], string> = {
   other: "Something else",
 };
 
+/** The two sides of the app. One person can use both, one at a time. */
+export const MODES = ["tenant", "lister"] as const;
+export type Mode = (typeof MODES)[number];
+
 export const NAME_MAX_LENGTH = 40;
 export const ABOUT_MAX_LENGTH = 280;
 
@@ -94,6 +98,7 @@ export const DEFAULT_PROFILE: TenantProfile = {
   occupation: null,
   about: "",
   preferences: DEFAULT_PREFERENCES,
+  mode: "tenant",
   onboardedAt: null,
 };
 

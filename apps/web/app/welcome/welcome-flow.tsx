@@ -27,6 +27,7 @@ import { Logo } from "@/components/logo";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { api } from "@/lib/api/client";
 import { BUDGET } from "@/lib/deck/filters";
+import { useSwitchMode } from "@/lib/profile/use-mode";
 import { useProfile, useSaveProfile } from "@/lib/profile/use-profile";
 
 const STEPS = ["city", "budget", "areas", "timing", "room", "lifestyle"] as const;
@@ -68,6 +69,7 @@ export function WelcomeFlow() {
   const save = useSaveProfile();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<TenantPreferences | null>(null);
+  const { switchTo, switching } = useSwitchMode();
 
   // Start from whatever is already saved.
   useEffect(() => {
@@ -148,6 +150,20 @@ export function WelcomeFlow() {
           {current === "timing" ? <TimingStep draft={draft} set={set} /> : null}
           {current === "room" ? <RoomStep draft={draft} set={set} /> : null}
           {current === "lifestyle" ? <LifestyleStep draft={draft} set={set} /> : null}
+
+          {step === 0 && !returning ? (
+            <p className="mt-8 text-fg-2 text-sm">
+              Have a room to fill instead?{" "}
+              <button
+                type="button"
+                disabled={switching}
+                onClick={() => void switchTo("lister")}
+                className="font-medium text-like underline-offset-4 hover:underline"
+              >
+                List a flat
+              </button>
+            </p>
+          ) : null}
         </div>
 
         <footer className="mt-8 flex items-center justify-between gap-4">
