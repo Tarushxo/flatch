@@ -544,7 +544,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0, M1 and M2 are done and live. Every screen exists on the mock API (see 3.6); only the profile prompt at the first like is missing. **M3 is in progress.** Done: guest accounts for every visitor (Better Auth), the profile and preferences stored in the database, check-out that deletes the guest, and Google sign-in wired up but switched off until its two keys are set. Still to do for M3: the Google keys, "Try the demo" with a persona, the profile prompt at the first like, and posting a flat to the database with photo uploads. Then M4 real matching, M5 feed engine, M6 scale.
+**Progress (16 Nov 2026).** M0, M1 and M2 are done and live. **M3 is mostly done and live:** the front-desk sign-in screen, guest accounts, Google sign-in (published, working on the live site), profiles in the database, privacy and terms pages, and posting a flat to the database with the two posting rules (sign-in required, two open flats at most). Still to do for M3: photo uploads (Cloudinary), "Try the demo" with a persona, and the profile prompt at the first like. Then M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 
@@ -584,6 +584,9 @@ _As built so far._ Sign-in is Better Auth, mounted by the API at `/api/auth/*`, 
 - **Session cookie signing.** `BETTER_AUTH_SECRET` if set, otherwise a key worked out from `DATABASE_URL`, so a deployment needs no extra setting.
 - **Check out** deletes a guest's account and everything of theirs. A signed-in person gets "Sign out" and "Delete my account" instead.
 - **Check-in belongs to the tenant side.** A lister is let in without it; switching to the tenant side takes someone who never answered it to check-in (`hasCheckedIn`).
+- **Posting a flat** is saved on the server (`/api/v1/listings`). Rules, all in `packages/api/src/policies.ts` with a test matrix: a guest cannot post wherever sign-in is offered; one person can have two flats open at once; only the lister can switch or take down a flat, and anyone else is told it does not exist. Photos must be from the offered sample set and list choices from the offered options, so nothing free-typed rides along. The flat's location is a point near the middle of its area (the form has no map pin yet), and only the snapped public point is sent out.
+- **Who sees a posted flat.** Signed-in people see it in the deck for its city; its lister does not, and guests see demo flats only. It shows no match score until M5. A like on it is stored but nothing answers yet: the bot listers only speak for demo flats, and real interest and acceptance are M4.
+- **Bot tenants for a posted flat** still come from the browser mock, which keeps a copy of the person's flats for that purpose (`syncListings`), so the lister side stays a working demo until M4.
 - **Browser copy.** The profile is also kept in the browser, because the mock's chats and bot tenants read the person's name from there until M4. Answers given before accounts existed are sent up once.
 
 **M4. The match loop**

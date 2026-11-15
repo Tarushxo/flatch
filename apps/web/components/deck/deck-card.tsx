@@ -235,7 +235,13 @@ export function DeckCard({
       onPanEnd={isTop ? onPanEnd : undefined}
       onTap={isTop ? onTap : undefined}
     >
-      <CardFace listing={listing} photoIndex={photoIndex} priority={isTop} />
+      <CardFace
+        listing={listing}
+        photoIndex={photoIndex}
+        priority={isTop}
+        // A flat with no score yet (one a real person posted, until M5) shows no ring.
+        showMatch={listing.compatibility.percent > 0}
+      />
 
       {/* Cards further back are dimmer */}
       <motion.div

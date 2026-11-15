@@ -55,66 +55,76 @@ export function ListingDetail({
         />
       </Block>
 
-      <Block title="Why this flat">
-        <div className="flex items-center gap-5">
-          <CompatRing percent={compatibility.percent} size="lg" />
-          <ul className="space-y-2 text-sm">
-            {compatibility.reasons.map((reason) => (
-              <li key={reason} className="flex items-start gap-2">
-                <CheckIcon className="mt-0.5 size-4 shrink-0 text-win" />
-                {reason}
+      {compatibility.percent > 0 ? (
+        <Block title="Why this flat">
+          <div className="flex items-center gap-5">
+            <CompatRing percent={compatibility.percent} size="lg" />
+            <ul className="space-y-2 text-sm">
+              {compatibility.reasons.map((reason) => (
+                <li key={reason} className="flex items-start gap-2">
+                  <CheckIcon className="mt-0.5 size-4 shrink-0 text-win" />
+                  {reason}
+                </li>
+              ))}
+              {compatibility.caution ? (
+                <li className="flex items-start gap-2 text-fg-2">
+                  <span
+                    aria-hidden="true"
+                    className="w-4 shrink-0 text-center font-semibold text-save"
+                  >
+                    !
+                  </span>
+                  <span>
+                    <span className="sr-only">Worth knowing: </span>
+                    {compatibility.caution}
+                  </span>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        </Block>
+      ) : null}
+
+      {listing.amenities.length > 0 ? (
+        <Block title="What it comes with">
+          <AmenityPlaques items={listing.amenities} layout="row" />
+        </Block>
+      ) : null}
+
+      {listing.houseRules.length > 0 ? (
+        <Block title="House rules">
+          <ul className="flex flex-wrap gap-2">
+            {listing.houseRules.map((rule) => (
+              <li
+                key={rule.label}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm ${
+                  rule.allowed ? "border-like/30 text-fg" : "border-pass/30 text-fg-2"
+                }`}
+              >
+                {rule.allowed ? (
+                  <CheckIcon className="size-4 text-like" />
+                ) : (
+                  <CrossIcon className="size-4 text-pass" />
+                )}
+                <span className="sr-only">{rule.allowed ? "Allowed: " : "Not allowed: "}</span>
+                {rule.label}
               </li>
             ))}
-            {compatibility.caution ? (
-              <li className="flex items-start gap-2 text-fg-2">
-                <span
-                  aria-hidden="true"
-                  className="w-4 shrink-0 text-center font-semibold text-save"
-                >
-                  !
-                </span>
-                <span>
-                  <span className="sr-only">Worth knowing: </span>
-                  {compatibility.caution}
-                </span>
-              </li>
-            ) : null}
           </ul>
-        </div>
-      </Block>
+        </Block>
+      ) : null}
 
-      <Block title="What it comes with">
-        <AmenityPlaques items={listing.amenities} layout="row" />
-      </Block>
+      {listing.societyRules.length > 0 ? (
+        <Block title="Society rules">
+          <BulletList items={listing.societyRules} />
+        </Block>
+      ) : null}
 
-      <Block title="House rules">
-        <ul className="flex flex-wrap gap-2">
-          {listing.houseRules.map((rule) => (
-            <li
-              key={rule.label}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm ${
-                rule.allowed ? "border-like/30 text-fg" : "border-pass/30 text-fg-2"
-              }`}
-            >
-              {rule.allowed ? (
-                <CheckIcon className="size-4 text-like" />
-              ) : (
-                <CrossIcon className="size-4 text-pass" />
-              )}
-              <span className="sr-only">{rule.allowed ? "Allowed: " : "Not allowed: "}</span>
-              {rule.label}
-            </li>
-          ))}
-        </ul>
-      </Block>
-
-      <Block title="Society rules">
-        <BulletList items={listing.societyRules} />
-      </Block>
-
-      <Block title={`What ${lister.name} expects`}>
-        <BulletList items={listing.expectations} />
-      </Block>
+      {listing.expectations.length > 0 ? (
+        <Block title={`What ${lister.name} expects`}>
+          <BulletList items={listing.expectations} />
+        </Block>
+      ) : null}
 
       <Block title="Who you'd live with">
         <div className="surface flex items-start gap-4 rounded-2xl p-4">

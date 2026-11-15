@@ -65,6 +65,10 @@ export const LISTING_LIMITS = {
   photosMin: 3,
   photosMax: 8,
   depositMonthsMax: 10,
+  societyMax: 80,
+  addressLineMax: 120,
+  /** The most flats one person may have open to likes at once. */
+  openMax: 2,
 } as const;
 
 /** The steps of posting a flat, in order. */

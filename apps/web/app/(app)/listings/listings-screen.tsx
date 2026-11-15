@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRent, type MyListing } from "@repo/shared";
+import { formatRent, LISTING_LIMITS, type MyListing } from "@repo/shared";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { SignboardDrawing } from "@/components/motifs/neon-drawing";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
 import { SignLink } from "@/components/sign-link";
+import { ApiError } from "@/lib/api/http";
 import { useDeleteListing, useMyListings, useSetListingOpen } from "@/lib/lister/use-lister";
 
 /**
@@ -63,6 +64,9 @@ export function ListingsScreen() {
     );
   }
 
+  const atLimit =
+    listings.data.filter((listing) => listing.isOpen).length >= LISTING_LIMITS.openMax;
+
   return (
     <div className="h-full overflow-y-auto px-4 pt-4 pb-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-2xl">
@@ -73,14 +77,23 @@ export function ListingsScreen() {
               Tap a sign to switch it off when the room goes.
             </p>
           </div>
-          <Link
-            href="/listings/new"
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-like/40 px-3.5 py-2 font-medium text-like text-sm transition-colors hover:bg-like/10"
-          >
-            <PlusIcon className="size-4" />
-            Post a flat
-          </Link>
+          {atLimit ? null : (
+            <Link
+              href="/listings/new"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-like/40 px-3.5 py-2 font-medium text-like text-sm transition-colors hover:bg-like/10"
+            >
+              <PlusIcon className="size-4" />
+              Post a flat
+            </Link>
+          )}
         </div>
+
+        {atLimit ? (
+          <p className="mt-5 rounded-2xl border border-save/30 bg-save/10 px-4 py-3 text-save text-sm leading-relaxed">
+            You have {LISTING_LIMITS.openMax} flats open, which is the most allowed at once. Switch
+            a sign off to post another.
+          </p>
+        ) : null}
 
         <ul className="mt-6 space-y-4">
           {listings.data.map((listing) => (
@@ -107,7 +120,12 @@ function FlatCard({ listing }: { listing: MyListing }) {
       {
         onSuccess: () =>
           toast(isOpen ? "Sign on. Taking likes again." : "Sign off. No new likes for now."),
-        onError: () => toast.error("The sign didn't switch. Try again in a moment."),
+        onError: (error) =>
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "The sign didn't switch. Try again in a moment.",
+          ),
       },
     );
   }

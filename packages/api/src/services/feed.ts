@@ -1,6 +1,6 @@
 import { type Db, listings, localities, swipes, users } from "@repo/db";
 import type { City, FeedFilters, FeedPage, Listing } from "@repo/shared";
-import { and, asc, desc, eq, gt, inArray, lt, lte, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../cursor";
 import { type PublicListingRow, type PublicPhotoRow, toListing } from "../serialize";
 
@@ -52,12 +52,15 @@ const PUBLIC_COLUMNS = {
 /** What the flat really costs each month: rent plus the recurring extras. */
 const monthlyCost = sql<number>`(${listings.rent} + ${listings.maintenance} + ${listings.utilitiesEst})`;
 
+/** Who the deck is for. A guest sees demo flats only; nobody is shown their own flat. */
+export type Viewer = { userId: string; isGuest: boolean } | null;
+
 /** The conditions a flat must meet to be in this person's deck. */
-function inDeck(db: Db, filters: FeedFilters, userId: string | null) {
+function inDeck(db: Db, filters: FeedFilters, viewer: Viewer) {
   const swiped = db
     .select({ one: sql`1` })
     .from(swipes)
-    .where(and(eq(swipes.userId, userId ?? ""), eq(swipes.listingId, listings.id)));
+    .where(and(eq(swipes.userId, viewer?.userId ?? ""), eq(swipes.listingId, listings.id)));
 
   return and(
     eq(listings.status, "active"),
@@ -65,7 +68,10 @@ function inDeck(db: Db, filters: FeedFilters, userId: string | null) {
     filters.budgetMax === null ? undefined : lte(monthlyCost, filters.budgetMax),
     filters.localities.length === 0 ? undefined : inArray(localities.name, filters.localities),
     filters.roomTypes.length === 0 ? undefined : inArray(listings.roomType, filters.roomTypes),
-    userId === null ? undefined : notExists(swiped),
+    // Guests only ever interact with demo data (see CLAUDE.md), and so does the public preview.
+    viewer === null || viewer.isGuest ? eq(listings.isSeed, true) : undefined,
+    viewer === null ? undefined : ne(listings.listerId, viewer.userId),
+    viewer === null ? undefined : notExists(swiped),
   );
 }
 
@@ -102,13 +108,13 @@ export function publicListings(db: Db) {
 
 export async function getFeedPage(
   db: Db,
-  input: { filters: FeedFilters; userId: string | null; cursor: string | null },
+  input: { filters: FeedFilters; viewer: Viewer; cursor: string | null },
 ): Promise<FeedPage> {
   const after = decodeCursor(input.cursor);
   const rows = await publicListings(db)
     .where(
       and(
-        inDeck(db, input.filters, input.userId),
+        inDeck(db, input.filters, input.viewer),
         after === null
           ? undefined
           : or(
@@ -135,13 +141,13 @@ export async function getFeedPage(
 /** How many flats the filters leave in this person's deck. */
 export async function countFeed(
   db: Db,
-  input: { filters: FeedFilters; userId: string | null },
+  input: { filters: FeedFilters; viewer: Viewer },
 ): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(listings)
     .innerJoin(localities, eq(localities.id, listings.localityId))
-    .where(inDeck(db, input.filters, input.userId));
+    .where(inDeck(db, input.filters, input.viewer));
   return row?.count ?? 0;
 }
 

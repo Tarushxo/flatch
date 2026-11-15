@@ -16,14 +16,14 @@ import type {
 } from "@repo/shared";
 import type { Entry } from "@/lib/auth/client";
 import { httpApi } from "./http";
-import { mockApi, rememberListings } from "./mock";
+import { mockApi, rememberListings, syncListings } from "./mock";
 import { readProfile, writeProfile } from "./mock/profile-store";
 
 /**
  * Everything the app asks the server for. Components and hooks depend on this
  * interface only. The real server takes it over a piece at a time: flats and
- * swipes (M2), then accounts and profiles (M3). Matches, chat and the lister
- * side are still the in-browser mock until their milestones.
+ * swipes (M2), then accounts, profiles and posted flats (M3). Matches, chat
+ * and the tenants who answer a posted flat are still the in-browser mock (M4).
  */
 export interface Api {
   /** One page of the ranked feed. Pass the previous page's `nextCursor` to continue. */
@@ -109,16 +109,41 @@ const withServer: Api = {
   ...mockApi,
   ...httpApi,
 
+  // Only demo flats are handed to the mock's bot listers. A flat posted by a real
+  // person must not be "accepted" by a bot, with an invented address, on their behalf.
   async getFeed(cursor, filters) {
     const page = await httpApi.getFeed(cursor, filters);
-    rememberListings(page.items);
+    rememberListings(page.items.filter((listing) => listing.isSeed));
     return page;
   },
 
   async getSaved() {
     const saved = await httpApi.getSaved();
-    rememberListings(saved);
+    rememberListings(saved.filter((listing) => listing.isSeed));
     return saved;
+  },
+
+  // Posted flats live on the server. The mock keeps a copy so its bot tenants can
+  // still like them and chat, and supplies the "waiting" and "keys" counts.
+  async getMyListings() {
+    return syncListings(await httpApi.getMyListings());
+  },
+
+  async createListing(draft) {
+    const made = await httpApi.createListing(draft);
+    const all = syncListings(await httpApi.getMyListings());
+    return all.find((listing) => listing.id === made.id) ?? made;
+  },
+
+  async setListingOpen(listingId, isOpen) {
+    const changed = await httpApi.setListingOpen(listingId, isOpen);
+    const all = syncListings(await httpApi.getMyListings());
+    return all.find((listing) => listing.id === listingId) ?? changed;
+  },
+
+  async deleteListing(listingId) {
+    await httpApi.deleteListing(listingId);
+    syncListings(await httpApi.getMyListings());
   },
 
   // The profile lives on the server. A copy is kept in the browser because the

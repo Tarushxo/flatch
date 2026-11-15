@@ -1,5 +1,12 @@
 import type { AppType } from "@repo/api";
-import type { Account, FeedFilters, FeedPage, Listing, TenantProfile } from "@repo/shared";
+import type {
+  Account,
+  FeedFilters,
+  FeedPage,
+  Listing,
+  MyListing,
+  TenantProfile,
+} from "@repo/shared";
 import { hc } from "hono/client";
 import {
   authClient,
@@ -12,8 +19,8 @@ import type { Api } from "./client";
 
 /*
  * The parts of the app's API that are served by the real server: the feed,
- * the areas of a city, swipes and saved flats (M2), and the person's account
- * and profile (M3). The client is typed from the server's own routes, so the
+ * the areas of a city, swipes and saved flats (M2), and the person's account,
+ * profile and posted flats (M3). The client is typed from the server's own routes, so the
  * two cannot drift apart.
  */
 
@@ -120,6 +127,23 @@ export const httpApi = {
     const gone = guest ? await authClient.deleteAnonymousUser() : await authClient.deleteUser();
     if (gone.error) await authClient.signOut();
     forgetSession();
+  },
+
+  getMyListings: async () =>
+    (await answer<{ items: MyListing[] }>(() => v1.listings.mine.$get())).items,
+
+  createListing: async (draft) =>
+    (await answer<{ listing: MyListing }>(() => v1.listings.$post({ json: draft }))).listing,
+
+  setListingOpen: async (listingId, isOpen) =>
+    (
+      await answer<{ listing: MyListing }>(() =>
+        v1.listings[":listingId"].$patch({ param: { listingId }, json: { isOpen } }),
+      )
+    ).listing,
+
+  deleteListing: async (listingId) => {
+    await answer(() => v1.listings[":listingId"].$delete({ param: { listingId } }));
   },
 
   getEntry: () => entryState(),

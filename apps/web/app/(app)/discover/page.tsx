@@ -17,7 +17,7 @@ export const revalidate = 3600;
 async function firstPhoto(): Promise<ListingPhoto | undefined> {
   try {
     const page = hasDatabase()
-      ? await getFeedPage(getDb(), { filters: NO_FILTERS, userId: null, cursor: null })
+      ? await getFeedPage(getDb(), { filters: NO_FILTERS, viewer: null, cursor: null })
       : await mockApi.getFeed(null, NO_FILTERS);
     return page.items[0]?.photos[0];
   } catch {

@@ -1,11 +1,18 @@
 import { zValidator } from "@hono/zod-validator";
 import { getDb, hasDatabase } from "@repo/db";
 import { type Account, CITIES, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
-import { FeedFiltersSchema, TenantProfileSchema } from "@repo/shared/schemas";
+import { FeedFiltersSchema, ListingDraftSchema, TenantProfileSchema } from "@repo/shared/schemas";
 import { Hono } from "hono";
 import { z } from "zod";
 import { getAuth, googleEnabled } from "./auth";
 import { countFeed, getFeedPage, getLocalityNames } from "./services/feed";
+import {
+  createListing,
+  deleteListing,
+  getMyListings,
+  Refused,
+  setListingOpen,
+} from "./services/listings";
 import { getProfile, saveProfile } from "./services/me";
 import { getSaved, recordSwipes, resetPasses, undoSwipe } from "./services/swipes";
 
@@ -60,6 +67,11 @@ const invalid = (
     ? undefined
     : c.json(problem("invalid_input", "That request was not understood."), 400);
 
+/** The person asking, as the services and policies know them. */
+function viewer(c: { get: (key: "userId" | "account") => unknown }) {
+  return { userId: c.get("userId") as string, isGuest: (c.get("account") as Account).isGuest };
+}
+
 const routes = new Hono<Env>()
   .get("/me", async (c) =>
     c.json({ profile: await getProfile(getDb(), c.get("userId")), account: c.get("account") }),
@@ -87,7 +99,7 @@ const routes = new Hono<Env>()
         localities: query.area,
         roomTypes: query.room,
       },
-      userId: c.get("userId"),
+      viewer: viewer(c),
       cursor: query.cursor ?? null,
     });
     return c.json(page);
@@ -96,7 +108,7 @@ const routes = new Hono<Env>()
   .post("/feed/count", zValidator("json", FeedFiltersSchema, invalid), async (c) => {
     const count = await countFeed(getDb(), {
       filters: c.req.valid("json"),
-      userId: c.get("userId"),
+      viewer: viewer(c),
     });
     return c.json({ count });
   })
@@ -120,7 +132,38 @@ const routes = new Hono<Env>()
     },
   )
 
-  .get("/saved", async (c) => c.json({ items: await getSaved(getDb(), c.get("userId")) }));
+  .get("/saved", async (c) => c.json({ items: await getSaved(getDb(), c.get("userId")) }))
+
+  .get("/listings/mine", async (c) =>
+    c.json({ items: await getMyListings(getDb(), c.get("userId")) }),
+  )
+
+  .post("/listings", zValidator("json", ListingDraftSchema, invalid), async (c) => {
+    const listing = await createListing(getDb(), viewer(c), c.req.valid("json"), {
+      signInOffered: googleEnabled(),
+    });
+    return c.json({ listing }, 201);
+  })
+
+  .patch(
+    "/listings/:listingId",
+    zValidator("param", z.object({ listingId: z.uuid() }), invalid),
+    zValidator("json", z.object({ isOpen: z.boolean() }), invalid),
+    async (c) => {
+      const { listingId } = c.req.valid("param");
+      const { isOpen } = c.req.valid("json");
+      return c.json({ listing: await setListingOpen(getDb(), viewer(c), listingId, isOpen) });
+    },
+  )
+
+  .delete(
+    "/listings/:listingId",
+    zValidator("param", z.object({ listingId: z.uuid() }), invalid),
+    async (c) => {
+      await deleteListing(getDb(), viewer(c), c.req.valid("param").listingId);
+      return c.json({ ok: true });
+    },
+  );
 
 /** Routes that need to know who is asking. */
 const signedIn = new Hono<Env>()
@@ -162,6 +205,8 @@ export const app = new Hono<Env>()
   .route("/v1", signedIn)
   .notFound((c) => c.json(problem("not_found", "There is nothing at this address."), 404))
   .onError((error, c) => {
+    // A refusal is an ordinary answer, not a fault.
+    if (error instanceof Refused) return c.json(problem(error.code, error.message), error.status);
     console.error(`[${c.get("requestId")}] ${c.req.method} ${c.req.path}`, error);
     if (!hasDatabase()) {
       return c.json(problem("no_database", "The database is not set up on this server."), 503);

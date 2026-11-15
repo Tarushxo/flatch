@@ -26,14 +26,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ScreenMessage } from "@/components/app-shell/screen-message";
 import { CardFace } from "@/components/deck/card-face";
-import { CheckIcon, KeyIcon } from "@/components/icons";
+import { CheckIcon, GoogleIcon, KeyIcon } from "@/components/icons";
 import { FadeImage } from "@/components/listing/fade-image";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
+import { KeyDrawing } from "@/components/motifs/neon-drawing";
 import { api } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/http";
 import { useCreateListing, useSamplePhotos } from "@/lib/lister/use-lister";
-import { PROFILE_KEY, useProfile } from "@/lib/profile/use-profile";
+import { PROFILE_KEY, useAccount, useProfile } from "@/lib/profile/use-profile";
 
 /** A half-filled form survives a reload, until the tab is closed. */
 const DRAFT_KEY = "flatch.listing-draft.v1";
@@ -118,6 +121,7 @@ export function PostFlat() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const profile = useProfile();
+  const account = useAccount();
   const create = useCreateListing();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<ListingDraft | null>(null);
@@ -141,7 +145,7 @@ export function PostFlat() {
     }
   }, [draft]);
 
-  if (!profile.data || draft === null) {
+  if (!profile.data || !account.data || draft === null) {
     return (
       <div role="status" className="grid h-full place-items-center">
         <span className="sr-only">Loading…</span>
@@ -149,6 +153,10 @@ export function PostFlat() {
       </div>
     );
   }
+
+  // Posting needs a real account wherever signing in is on offer. A guest is asked to sign
+  // in before filling the form, not after.
+  if (account.data.isGuest && account.data.canSignIn) return <SignInToPost />;
 
   const me = profile.data;
   const current = LISTING_STEPS[step] ?? "basics";
@@ -179,8 +187,11 @@ export function PostFlat() {
         description: "Tenants who like it will show up under Interested.",
       });
       router.push("/listings");
-    } catch {
-      toast.error("That didn't post. Try again in a moment.");
+    } catch (error) {
+      // A refusal from the server says why (the limit on open flats, say); show that.
+      toast.error(
+        error instanceof ApiError ? error.message : "That didn't post. Try again in a moment.",
+      );
     }
   }
 
@@ -253,6 +264,44 @@ export function PostFlat() {
         </div>
       </footer>
     </div>
+  );
+}
+
+/** Shown to a guest in place of the form: why posting needs an account, and the way in. */
+function SignInToPost() {
+  const [opening, setOpening] = useState(false);
+
+  async function signIn() {
+    setOpening(true);
+    try {
+      await api.signInWithGoogle("/listings/new");
+    } catch {
+      setOpening(false);
+      toast.error("Couldn't reach Google just now. Try again in a moment.");
+    }
+  }
+
+  return (
+    <ScreenMessage
+      art={<KeyDrawing className="[--glow:var(--save)]" />}
+      title="Sign in to post a flat"
+      body="A flat on the board needs a real person behind it, so nobody can list a home that is not theirs to let. Browsing stays open to guests."
+    >
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="button"
+          disabled={opening}
+          onClick={() => void signIn()}
+          className="button-primary flex items-center gap-2.5 disabled:opacity-50"
+        >
+          <GoogleIcon className="size-5" />
+          {opening ? "Opening Google…" : "Continue with Google"}
+        </button>
+        <Link href="/listings" className="px-3 py-2 font-medium text-fg-2 text-sm hover:text-fg">
+          Not now
+        </Link>
+      </div>
+    </ScreenMessage>
   );
 }
 
