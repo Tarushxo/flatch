@@ -1,10 +1,15 @@
 import type { AppType } from "@repo/api";
+import { SAMPLE_PHOTOS } from "@repo/db/seed-data";
 import type {
   Account,
+  Applicant,
   FeedFilters,
   FeedPage,
   Listing,
+  Match,
+  Message,
   MyListing,
+  PendingLike,
   TenantProfile,
   UploadTicket,
 } from "@repo/shared";
@@ -20,10 +25,9 @@ import { preparePhoto, sendPhoto } from "@/lib/photo-upload";
 import type { Api } from "./client";
 
 /*
- * The parts of the app's API that are served by the real server: the feed,
- * the areas of a city, swipes and saved flats (M2), and the person's account,
- * profile and posted flats (M3). The client is typed from the server's own routes, so the
- * two cannot drift apart.
+ * The app's API, served by the real server: flats and swipes, accounts and
+ * profiles, posted flats, and likes, matches and chat. The client is typed
+ * from the server's own routes, so the two cannot drift apart.
  */
 
 const v1 = hc<AppType>("/").api.v1;
@@ -80,7 +84,18 @@ function feedQuery(filters: FeedFilters, cursor: string | null) {
   };
 }
 
-export const httpApi = {
+/** Things the app used to keep in the browser before the server held them. Cleared on leaving. */
+const OLD_BROWSER_COPIES = ["flatch.profile.v1", "flatch.listings.v1"];
+
+function forgetBrowserCopies() {
+  try {
+    for (const key of OLD_BROWSER_COPIES) window.localStorage.removeItem(key);
+  } catch {
+    // Storage is blocked, so nothing was kept there either.
+  }
+}
+
+export const httpApi: Api = {
   getFeed: (cursor, filters) =>
     answer<FeedPage>(() => v1.feed.$get({ query: feedQuery(filters, cursor) })),
 
@@ -129,7 +144,50 @@ export const httpApi = {
     const gone = guest ? await authClient.deleteAnonymousUser() : await authClient.deleteUser();
     if (gone.error) await authClient.signOut();
     forgetSession();
+    forgetBrowserCopies();
   },
+
+  getMatches: async () => (await answer<{ items: Match[] }>(() => v1.matches.$get())).items,
+
+  getPendingLikes: async () =>
+    (await answer<{ items: PendingLike[] }>(() => v1.likes.pending.$get())).items,
+
+  getMessages: async (matchId) =>
+    (
+      await answer<{ items: Message[] }>(() =>
+        v1.matches[":matchId"].messages.$get({ param: { matchId } }),
+      )
+    ).items,
+
+  sendMessage: async (matchId, body) =>
+    (
+      await answer<{ message: Message }>(() =>
+        v1.matches[":matchId"].messages.$post({ param: { matchId }, json: { body } }),
+      )
+    ).message,
+
+  markRead: async (matchId) => {
+    await answer(() => v1.matches[":matchId"].read.$post({ param: { matchId } }));
+  },
+
+  unmatch: async (matchId) => {
+    await answer(() => v1.matches[":matchId"].$delete({ param: { matchId } }));
+  },
+
+  getApplicants: async (listingId) =>
+    (
+      await answer<{ items: Applicant[] }>(() =>
+        v1.applicants.$get({ query: listingId ? { listingId } : {} }),
+      )
+    ).items,
+
+  decideApplicant: (applicantId, decision) =>
+    answer<{ matchId: string | null }>(() =>
+      v1.applicants[":applicantId"].decision.$post({ param: { applicantId }, json: { decision } }),
+    ),
+
+  // The sample photos are fixed and ship with the app, so there is nothing to ask the server.
+  getSamplePhotos: async () => SAMPLE_PHOTOS,
 
   getMyListings: async () =>
     (await answer<{ items: MyListing[] }>(() => v1.listings.mine.$get())).items,
@@ -195,8 +253,9 @@ export const httpApi = {
   signOut: async () => {
     await authClient.signOut();
     forgetSession();
+    forgetBrowserCopies();
   },
-} satisfies Partial<Api>;
+};
 
 function me() {
   return answer<{ profile: TenantProfile; account: Account }>(() => v1.me.$get());

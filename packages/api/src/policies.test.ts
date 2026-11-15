@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  mayDecideInterest,
+  mayLikeListing,
   mayManageListing,
   mayPostListing,
   mayReportListing,
   maySwitchListing,
   mayUploadPhotos,
+  mayUseChat,
 } from "./policies";
 
 const member = { userId: "user-a", isGuest: false };
@@ -175,6 +178,66 @@ describe("who may report a flat", () => {
     it(`${row.who}: ${row.code ?? "allowed"}`, () => {
       const refusal = mayReportListing(row.actor, row.listing, { signInOffered: row.signIn });
       expect(refusal?.code ?? null).toBe(row.code);
+    });
+  }
+});
+
+describe("who may like a flat", () => {
+  const demo = { listerId: "bot-1", isSeed: true };
+  const real = { listerId: "user-b", isSeed: false };
+  const rows = [
+    { who: "a guest, a demo flat", actor: guest, listing: demo, code: null },
+    { who: "a guest, a real person's flat", actor: guest, listing: real, code: "guests_demo_only" },
+    { who: "a signed-in person, a demo flat", actor: member, listing: demo, code: null },
+    { who: "a signed-in person, a real person's flat", actor: member, listing: real, code: null },
+    {
+      who: "a lister, their own flat",
+      actor: member,
+      listing: { ...real, listerId: "user-a" },
+      code: "own_flat",
+    },
+  ] as const;
+
+  for (const row of rows) {
+    it(`${row.who}: ${row.code ?? "allowed"}`, () => {
+      expect(mayLikeListing(row.actor, row.listing)?.code ?? null).toBe(row.code);
+    });
+  }
+});
+
+describe("who may answer a tenant's like", () => {
+  it("is the flat's lister, and nobody else", () => {
+    expect(mayDecideInterest(member, { listerId: "user-a" })).toBeNull();
+    expect(mayDecideInterest(member, { listerId: "user-b" })?.code).toBe("not_yours");
+    expect(mayDecideInterest(guest, { listerId: "user-b" })?.code).toBe("not_yours");
+  });
+});
+
+describe("who may use a chat, and see the address it unlocks", () => {
+  const chat = { tenantId: "user-a", listerId: "user-b", endedAt: null };
+  const stranger = { userId: "user-c", isGuest: false };
+  const rows = [
+    { who: "the tenant in it", actor: member, chat, allowed: true },
+    { who: "the lister in it", actor: { userId: "user-b", isGuest: false }, chat, allowed: true },
+    { who: "someone else who is signed in", actor: stranger, chat, allowed: false },
+    { who: "a guest who is not in it", actor: guest, chat, allowed: false },
+    {
+      who: "the tenant, after it was ended",
+      actor: member,
+      chat: { ...chat, endedAt: new Date() },
+      allowed: false,
+    },
+    {
+      who: "the lister, after it was ended",
+      actor: { userId: "user-b", isGuest: false },
+      chat: { ...chat, endedAt: new Date() },
+      allowed: false,
+    },
+  ] as const;
+
+  for (const row of rows) {
+    it(`${row.who}: ${row.allowed ? "allowed" : "refused"}`, () => {
+      expect(mayUseChat(row.actor, row.chat) === null).toBe(row.allowed);
     });
   }
 });

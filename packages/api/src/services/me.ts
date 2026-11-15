@@ -1,4 +1,4 @@
-import { type Db, profiles, swipes, users } from "@repo/db";
+import { conversations, type Db, interests, messages, profiles, swipes, users } from "@repo/db";
 import {
   cleanProfile,
   DEFAULT_PREFERENCES,
@@ -85,6 +85,23 @@ export async function moveGuestData(db: Db, guestId: string, accountId: string):
       update ${swipes} set user_id = ${accountId}
       where user_id = ${guestId}
         and listing_id not in (select listing_id from ${swipes} where user_id = ${accountId})
+    `);
+    // Likes, matches and what was said in them. A flat the account has already liked keeps
+    // the account's own like; the guest's duplicate goes when the guest account is deleted.
+    await tx.execute(sql`
+      update ${interests} set tenant_id = ${accountId}
+      where tenant_id = ${guestId}
+        and listing_id not in (select listing_id from ${interests} where tenant_id = ${accountId})
+    `);
+    await tx.execute(sql`
+      update ${conversations} set tenant_id = ${accountId}
+      where tenant_id = ${guestId}
+        and interest_id in (select id from ${interests} where tenant_id = ${accountId})
+    `);
+    await tx.execute(sql`
+      update ${messages} set sender_id = ${accountId}
+      where sender_id = ${guestId}
+        and conversation_id in (select id from ${conversations} where tenant_id = ${accountId})
     `);
     await tx.execute(sql`
       update ${profiles} set user_id = ${accountId}

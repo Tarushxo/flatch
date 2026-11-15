@@ -1,7 +1,7 @@
 import { getTableColumns, type SQL, sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { createDb } from "../client";
-import { listingPhotos, listings, localities, users } from "../schema";
+import { listingPhotos, listings, localities, profiles, users } from "../schema";
 import { buildSeedRows } from "./rows";
 
 /*
@@ -47,6 +47,16 @@ try {
         });
     }
 
+    for (const batch of batches(rows.profiles)) {
+      await tx
+        .insert(profiles)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: profiles.userId,
+          set: overwrite(profiles, ["ageRange", "occupation", "mode", "preferences"]),
+        });
+    }
+
     for (const batch of batches(rows.localities)) {
       await tx
         .insert(localities)
@@ -81,7 +91,7 @@ try {
   });
 
   console.log(
-    `Seeded ${rows.listings.length} flats in ${rows.localities.length} areas, with ${rows.photos.length} photos.`,
+    `Seeded ${rows.listings.length} flats in ${rows.localities.length} areas, with ${rows.photos.length} photos, and ${rows.profiles.length} bot tenants.`,
   );
 } finally {
   await db.close();

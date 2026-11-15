@@ -34,6 +34,8 @@ import {
   maySwitchListing,
   type Refusal,
 } from "../policies";
+import { Refused } from "../refused";
+import { inviteBotTenants, stopBotArrivals } from "./matching";
 
 /*
  * A person's own flats: posting one, switching its sign, taking it down.
@@ -41,18 +43,6 @@ import {
  * (society, address) are returned here because the only person who ever gets
  * these answers is the flat's own lister.
  */
-
-/** Thrown when a policy says no, or the flat does not exist. Routes turn it into an answer. */
-export class Refused extends Error {
-  constructor(
-    readonly status: 400 | 403 | 404 | 409,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = "Refused";
-  }
-}
 
 /** A refusal about the state of things is a conflict; one about who is asking is forbidden. */
 const CONFLICTS: Refusal["code"][] = ["listing_limit", "under_review"];
@@ -130,6 +120,15 @@ function ownListings(db: Db) {
       isVerified: listings.isVerified,
       expiresAt: listings.expiresAt,
       underReview: listings.underReview,
+      // Tenants waiting for an answer, and matches still open.
+      interestedCount: sql<number>`(
+        select count(*)::int from interests i
+        where i.listing_id = ${listings.id} and i.status = 'pending' and i.visible_at <= now()
+      )`,
+      matchCount: sql<number>`(
+        select count(*)::int from conversations c
+        where c.listing_id = ${listings.id} and c.ended_at is null and c.matched_at <= now()
+      )`,
       photos: photosInOrder,
     })
     .from(listings)
@@ -152,9 +151,6 @@ function toMyListing(
     isOpen: status === "active" && stillRunning(expiresAt, now),
     expiresAt: expiresAt ? expiresAt.toISOString() : null,
     createdAt: createdAt.toISOString(),
-    // Real likes and matches arrive with the match loop (M4).
-    interestedCount: 0,
-    matchCount: 0,
   };
 }
 
@@ -270,6 +266,8 @@ export async function createListing(
       isVerified: onSite,
       expiresAt: expiryFrom(new Date()),
     });
+    // The demo's bot tenants turn up over the next minute, so there is someone to answer.
+    await inviteBotTenants(tx, id, new Date());
     await tx.insert(listingPhotos).values(
       photos.map((photo, position) => ({
         listingId: id,
@@ -312,6 +310,7 @@ export async function setListingOpen(
   const status = open ? ("active" as const) : ("paused" as const);
   const expiresAt = open && !stillRunning(row.expiresAt, now) ? expiryFrom(now) : row.expiresAt;
   await db.update(listings).set({ status, expiresAt }).where(eq(listings.id, listingId));
+  if (!open) await stopBotArrivals(db, listingId);
   return toMyListing({ ...row, status, expiresAt }, now);
 }
 
@@ -438,3 +437,5 @@ export async function deleteListing(
     await destroyPhotos(storage, uploads);
   }
 }
+
+export { Refused };

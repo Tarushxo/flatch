@@ -6,7 +6,6 @@ import {
   GUEST_ACCOUNT,
   type Listing,
   type Match,
-  type MyListing,
   matchesFilters,
   type Swipe,
   type SwipeAction,
@@ -61,14 +60,6 @@ const ended = new Set<string>();
 let messageCount = 0;
 
 const listingById = new Map(MOCK_LISTINGS.map((listing) => [listing.id, listing]));
-
-/**
- * Tell the mock about flats that came from the real server, so a like on one
- * of them can still be answered by a bot lister.
- */
-export function rememberListings(more: Listing[]): void {
-  for (const listing of more) listingById.set(listing.id, listing);
-}
 
 function storeMessage(matchId: string, from: "me" | "them", body: string, visibleAt: number) {
   messageCount += 1;
@@ -149,30 +140,6 @@ function updateListing(listingId: string, change: (listing: StoredListing) => St
   if (!updated) throw new Error("That flat is no longer listed.");
   writeListings(next);
   return updated as StoredListing;
-}
-
-/**
- * Bring the mock's copy of the person's flats into step with the server's, and
- * return them with the bot tenants' counts. The server owns the flats; the
- * mock only keeps what its bots need (when each flat opened, and the lister's
- * answers), so tenants still turn up and chat until real ones do (M4).
- */
-export function syncListings(server: MyListing[], now = Date.now()): MyListing[] {
-  const mirrored = new Map(readListings().map((listing) => [listing.id, listing]));
-  const next = server.map((flat): StoredListing => {
-    const { interestedCount: _interested, matchCount: _matches, ...details } = flat;
-    const had = mirrored.get(flat.id);
-    if (!had) {
-      return { ...details, opensAt: now, closedAt: flat.isOpen ? null : now, decisions: {} };
-    }
-    if (had.isOpen === flat.isOpen) return { ...had, ...details };
-    if (!flat.isOpen) return { ...had, ...details, closedAt: now };
-    // Reopened: the bots' clock picks up where it stopped.
-    const pausedFor = now - (had.closedAt ?? now);
-    return { ...had, ...details, closedAt: null, opensAt: had.opensAt + pausedFor };
-  });
-  writeListings(next);
-  return next.map((listing) => toMyListing(listing, now));
 }
 
 function lastActivity(match: Match): number {

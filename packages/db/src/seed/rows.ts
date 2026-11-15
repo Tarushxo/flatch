@@ -1,6 +1,6 @@
-import type { Listing } from "@repo/shared";
+import { BOT_TENANTS, DEFAULT_PREFERENCES, type Listing } from "@repo/shared";
 import { type LatLng, publicLocation } from "../location";
-import type { listingPhotos, listings, localities, users } from "../schema";
+import type { listingPhotos, listings, localities, profiles, users } from "../schema";
 import { AVAILABLE_IN_DAYS, SEED_FLATS, seedLocalities } from "./flats";
 import { stableId } from "./ids";
 
@@ -60,7 +60,14 @@ export type SeedRows = {
   localities: (typeof localities.$inferInsert)[];
   listings: (typeof listings.$inferInsert)[];
   photos: (typeof listingPhotos.$inferInsert)[];
+  /** The bot tenants' profiles. Their user rows are in `users`. */
+  profiles: (typeof profiles.$inferInsert)[];
 };
+
+/** The fixed id of a bot tenant, by their position in BOT_TENANTS. */
+export function botTenantId(index: number): string {
+  return stableId(`tenant:${index}`);
+}
 
 /** Every row the seed script writes, for the demo flats as they stand today. */
 export function buildSeedRows(today = new Date(), flats: Listing[] = SEED_FLATS): SeedRows {
@@ -71,7 +78,34 @@ export function buildSeedRows(today = new Date(), flats: Listing[] = SEED_FLATS)
     centroid: xy(locality),
   }));
 
-  const rows: SeedRows = { users: [], localities: localityRows, listings: [], photos: [] };
+  const rows: SeedRows = {
+    users: [],
+    localities: localityRows,
+    listings: [],
+    photos: [],
+    profiles: [],
+  };
+
+  // The bot tenants, who like a flat when a person posts one.
+  BOT_TENANTS.forEach((bot, index) => {
+    const id = botTenantId(index);
+    rows.users.push({
+      id,
+      name: bot.name,
+      email: `${id}@seed.flatch.invalid`,
+      about: bot.about,
+      isSeed: true,
+      isAnonymous: false,
+    });
+    rows.profiles.push({
+      userId: id,
+      ageRange: bot.ageRange,
+      occupation: bot.occupation,
+      mode: "tenant",
+      preferences: { ...DEFAULT_PREFERENCES, lifestyle: bot.lifestyle },
+      onboardedAt: today,
+    });
+  });
 
   for (const flat of flats) {
     const id = stableId(`listing:${flat.id}`);

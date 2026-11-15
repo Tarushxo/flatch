@@ -210,9 +210,12 @@ export const ApplicantSchema = z.object({
   id: z.string(),
   listingId: z.string(),
   name: z.string(),
-  ageRange: z.enum(AGE_RANGES),
-  occupation: z.enum(OCCUPATIONS),
+  /** Null when the tenant has not said. */
+  ageRange: z.enum(AGE_RANGES).nullable(),
+  occupation: z.enum(OCCUPATIONS).nullable(),
   about: z.string(),
+  /** True for one of the demo's bot tenants, which are always marked as such. */
+  isSeed: z.boolean(),
   lifestyle: LifestyleSchema,
   /** How well they fit this household, with the reasons. */
   compatibility: CompatibilitySchema,

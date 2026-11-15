@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { getDb, hasDatabase } from "@repo/db";
-import { type Account, CITIES, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
+import { type Account, CITIES, MESSAGE_MAX_LENGTH, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
 import {
   DevicePositionSchema,
   FeedFiltersSchema,
@@ -13,17 +13,27 @@ import { z } from "zod";
 import { getAuth, googleEnabled } from "./auth";
 import { cloudinaryConfig, uploadTicket } from "./cloudinary";
 import { mayUploadPhotos } from "./policies";
+import { Refused } from "./refused";
 import { countFeed, getFeedPage, getLocalityNames } from "./services/feed";
 import {
   confirmOnSite,
   createListing,
   deleteListing,
   getMyListings,
-  Refused,
   renewListing,
   reportListing,
   setListingOpen,
 } from "./services/listings";
+import {
+  decideApplicant,
+  getApplicants,
+  getMatches,
+  getMessages,
+  getPendingLikes,
+  markRead,
+  sendMessage,
+  unmatch,
+} from "./services/matching";
 import { getProfile, saveProfile } from "./services/me";
 import { getSaved, recordSwipes, resetPasses, undoSwipe } from "./services/swipes";
 
@@ -78,6 +88,8 @@ const invalid = (
     ? undefined
     : c.json(problem("invalid_input", "That request was not understood."), 400);
 
+const MatchParam = z.object({ matchId: z.uuid() });
+
 /** The person asking, as the services and policies know them. */
 function viewer(c: { get: (key: "userId" | "account") => unknown }) {
   return { userId: c.get("userId") as string, isGuest: (c.get("account") as Account).isGuest };
@@ -125,7 +137,7 @@ const routes = new Hono<Env>()
   })
 
   .post("/swipes", zValidator("json", SwipeBatchSchema, invalid), async (c) => {
-    await recordSwipes(getDb(), c.get("userId"), c.req.valid("json").swipes);
+    await recordSwipes(getDb(), viewer(c), c.req.valid("json").swipes);
     return c.json({ ok: true });
   })
 
@@ -187,6 +199,63 @@ const routes = new Hono<Env>()
       });
       return c.json({ ok: true });
     },
+  )
+
+  // ---- likes, matches and chat
+  .get("/likes/pending", async (c) =>
+    c.json({ items: await getPendingLikes(getDb(), c.get("userId")) }),
+  )
+
+  .get("/matches", async (c) => c.json({ items: await getMatches(getDb(), c.get("userId")) }))
+
+  .get("/matches/:matchId/messages", zValidator("param", MatchParam, invalid), async (c) =>
+    c.json({ items: await getMessages(getDb(), viewer(c), c.req.valid("param").matchId) }),
+  )
+
+  .post(
+    "/matches/:matchId/messages",
+    zValidator("param", MatchParam, invalid),
+    zValidator("json", z.object({ body: z.string().max(MESSAGE_MAX_LENGTH * 2) }), invalid),
+    async (c) => {
+      const { matchId } = c.req.valid("param");
+      const message = await sendMessage(getDb(), viewer(c), matchId, c.req.valid("json").body);
+      return c.json({ message }, 201);
+    },
+  )
+
+  .post("/matches/:matchId/read", zValidator("param", MatchParam, invalid), async (c) => {
+    await markRead(getDb(), viewer(c), c.req.valid("param").matchId);
+    return c.json({ ok: true });
+  })
+
+  .delete("/matches/:matchId", zValidator("param", MatchParam, invalid), async (c) => {
+    await unmatch(getDb(), viewer(c), c.req.valid("param").matchId);
+    return c.json({ ok: true });
+  })
+
+  // ---- the lister's side: tenants who liked a flat
+  .get(
+    "/applicants",
+    zValidator("query", z.object({ listingId: z.uuid().optional() }), invalid),
+    async (c) =>
+      c.json({
+        items: await getApplicants(getDb(), c.get("userId"), c.req.valid("query").listingId),
+      }),
+  )
+
+  .post(
+    "/applicants/:applicantId/decision",
+    zValidator("param", z.object({ applicantId: z.uuid() }), invalid),
+    zValidator("json", z.object({ decision: z.enum(["accept", "decline"]) }), invalid),
+    async (c) =>
+      c.json(
+        await decideApplicant(
+          getDb(),
+          viewer(c),
+          c.req.valid("param").applicantId,
+          c.req.valid("json").decision,
+        ),
+      ),
   )
 
   // A ticket to send one photo straight to the image store.

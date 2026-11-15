@@ -15,7 +15,9 @@ export type Refusal = {
     | "listing_limit"
     | "under_review"
     | "demo_flat"
-    | "own_flat";
+    | "own_flat"
+    | "guests_demo_only"
+    | "not_in_chat";
   /** Shown to the person, so it says what to do next. */
   message: string;
 };
@@ -102,6 +104,45 @@ export function mayReportListing(
   }
   if (listing.listerId === actor.userId) {
     return { code: "own_flat", message: "You cannot report your own flat. Take it down instead." };
+  }
+  return null;
+}
+
+/**
+ * May this person like this flat? Not their own. And a guest may only like
+ * demo flats: a guest costs nothing to make, so a real lister should never
+ * hear from one.
+ */
+export function mayLikeListing(
+  actor: Actor,
+  listing: { listerId: string; isSeed: boolean },
+): Refusal | null {
+  if (listing.listerId === actor.userId) {
+    return { code: "own_flat", message: "You cannot like your own flat." };
+  }
+  if (actor.isGuest && !listing.isSeed) {
+    return { code: "guests_demo_only", message: "Sign in with Google to like this flat." };
+  }
+  return null;
+}
+
+/** May this person say yes or no to a tenant who liked this flat? Only the flat's lister. */
+export function mayDecideInterest(actor: Actor, listing: { listerId: string }): Refusal | null {
+  return mayManageListing(actor, listing);
+}
+
+/** The two people in a match, and whether it has been ended. */
+export type Chat = { tenantId: string; listerId: string; endedAt: Date | null };
+
+/**
+ * May this person read or write in this chat, and see what it unlocks (the
+ * address)? Only the tenant and the lister in it, and only until either of
+ * them ends it. Nobody else, ever.
+ */
+export function mayUseChat(actor: Actor, chat: Chat): Refusal | null {
+  const inIt = chat.tenantId === actor.userId || chat.listerId === actor.userId;
+  if (!inIt || chat.endedAt !== null) {
+    return { code: "not_in_chat", message: "This match is no longer open." };
   }
   return null;
 }

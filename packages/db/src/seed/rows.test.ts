@@ -1,8 +1,9 @@
+import { BOT_TENANTS } from "@repo/shared";
 import { describe, expect, it } from "vitest";
 import { metresBetween } from "../location";
 import { SEED_FLATS } from "./flats";
 import { stableId } from "./ids";
-import { buildSeedRows } from "./rows";
+import { botTenantId, buildSeedRows } from "./rows";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -19,7 +20,7 @@ describe("seed rows", () => {
 
   it("has one listing and one lister per demo flat", () => {
     expect(rows.listings).toHaveLength(SEED_FLATS.length);
-    expect(rows.users).toHaveLength(SEED_FLATS.length);
+    expect(rows.users).toHaveLength(SEED_FLATS.length + BOT_TENANTS.length);
     expect(new Set(rows.listings.map((row) => row.id)).size).toBe(SEED_FLATS.length);
   });
 
@@ -52,6 +53,26 @@ describe("seed rows", () => {
       const photos = rows.photos.filter((photo) => photo.listingId === listing.id);
       expect(photos.length, listing.title).toBeGreaterThanOrEqual(3);
       expect(photos.map((photo) => photo.position)).toEqual(photos.map((_, index) => index));
+    }
+  });
+});
+
+describe("bot tenants", () => {
+  const rows = buildSeedRows(new Date("2026-11-16T00:00:00Z"));
+
+  it("each have a user and a profile under the same fixed id", () => {
+    BOT_TENANTS.forEach((bot, index) => {
+      const id = botTenantId(index);
+      expect(rows.users.find((user) => user.id === id)?.name, bot.name).toBe(bot.name);
+      expect(rows.profiles.find((profile) => profile.userId === id)?.ageRange).toBe(bot.ageRange);
+    });
+  });
+
+  it("are marked as demo accounts, never as guests", () => {
+    for (const profile of rows.profiles) {
+      const user = rows.users.find((each) => each.id === profile.userId);
+      expect(user?.isSeed).toBe(true);
+      expect(user?.isAnonymous).toBe(false);
     }
   });
 });

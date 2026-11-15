@@ -7,7 +7,7 @@ import {
   LIFESTYLE_WORDING,
   type LifestyleKey,
   type MyListing,
-  OCCUPATION_LABELS,
+  tenantLine,
 } from "@repo/shared";
 import {
   AnimatePresence,
@@ -214,7 +214,11 @@ function ApplicantCard({
 
   return (
     <motion.article
-      aria-label={`${applicant.name}, ${compatibility.percent} percent match`}
+      aria-label={
+        compatibility.percent > 0
+          ? `${applicant.name}, ${compatibility.percent} percent match`
+          : applicant.name
+      }
       className="surface absolute inset-0 flex touch-pan-y flex-col overflow-hidden rounded-[2rem]"
       style={{ x, rotate: still ? 0 : rotate }}
       drag={still ? false : "x"}
@@ -262,17 +266,20 @@ function ApplicantCard({
             <h2 className="truncate font-display font-semibold text-2xl tracking-tight">
               {applicant.name}
             </h2>
-            <p className="text-fg-2 text-sm">
-              {applicant.ageRange} · {OCCUPATION_LABELS[applicant.occupation]}
-            </p>
+            <p className="text-fg-2 text-sm">{tenantLine(applicant)}</p>
           </div>
-          <CompatRing percent={compatibility.percent} size="lg" />
+          {/* A real tenant has no match score until the ranking engine exists (M5). */}
+          {compatibility.percent > 0 ? (
+            <CompatRing percent={compatibility.percent} size="lg" />
+          ) : null}
         </div>
 
         <p className="mt-4 flex items-center gap-2 text-fg-3 text-xs">
-          <span className="shrink-0 rounded-full border border-hairline px-2 py-0.5 font-medium text-[0.625rem] text-fg-2 uppercase tracking-[0.12em]">
-            Demo
-          </span>
+          {applicant.isSeed ? (
+            <span className="shrink-0 rounded-full border border-hairline px-2 py-0.5 font-medium text-[0.625rem] text-fg-2 uppercase tracking-[0.12em]">
+              Demo
+            </span>
+          ) : null}
           {flatTitle ? (
             <span className="truncate">
               Liked <span className="text-fg-2">{flatTitle}</span>

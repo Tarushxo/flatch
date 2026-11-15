@@ -8,6 +8,7 @@ import type {
   MyListingSchema,
   UploadTicketSchema,
 } from "./schemas";
+import { OCCUPATION_LABELS } from "./tenant";
 
 /*
  * The lister's side: the flat they post, and the tenants who like it. The
@@ -134,6 +135,15 @@ export type ListingStep = (typeof LISTING_STEPS)[number];
 export type ListingDraft = z.infer<typeof ListingDraftSchema>;
 export type MyListing = z.infer<typeof MyListingSchema>;
 export type Applicant = z.infer<typeof ApplicantSchema>;
+/**
+ * The line under a tenant's name: their age range and what they do, as far as
+ * they have said. A real tenant may have said neither.
+ */
+export function tenantLine(tenant: Pick<Applicant, "ageRange" | "occupation">): string {
+  const parts = [tenant.ageRange, tenant.occupation ? OCCUPATION_LABELS[tenant.occupation] : null];
+  return parts.filter(Boolean).join(" · ") || "Has not said much yet";
+}
+
 export type DevicePosition = z.infer<typeof DevicePositionSchema>;
 export type UploadTicket = z.infer<typeof UploadTicketSchema>;
 

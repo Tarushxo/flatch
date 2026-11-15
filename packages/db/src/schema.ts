@@ -24,8 +24,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 /*
- * The database tables: flats and swipes (M2), accounts and profiles (M3).
- * Later milestones add interests and chat (M4) and impressions (M5). The full plan is in docs/SPEC.md section 6.
+ * The database tables: flats and swipes (M2), accounts and profiles (M3),
+ * likes, matches and chat (M4). Impressions arrive with the feed engine (M5). The full plan is in docs/SPEC.md section 6.
  *
  * Money is whole rupees. Times are UTC. Points are PostGIS geometry holding
  * longitude and latitude, read and written as { x: lng, y: lat }.
@@ -284,6 +284,91 @@ export const reports = pgTable(
     createdAt,
   },
   (table) => [uniqueIndex("reports_reporter_listing").on(table.reporterId, table.listingId)],
+);
+
+/**
+ * A tenant's like on a flat, waiting for its lister. Accepting one opens a
+ * conversation. `visibleAt` is when the lister can first see it: now for a
+ * real tenant, a little later for a demo bot, so bots seem to arrive one by one.
+ */
+export const interests = pgTable(
+  "interests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    status: text("status")
+      .$type<"pending" | "accepted" | "declined">()
+      .notNull()
+      .default("pending"),
+    note: text("note").notNull().default(""),
+    /** The match score shown to the lister. Hand-written for bots; worked out by the ranking engine from M5. */
+    compatSnapshot: jsonb("compat_snapshot").$type<Compatibility>(),
+    visibleAt: timestamp("visible_at", { withTimezone: true }).notNull().defaultNow(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [
+    uniqueIndex("interests_tenant_listing").on(table.tenantId, table.listingId),
+    index("interests_listing_status").on(table.listingId, table.status),
+  ],
+);
+
+/**
+ * A match: the chat between a tenant and a lister about one flat. It exists
+ * from the moment of acceptance, but `matchedAt` is when both sides can see
+ * it, which for a bot lister's yes is a few seconds after the like.
+ */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    interestId: uuid("interest_id")
+      .notNull()
+      .unique()
+      .references(() => interests.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    listerId: uuid("lister_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    matchedAt: timestamp("matched_at", { withTimezone: true }).notNull().defaultNow(),
+    tenantLastReadAt: timestamp("tenant_last_read_at", { withTimezone: true }),
+    listerLastReadAt: timestamp("lister_last_read_at", { withTimezone: true }),
+    /** Set when either side unmatches. The chat and the address are then closed to both. */
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [
+    index("conversations_tenant").on(table.tenantId),
+    index("conversations_lister").on(table.listerId),
+  ],
+);
+
+/** One chat message. A bot's reply is written ahead of time and shown from `visibleAt`. */
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    visibleAt: timestamp("visible_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt,
+  },
+  (table) => [index("messages_conversation").on(table.conversationId, table.visibleAt)],
 );
 
 export type ListingRow = typeof listings.$inferSelect;

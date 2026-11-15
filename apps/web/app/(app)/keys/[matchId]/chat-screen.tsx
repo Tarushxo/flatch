@@ -8,7 +8,7 @@ import {
   MESSAGE_MAX_LENGTH,
   type Message,
   mapsLink,
-  OCCUPATION_LABELS,
+  tenantLine,
 } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -313,8 +313,14 @@ function TenantCard({ match, applicant }: { match: Match; applicant: Applicant }
           </p>
           <p className="mt-0.5 line-clamp-1 font-medium">{listing.title}</p>
           <p className="text-fg-2 text-sm">
-            {applicant.ageRange} · {OCCUPATION_LABELS[applicant.occupation]} ·{" "}
-            <span className="font-mono tabular-nums">{applicant.compatibility.percent}%</span> match
+            {tenantLine(applicant)}
+            {applicant.compatibility.percent > 0 ? (
+              <>
+                {" · "}
+                <span className="font-mono tabular-nums">{applicant.compatibility.percent}%</span>{" "}
+                match
+              </>
+            ) : null}
           </p>
         </div>
       </div>
