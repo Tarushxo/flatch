@@ -1,3 +1,4 @@
+import { compatibility, isRuledOut, rankScore, type ScoredFlat } from "@repo/feed";
 import {
   cleanMessage,
   cleanProfile,
@@ -7,8 +8,10 @@ import {
   type Listing,
   type Match,
   matchesFilters,
+  monthlyCost,
   type Swipe,
   type SwipeAction,
+  type TenantPreferences,
 } from "@repo/shared";
 import type { Api } from "../client";
 import {
@@ -50,7 +53,50 @@ const PAGE_SIZE = 10;
 const swipes = new Map<string, SwipeAction>();
 const seenClientIds = new Set<string>();
 
-const ranked = [...MOCK_LISTINGS].sort((a, b) => b.compatibility.percent - a.compatibility.percent);
+/** When the page was opened. The demo flats all count as posted then, so none is newer than another. */
+const OPENED_AT = new Date();
+
+function scoredFlat(listing: Listing): ScoredFlat {
+  return {
+    monthlyCost: monthlyCost(listing),
+    locality: listing.locality,
+    availableFrom: listing.availableFrom,
+    houseRules: listing.houseRules,
+    photoCount: listing.photos.length,
+    descriptionLength: listing.description.length,
+    isVerified: listing.isVerified,
+    publishedAt: OPENED_AT,
+  };
+}
+
+/** A demo flat as this person sees it: its hand-written score replaced by one worked out for them. */
+function scoredFor(tenant: TenantPreferences, today: Date) {
+  return ({ stretchLabel: _unused, ...listing }: Listing) => {
+    const flat = scoredFlat(listing);
+    return {
+      flat,
+      score: rankScore(tenant, flat, today),
+      listing: {
+        ...listing,
+        commuteMinutes: null,
+        compatibility: compatibility(tenant, flat, today),
+      } satisfies Listing,
+    };
+  };
+}
+
+/**
+ * Every flat this person may be shown, best fit first. The same ranking
+ * engine the server uses (packages/feed), fed with the profile saved in this
+ * browser.
+ */
+function rankedFlats(): Listing[] {
+  const tenant = readProfile().preferences;
+  return MOCK_LISTINGS.map(scoredFor(tenant, new Date()))
+    .filter(({ flat }) => !isRuledOut(tenant, flat))
+    .sort((a, b) => b.score - a.score || (a.listing.id < b.listing.id ? -1 : 1))
+    .map(({ listing }) => listing);
+}
 
 // Likes and what the bot listers did with them (see matchmaker.ts).
 const likes = new Map<string, LikeRecord>();
@@ -154,7 +200,7 @@ export const mockApi: Api = {
   async getFeed(cursor, filters) {
     await delay(180);
     // The cursor is a position in the list of flats that pass the filters.
-    const matching = ranked.filter((listing) => matchesFilters(listing, filters));
+    const matching = rankedFlats().filter((listing) => matchesFilters(listing, filters));
     const start = cursor ? Number.parseInt(cursor, 10) : 0;
     const window = matching.slice(start, start + PAGE_SIZE);
     const end = start + window.length;
@@ -166,8 +212,9 @@ export const mockApi: Api = {
 
   async countFeed(filters) {
     await delay(60);
-    return ranked.filter((listing) => !swipes.has(listing.id) && matchesFilters(listing, filters))
-      .length;
+    return rankedFlats().filter(
+      (listing) => !swipes.has(listing.id) && matchesFilters(listing, filters),
+    ).length;
   },
 
   async getLocalities(city) {
@@ -202,7 +249,11 @@ export const mockApi: Api = {
     await delay(150);
     // A Map keeps insertion order, so reversing gives most recent first.
     const savedIds = [...swipes].filter(([, action]) => action === "save").map(([id]) => id);
-    return savedIds.reverse().flatMap((id) => MOCK_LISTINGS.filter((listing) => listing.id === id));
+    const score = scoredFor(readProfile().preferences, new Date());
+    return savedIds
+      .reverse()
+      .flatMap((id) => MOCK_LISTINGS.filter((listing) => listing.id === id))
+      .map((listing) => score(listing).listing);
   },
 
   async resetPasses() {

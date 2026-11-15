@@ -2,7 +2,7 @@ import { type Db, listings, localities, swipes, users } from "@repo/db";
 import type { Listing, SwipeAction } from "@repo/shared";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Actor } from "../policies";
-import { publicListings, toListings } from "./feed";
+import { publicListings, tenantFor, toListings } from "./feed";
 import { type LikedListing, likeListing, withdrawLike } from "./matching";
 
 /*
@@ -94,5 +94,5 @@ export async function getSaved(db: Db, userId: string): Promise<Listing[]> {
     .innerJoin(swipes, eq(swipes.listingId, listings.id))
     .where(and(eq(swipes.userId, userId), eq(swipes.action, "save")))
     .orderBy(desc(swipes.updatedAt));
-  return toListings(rows);
+  return toListings(rows, await tenantFor(db, userId));
 }

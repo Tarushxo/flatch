@@ -1,30 +1,34 @@
-import { type Db, listings, localities, swipes, users } from "@repo/db";
-import type { City, FeedFilters, FeedPage, Listing } from "@repo/shared";
+import { type Db, listings, localities, profiles, swipes, users } from "@repo/db";
 import {
-  and,
-  asc,
-  desc,
-  eq,
-  gt,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  ne,
-  notExists,
-  or,
-  sql,
-} from "drizzle-orm";
+  compatibility,
+  isRuledOut,
+  type Reader,
+  rankScore,
+  type ScoredFlat,
+  type ScoredTenant,
+} from "@repo/feed";
+import {
+  type City,
+  DEFAULT_PREFERENCES,
+  type FeedFilters,
+  type FeedPage,
+  type Listing,
+} from "@repo/shared";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../cursor";
-import { type PublicListingRow, type PublicPhotoRow, toListing } from "../serialize";
+import { freeFrom, type PublicListingRow, type PublicPhotoRow, toListing } from "../serialize";
 
 /*
- * The feed, version 0: hard filters and a fixed order, worked out on every
- * request. A flat the person has swiped on is left out by the query itself,
- * so it cannot come back. The ranking engine (M5) replaces the ordering.
+ * The feed. Which flats a person may see is decided in SQL (open, in their
+ * city, inside their filters, not already swiped). How well each one fits
+ * them, and so the order, is worked out by the ranking engine in
+ * `packages/feed`, here, on every request. A flat the person has swiped on is
+ * left out by the query itself, so it cannot come back.
  */
 
 export const PAGE_SIZE = 10;
+/** The most flats ranked for one request. Far more than any city has today. */
+const CANDIDATE_LIMIT = 400;
 
 /** Everything the app may see about a listing. The private columns are deliberately not here. */
 const PUBLIC_COLUMNS = {
@@ -115,10 +119,66 @@ const photosInOrder = sql<PublicPhotoRow[]>`coalesce((
 
 type ListingWithPhotos = PublicListingRow & { photos: PublicPhotoRow[] };
 
-/** Shape rows for the app. */
-export function toListings(rows: ListingWithPhotos[]): Listing[] {
+/** What the ranking engine needs to know about a flat, taken from its public columns. */
+export function scoredFlat(
+  row: Pick<
+    ListingWithPhotos,
+    | "rent"
+    | "maintenance"
+    | "utilitiesEst"
+    | "locality"
+    | "availableFrom"
+    | "availableInDays"
+    | "houseRules"
+    | "description"
+    | "isVerified"
+    | "publishedAt"
+  > & { photoCount: number },
+  today: Date,
+): ScoredFlat {
+  return {
+    monthlyCost: row.rent + row.maintenance + row.utilitiesEst,
+    locality: row.locality,
+    availableFrom: freeFrom(row, today),
+    houseRules: row.houseRules,
+    photoCount: row.photoCount,
+    descriptionLength: row.description.length,
+    isVerified: row.isVerified,
+    publishedAt: new Date(row.publishedAt),
+  };
+}
+
+/** What a person said they are looking for, as the ranking engine reads it. Null if nothing is saved. */
+export async function tenantFor(db: Db, userId: string | null): Promise<ScoredTenant | null> {
+  if (userId === null) return null;
+  const [row] = await db
+    .select({ preferences: profiles.preferences })
+    .from(profiles)
+    .where(eq(profiles.userId, userId));
+  return row ? { ...DEFAULT_PREFERENCES, ...row.preferences } : null;
+}
+
+/**
+ * Shape rows for the app. Given what the person is looking for, each flat
+ * also carries how well it fits them; without it, flats carry no score.
+ */
+export function toListings(
+  rows: ListingWithPhotos[],
+  tenant: ScoredTenant | null = null,
+  reader: Reader = "tenant",
+): Listing[] {
   const today = new Date();
-  return rows.map(({ photos, ...row }) => toListing(row, photos, today));
+  return rows.map(({ photos, ...row }) => {
+    const fit = tenant
+      ? compatibility(
+          tenant,
+          scoredFlat({ ...row, photoCount: photos.length }, today),
+          today,
+          reader,
+        )
+      : undefined;
+    return toListing(row, photos, today, fit);
+  });
 }
 
 /** The public columns of listings with their photos, joined to their area and lister. */
@@ -134,31 +194,42 @@ export async function getFeedPage(
   db: Db,
   input: { filters: FeedFilters; viewer: Viewer; cursor: string | null },
 ): Promise<FeedPage> {
-  const after = decodeCursor(input.cursor);
-  const rows = await publicListings(db)
-    .where(
-      and(
-        inDeck(db, input.filters, input.viewer),
-        after === null
-          ? undefined
-          : or(
-              lt(listings.qualityScore, after.score),
-              and(eq(listings.qualityScore, after.score), gt(listings.id, after.id)),
-            ),
-      ),
-    )
-    .orderBy(desc(listings.qualityScore), asc(listings.id))
-    // One more than a page, to know whether there is another page without a second query.
-    .limit(PAGE_SIZE + 1);
+  const today = new Date();
+  // Both at once: the flats that could be in the deck, and what the person is looking for.
+  const [candidates, saved] = await Promise.all([
+    publicListings(db)
+      .where(inDeck(db, input.filters, input.viewer))
+      .orderBy(desc(listings.publishedAt), asc(listings.id))
+      .limit(CANDIDATE_LIMIT),
+    tenantFor(db, input.viewer?.userId ?? null),
+  ]);
+  const tenant = saved ?? DEFAULT_PREFERENCES;
 
-  const page = rows.slice(0, PAGE_SIZE);
+  // Rank every candidate for this person. Best first; the id settles ties, so the order is
+  // the same on every request and a cursor can pick up exactly where the last page ended.
+  const ranked = candidates
+    .map((row) => {
+      const flat = scoredFlat({ ...row, photoCount: row.photos.length }, today);
+      return { row, flat, score: rankScore(tenant, flat, today) };
+    })
+    .filter(({ flat }) => !isRuledOut(tenant, flat))
+    .sort((a, b) => b.score - a.score || (a.row.id < b.row.id ? -1 : 1));
+
+  const after = decodeCursor(input.cursor);
+  const rest = after
+    ? ranked.filter(
+        ({ row, score }) => score < after.score || (score === after.score && row.id > after.id),
+      )
+    : ranked;
+  const page = rest.slice(0, PAGE_SIZE);
   const last = page[page.length - 1];
+
   return {
-    items: toListings(page),
+    items: page.map(({ row: { photos, ...row }, flat }) =>
+      toListing(row, photos, today, compatibility(tenant, flat, today)),
+    ),
     nextCursor:
-      rows.length > PAGE_SIZE && last
-        ? encodeCursor({ score: last.qualityScore, id: last.id })
-        : null,
+      rest.length > PAGE_SIZE && last ? encodeCursor({ score: last.score, id: last.row.id }) : null,
   };
 }
 
@@ -173,17 +244,32 @@ export async function getPublicListing(db: Db, listingId: string): Promise<Listi
   return toListings(rows)[0] ?? null;
 }
 
-/** How many flats the filters leave in this person's deck. */
+/** How many flats the filters leave in this person's deck, after their dealbreakers. */
 export async function countFeed(
   db: Db,
   input: { filters: FeedFilters; viewer: Viewer },
 ): Promise<number> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(listings)
-    .innerJoin(localities, eq(localities.id, listings.localityId))
-    .where(inDeck(db, input.filters, input.viewer));
-  return row?.count ?? 0;
+  const [rows, saved] = await Promise.all([
+    db
+      .select({ houseRules: listings.houseRules })
+      .from(listings)
+      .innerJoin(localities, eq(localities.id, listings.localityId))
+      .where(inDeck(db, input.filters, input.viewer))
+      .limit(CANDIDATE_LIMIT),
+    tenantFor(db, input.viewer?.userId ?? null),
+  ]);
+  if (!saved || saved.dealbreakers.length === 0) return rows.length;
+  // Only the house rules matter for ruling a flat out; the rest of the flat is not needed.
+  const blank = {
+    monthlyCost: 0,
+    locality: "",
+    availableFrom: "1970-01-01",
+    photoCount: 0,
+    descriptionLength: 0,
+    isVerified: false,
+    publishedAt: new Date(0),
+  };
+  return rows.filter((row) => !isRuledOut(saved, { ...blank, houseRules: row.houseRules })).length;
 }
 
 /** The areas of a city that have at least one open flat, in alphabetical order. */

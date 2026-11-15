@@ -8,7 +8,7 @@ import { api } from "@/lib/api/client";
 import { useFilterStore } from "./filters";
 import { type PendingSwipe, useDeckStore } from "./store";
 
-const FEED_KEY = ["feed"] as const;
+export const FEED_KEY = ["feed"] as const;
 export const SAVED_KEY = ["saved"] as const;
 /** Fetch the next page when this many cards are left. */
 const REFILL_AT = 4;

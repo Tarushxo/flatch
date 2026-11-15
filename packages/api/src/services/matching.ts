@@ -4,10 +4,12 @@ import {
   type Db,
   interests,
   listings,
+  localities,
   messages,
   profiles,
   users,
 } from "@repo/db";
+import { compatibility } from "@repo/feed";
 import {
   type Applicant,
   botAcceptDelay,
@@ -23,6 +25,7 @@ import {
   type Message,
   type PendingLike,
   REPLY_DELAY,
+  type TenantPreferences,
   tenantOpener,
   tenantReply,
 } from "@repo/shared";
@@ -30,7 +33,7 @@ import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-o
 import { alias } from "drizzle-orm/pg-core";
 import { type Actor, mayDecideInterest, mayLikeListing, mayUseChat } from "../policies";
 import { Refused } from "../refused";
-import { publicListings, toListings } from "./feed";
+import { publicListings, scoredFlat, toListings } from "./feed";
 
 /*
  * Likes, matches and chat.
@@ -240,6 +243,20 @@ const APPLICANT_COLUMNS = {
   ageRange: profiles.ageRange,
   occupation: profiles.occupation,
   preferences: profiles.preferences,
+  // What the ranking engine needs about the flat, to say how well this tenant fits it.
+  rent: listings.rent,
+  maintenance: listings.maintenance,
+  utilitiesEst: listings.utilitiesEst,
+  locality: localities.name,
+  availableFrom: listings.availableFrom,
+  availableInDays: listings.availableInDays,
+  houseRules: listings.houseRules,
+  description: listings.description,
+  isVerified: listings.isVerified,
+  publishedAt: listings.publishedAt,
+  photoCount: sql<number>`(
+    select count(*)::int from listing_photos p where p.listing_id = ${sql.raw('"listings"."id"')}
+  )`,
 };
 
 type ApplicantRow = {
@@ -253,11 +270,12 @@ type ApplicantRow = {
   isSeed: boolean;
   ageRange: Applicant["ageRange"] | null;
   occupation: Applicant["occupation"] | null;
-  preferences: { lifestyle?: Applicant["lifestyle"] } | null;
-};
+  preferences: Partial<TenantPreferences> | null;
+} & Parameters<typeof scoredFlat>[0];
 
 /** A tenant as their would-be lister sees them. Never includes how to reach them. */
 function toApplicant(row: ApplicantRow): Applicant {
+  const today = new Date();
   return {
     id: row.id,
     listingId: row.listingId,
@@ -267,8 +285,18 @@ function toApplicant(row: ApplicantRow): Applicant {
     about: row.about,
     isSeed: row.isSeed,
     lifestyle: row.preferences?.lifestyle ?? DEFAULT_PREFERENCES.lifestyle,
-    // A real tenant has no score until the ranking engine works one out (M5).
-    compatibility: row.compat ?? { percent: 0, reasons: [] },
+    // A bot tenant's score is hand-written. A real tenant's is worked out, from what they
+    // said they want and this flat, and put in the lister's words.
+    compatibility:
+      row.compat ??
+      (row.preferences
+        ? compatibility(
+            { ...DEFAULT_PREFERENCES, ...row.preferences },
+            scoredFlat(row, today),
+            today,
+            "lister",
+          )
+        : { percent: 0, reasons: [] }),
     ...(row.note ? { note: row.note } : {}),
     likedAt: iso(row.likedAt),
   };
@@ -284,6 +312,7 @@ export async function getApplicants(
     .select(APPLICANT_COLUMNS)
     .from(interests)
     .innerJoin(listings, eq(listings.id, interests.listingId))
+    .innerJoin(localities, eq(localities.id, listings.localityId))
     .innerJoin(tenant, eq(tenant.id, interests.tenantId))
     .leftJoin(profiles, eq(profiles.userId, interests.tenantId))
     .where(
@@ -423,6 +452,7 @@ export async function getMatches(db: Db, userId: string): Promise<Match[]> {
     .from(conversations)
     .innerJoin(interests, eq(interests.id, conversations.interestId))
     .innerJoin(listings, eq(listings.id, conversations.listingId))
+    .innerJoin(localities, eq(localities.id, listings.localityId))
     .innerJoin(tenant, eq(tenant.id, conversations.tenantId))
     .leftJoin(profiles, eq(profiles.userId, conversations.tenantId))
     .where(

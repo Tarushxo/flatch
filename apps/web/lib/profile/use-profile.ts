@@ -4,6 +4,8 @@ import { preferencesToFilters, type TenantProfile } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { useFilterStore } from "@/lib/deck/filters";
+import { useDeckStore } from "@/lib/deck/store";
+import { FEED_KEY, SAVED_KEY } from "@/lib/deck/use-deck";
 
 export const PROFILE_KEY = ["profile"] as const;
 
@@ -18,15 +20,22 @@ export function useProfile() {
 
 /**
  * Save the profile. Saved preferences become the deck's filters straight away,
- * so the deck is rebuilt for the new city, budget, areas and room types.
+ * so the deck is rebuilt for the new city, budget, areas and room types. The
+ * order of the deck and every match score also come from the preferences, so
+ * when they change the deck is dealt again, even if the filters are the same.
  */
 export function useSaveProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (profile: TenantProfile) => api.saveProfile(profile),
     onSuccess: (saved) => {
+      const before = queryClient.getQueryData<TenantProfile>(PROFILE_KEY);
       queryClient.setQueryData(PROFILE_KEY, saved);
       useFilterStore.getState().start(preferencesToFilters(saved.preferences));
+      if (JSON.stringify(before?.preferences) === JSON.stringify(saved.preferences)) return;
+      useDeckStore.getState().clearCards();
+      void queryClient.resetQueries({ queryKey: FEED_KEY });
+      void queryClient.invalidateQueries({ queryKey: SAVED_KEY });
     },
   });
 }

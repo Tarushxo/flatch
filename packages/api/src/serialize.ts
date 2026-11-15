@@ -1,5 +1,5 @@
 import type { ListingPhotoRow, ListingRow } from "@repo/db";
-import type { City, Listing } from "@repo/shared";
+import type { City, Compatibility, Listing } from "@repo/shared";
 
 /*
  * Turns database rows into what the app is allowed to see.
@@ -35,14 +35,29 @@ function inDays(days: number, today: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function toListing(row: PublicListingRow, photos: PublicPhotoRow[], today: Date): Listing {
+/** The date a flat is free from. A seed flat's date is counted from today, so the demo never looks abandoned. */
+export function freeFrom(
+  row: Pick<PublicListingRow, "availableFrom" | "availableInDays">,
+  today: Date,
+): string {
+  return row.availableInDays === null ? row.availableFrom : inDays(row.availableInDays, today);
+}
+
+export function toListing(
+  row: PublicListingRow,
+  photos: PublicPhotoRow[],
+  today: Date,
+  /** How well this flat fits the person looking, if that has been worked out. */
+  compatibility: Compatibility = { percent: 0, reasons: [] },
+): Listing {
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     city: row.city,
     locality: row.locality,
-    commuteMinutes: row.seedCommuteMinutes,
+    // Commute times need a place of work to measure from, which tenants cannot set yet.
+    commuteMinutes: null,
     area: { lat: row.locationPublic.y, lng: row.locationPublic.x },
     nearby: row.nearby,
     rent: row.rent,
@@ -52,9 +67,7 @@ export function toListing(row: PublicListingRow, photos: PublicPhotoRow[], today
     roomType: row.roomType,
     bhk: row.bhk,
     furnishing: row.furnishing,
-    // A seed flat's date is counted from today, so the demo never looks abandoned.
-    availableFrom:
-      row.availableInDays === null ? row.availableFrom : inDays(row.availableInDays, today),
+    availableFrom: freeFrom(row, today),
     photos: photos.map((photo) => ({
       url: photo.url,
       roomTag: photo.roomTag,
@@ -70,10 +83,9 @@ export function toListing(row: PublicListingRow, photos: PublicPhotoRow[], today
       about: row.listerAbout,
       flatmateCount: row.flatmateCount,
     },
-    compatibility: row.seedCompat ?? { percent: 0, reasons: [] },
+    compatibility,
     isOpen: row.status === "active",
     isVerified: row.isVerified,
     isSeed: row.isSeed,
-    ...(row.seedStretchLabel ? { stretchLabel: row.seedStretchLabel } : {}),
   };
 }
