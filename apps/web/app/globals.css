@@ -82,6 +82,21 @@
 
   /* Small helpers: an overlay fading in, and a spark flying out from a button. */
   --animate-fade-in: fade-in 0.35s ease-out both;
+  /* The details panel's edge lighting up when details are asked for on a wide screen. */
+  --animate-panel-flash: panel-flash 1s ease-out both;
+
+  @keyframes panel-flash {
+    0% {
+      opacity: 0;
+    }
+    18% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
   --animate-spark: spark 0.55s ease-out both;
 
   @keyframes fade-in {

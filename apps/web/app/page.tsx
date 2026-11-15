@@ -19,13 +19,15 @@ import { SignLink } from "@/components/sign-link";
 
 // The six flats the landing page's self-swiping deck shows. Chosen here, on the server,
 // so the browser is sent six flats and not the whole demo data set.
-const SHOWCASE = SEED_FLATS.slice(0, 6);
+// Their hand-written "min to work" lines are left off, as they are in the app: there is no
+// work address to measure from yet.
+const SHOWCASE = SEED_FLATS.slice(0, 6).map((flat) => ({ ...flat, commuteMinutes: null }));
 
 const STEPS = [
   {
     icon: SwipeIcon,
     title: "Swipe",
-    body: "Flats that fit your budget, your commute and how you live, one card at a time. Right to like, left to pass.",
+    body: "Flats that fit your budget, your areas and how you live, one card at a time. Right to like, left to pass, down for the details.",
   },
   {
     icon: HeartIcon,
@@ -127,7 +129,7 @@ export default function HomePage() {
               Ranked for both sides, not just by price.
             </h2>
             <p className="mt-5 max-w-md text-fg-2 leading-relaxed">
-              Every flat gets a score for how well you and the household would fit: budget, commute,
+              Every flat gets a score for how well you and the household would fit: budget, area,
               timing and how you each live. The card shows the score, and the details show the
               reasons.
             </p>
@@ -137,14 +139,16 @@ export default function HomePage() {
             <div className="mt-5 flex items-center gap-6">
               <CompatRing percent={92} size="lg" />
               <ul className="space-y-2.5 text-sm">
-                {["Well within your budget", "20 min to work", "Both tidy and early risers"].map(
-                  (reason) => (
-                    <li key={reason} className="flex items-start gap-2">
-                      <CheckIcon className="mt-0.5 size-4 shrink-0 text-win" />
-                      {reason}
-                    </li>
-                  ),
-                )}
+                {[
+                  "₹2,500 under your budget",
+                  "In an area you picked",
+                  "Vegetarian household, like you",
+                ].map((reason) => (
+                  <li key={reason} className="flex items-start gap-2">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-win" />
+                    {reason}
+                  </li>
+                ))}
                 <li className="flex items-start gap-2 text-fg-2">
                   <span
                     aria-hidden="true"
@@ -162,7 +166,7 @@ export default function HomePage() {
 
       <footer className="border-hairline border-t">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-fg-3 text-sm sm:px-8">
-          <p>A portfolio project. Every listing is demo data.</p>
+          <p>A portfolio project. Listings marked Demo are sample data.</p>
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/privacy" className="transition-colors hover:text-fg">
               Privacy
