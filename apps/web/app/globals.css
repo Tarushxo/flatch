@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+/*
+ * "After Hours" design tokens (docs/SPEC.md section 4).
+ * The app is dark-only. Neon is light, not paint: these accent colours are for
+ * large type, icons, borders and glow. Body text stays on the neutral scale.
+ */
+:root {
+  color-scheme: dark;
+
+  --bg: #07070c;
+  --surface-1: #0f0f17;
+  --surface-2: #171722;
+  --border: rgb(255 255 255 / 0.08);
+
+  --text: #f4f4f8;
+  --text-2: #a3a3ba;
+  --text-3: #8585a0;
+
+  --brand-a: #8b5cff;
+  --brand-b: #ff3da6;
+
+  --like: #22e6ff;
+  --pass: #ff4d5e;
+  --save: #ffc53d;
+  --win: #c8ff3d;
+
+  /* The colour the nearest glow/sign utility emits. Override per element. */
+  --glow: var(--brand-a);
+}
+
+@theme inline {
+  --color-ink: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-hairline: var(--border);
+
+  --color-fg: var(--text);
+  --color-fg-2: var(--text-2);
+  --color-fg-3: var(--text-3);
+
+  --color-brand-a: var(--brand-a);
+  --color-brand-b: var(--brand-b);
+  --color-like: var(--like);
+  --color-pass: var(--pass);
+  --color-save: var(--save);
+  --color-win: var(--win);
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --font-sign: var(--font-tilt-neon), var(--font-bricolage), ui-sans-serif, sans-serif;
+
+  --animate-flicker: flicker 2.2s linear 0.2s 1 both;
+  --animate-drift: drift 24s ease-in-out infinite alternate;
+
+  @keyframes flicker {
+    0% {
+      opacity: 0.12;
+    }
+    5% {
+      opacity: 1;
+    }
+    8% {
+      opacity: 0.2;
+    }
+    13% {
+      opacity: 1;
+    }
+    19% {
+      opacity: 0.35;
+    }
+    23%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes drift {
+    from {
+      transform: translate3d(-3%, -2%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(3%, 2%, 0) scale(1.08);
+    }
+  }
+}
+
+/* A raised dark surface: hairline border plus a faint highlight on the top edge. */
+@utility surface {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Emitted light around an element. Set --glow to choose the colour. */
+@utility glow {
+  box-shadow:
+    0 0 0 1px var(--glow),
+    0 0 24px -4px color-mix(in oklab, var(--glow) 60%, transparent),
+    0 0 64px -8px color-mix(in oklab, var(--glow) 30%, transparent);
+}
+
+/* Neon-tube lettering. Reserved for the logo, swipe stamps and the match sign. */
+@utility sign {
+  font-family: var(--font-sign);
+  color: color-mix(in oklab, var(--glow) 22%, white);
+  text-shadow:
+    0 0 3px var(--glow),
+    0 0 14px var(--glow),
+    0 0 42px color-mix(in oklab, var(--glow) 65%, transparent),
+    0 0 96px color-mix(in oklab, var(--glow) 40%, transparent);
+}
+
+/* Fine film grain so dark gradients do not band. */
+@utility grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--like);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--brand-a) 55%, transparent);
+    color: var(--text);
+  }
+
+  /* biome-ignore-start lint/complexity/noImportantStyles: this override has to beat every animation utility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: end of the reduced-motion override */
+}

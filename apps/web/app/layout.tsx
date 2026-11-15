@@ -1,0 +1,47 @@
+import { APP_NAME, APP_TAGLINE } from "@repo/shared";
+import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque, Geist, Geist_Mono, Tilt_Neon } from "next/font/google";
+import type { ReactNode } from "react";
+import "./globals.css";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
+const tiltNeon = Tilt_Neon({ subsets: ["latin"], variable: "--font-tilt-neon", display: "swap" });
+
+export const metadata: Metadata = {
+  title: {
+    default: `${APP_NAME}: ${APP_TAGLINE}`,
+    template: `%s · ${APP_NAME}`,
+  },
+  description:
+    "A swipe-based way to find a flat and the people in it. Swipe through flats, match with the lister, then chat.",
+  applicationName: APP_NAME,
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07070c",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${tiltNeon.variable}`}
+    >
+      <body className="min-h-dvh">{children}</body>
+    </html>
+  );
+}

@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+dist/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets: never commit real values
+.env
+.env.*
+!.env.example
+
+# tooling
+.vercel/
+coverage/
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local Claude tooling
+.claude/
