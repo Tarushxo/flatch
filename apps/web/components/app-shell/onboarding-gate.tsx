@@ -1,6 +1,6 @@
 "use client";
 
-import { type Mode, preferencesToFilters } from "@repo/shared";
+import { hasCheckedIn, type Mode, preferencesToFilters } from "@repo/shared";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
@@ -34,7 +34,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const profile = useProfile();
   const ready = useFilterStore((state) => state.ready);
 
-  const checkedIn = profile.data ? profile.data.onboardedAt !== null : undefined;
+  const checkedIn = profile.data ? hasCheckedIn(profile.data) : undefined;
 
   const mode = profile.data?.mode ?? "tenant";
   const misplaced = checkedIn === true && onTheOtherSide(pathname, mode);

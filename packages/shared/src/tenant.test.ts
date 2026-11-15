@@ -4,6 +4,7 @@ import {
   cleanPreferences,
   DEFAULT_PREFERENCES,
   DEFAULT_PROFILE,
+  hasCheckedIn,
   LIFESTYLE,
   LIFESTYLE_KEYS,
   LIFESTYLE_WORDING,
@@ -79,5 +80,23 @@ describe("cleanPreferences", () => {
     const before = prefs({ localities: ["HSR Layout"] });
     const after = prefs({ localities: ["HSR Layout", "Domlur"] });
     expect(cleanPreferences(after, before).localities).toEqual(["HSR Layout", "Domlur"]);
+  });
+});
+
+describe("the front desk", () => {
+  const at = "2026-11-15T10:00:00.000Z";
+
+  it("keeps a new tenant out until they have checked in", () => {
+    expect(hasCheckedIn({ mode: "tenant", onboardedAt: null })).toBe(false);
+    expect(hasCheckedIn({ mode: "tenant", onboardedAt: at })).toBe(true);
+  });
+
+  it("lets a lister in without the tenant's questions", () => {
+    expect(hasCheckedIn({ mode: "lister", onboardedAt: null })).toBe(true);
+  });
+
+  it("still asks a lister to check in when they switch to looking for a flat", () => {
+    const lister = { mode: "lister" as const, onboardedAt: null };
+    expect(hasCheckedIn({ ...lister, mode: "tenant" })).toBe(false);
   });
 });

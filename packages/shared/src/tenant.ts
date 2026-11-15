@@ -112,6 +112,16 @@ export function preferencesToFilters(preferences: TenantPreferences): FeedFilter
   };
 }
 
+/**
+ * Whether the front desk lets this person into the app. A tenant must have
+ * been through check-in (or chosen to skip it). A lister has nothing to answer
+ * there, so they are let in; if they later switch to the tenant side, check-in
+ * is still waiting for them.
+ */
+export function hasCheckedIn(profile: Pick<TenantProfile, "mode" | "onboardedAt">): boolean {
+  return profile.mode === "lister" || profile.onboardedAt !== null;
+}
+
 /** How many of the eight lifestyle questions have an answer. */
 export function lifestyleAnswered(preferences: TenantPreferences): number {
   return LIFESTYLE_KEYS.filter((key) => preferences.lifestyle[key] !== undefined).length;
