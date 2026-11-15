@@ -19,8 +19,12 @@ export const ACCEPT_DELAY = { min: 2500, max: 5000 } as const;
 export const REPLY_DELAY = { min: 2200, max: 4200 } as const;
 /** How long a bot takes to say hello once there is a match. */
 export const HELLO_DELAY_MS = 2500;
-/** When bot tenants like a newly posted flat, in milliseconds after it opens. */
-export const ARRIVALS_MS = [2500, 7000, 16000, 30000, 50000] as const;
+/**
+ * When bot tenants like a newly posted flat, in milliseconds after it opens.
+ * Two of them, well apart: enough to show the lister's side working, without
+ * the lister feeling crowded. (It was five in the first fifty seconds.)
+ */
+export const ARRIVALS_MS = [8000, 60000] as const;
 
 /** A small, stable number from an id, so each flat always meets the same behaviour. */
 export function botSeed(id: string): number {
@@ -234,9 +238,9 @@ export const BOT_TENANTS: BotTenant[] = [
 ];
 
 /**
- * Which bot tenants like a flat, in the order they arrive: five of the eight,
- * starting from a different one for each flat, so two flats do not meet the
- * same queue.
+ * Which bot tenants like a flat, in the order they arrive: one for each time
+ * in ARRIVALS_MS, starting from a different one of the eight for each flat, so
+ * two flats do not meet the same people.
  */
 export function botTenantsFor(
   listingId: string,

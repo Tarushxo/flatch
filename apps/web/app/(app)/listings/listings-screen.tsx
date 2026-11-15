@@ -71,7 +71,7 @@ export function ListingsScreen() {
       <ScreenMessage
         art={<SignboardDrawing className="[--glow:var(--like)]" />}
         title="Nothing on the board yet"
-        body="Post your room or flat. It takes about two minutes, and in this demo a few tenants will like it within the first minute."
+        body="Post your room or flat. It takes about two minutes, and in this demo a couple of demo tenants will like it within the first minute or so."
       >
         <SignLink href="/listings/new" size="sm">
           Post a flat

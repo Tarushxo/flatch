@@ -15,13 +15,18 @@ import {
 import type { StoredListing } from "./lister-store";
 
 const T0 = Date.UTC(2026, 10, 15, 12, 0, 0);
+/** When the first and the last bot tenant arrive, after a flat opens. */
+const FIRST = ARRIVALS_MS[0];
+const LAST = ARRIVALS_MS[ARRIVALS_MS.length - 1] ?? FIRST;
 
 describe("the tenants who like a flat", () => {
   const arrivals = arrivalsFor({ id: "mine-abc" }, T0);
 
-  it("are five different people, all satisfying the contract", () => {
+  it("are different people, all satisfying the contract", () => {
     expect(arrivals).toHaveLength(ARRIVALS_MS.length);
-    expect(new Set(arrivals.map((arrival) => arrival.applicant.name)).size).toBe(5);
+    expect(new Set(arrivals.map((arrival) => arrival.applicant.name)).size).toBe(
+      ARRIVALS_MS.length,
+    );
     for (const { applicant } of arrivals) {
       expect(ApplicantSchema.safeParse(applicant).error?.issues ?? [], applicant.name).toEqual([]);
     }
@@ -93,19 +98,19 @@ function flat(overrides: Partial<StoredListing> = {}): StoredListing {
 }
 
 describe("a posted flat over time", () => {
-  it("has nobody at first, then everyone a minute later", () => {
+  it("has nobody at first, then one, then everyone", () => {
     expect(arrivedBy(flat(), T0)).toHaveLength(0);
-    expect(arrivedBy(flat(), T0 + 3000)).toHaveLength(1);
-    expect(arrivedBy(flat(), T0 + 60_000)).toHaveLength(5);
+    expect(arrivedBy(flat(), T0 + FIRST + 500)).toHaveLength(1);
+    expect(arrivedBy(flat(), T0 + LAST)).toHaveLength(ARRIVALS_MS.length);
   });
 
   it("takes no new likes once the vacancy sign is off", () => {
-    const closed = flat({ isOpen: false, closedAt: T0 + 8000 });
-    expect(arrivedBy(closed, T0 + 60_000)).toHaveLength(2);
+    const closed = flat({ isOpen: false, closedAt: T0 + FIRST + 500 });
+    expect(arrivedBy(closed, T0 + LAST + 60_000)).toHaveLength(1);
   });
 
   it("moves a tenant out of the waiting list once the lister decides", () => {
-    const [first, second] = arrivedBy(flat(), T0 + 60_000);
+    const [first, second] = arrivedBy(flat(), T0 + LAST);
     if (!first || !second) throw new Error("no arrivals");
     const decided = flat({
       decisions: {
@@ -113,18 +118,18 @@ describe("a posted flat over time", () => {
         [second.id]: { decision: "decline", at: T0 + 21_000 },
       },
     });
-    expect(waitingFor(decided, T0 + 60_000)).toHaveLength(3);
-    expect(acceptedFor(decided, T0 + 60_000).map((each) => each.applicant.id)).toEqual([first.id]);
+    expect(waitingFor(decided, T0 + LAST)).toHaveLength(ARRIVALS_MS.length - 2);
+    expect(acceptedFor(decided, T0 + LAST).map((each) => each.applicant.id)).toEqual([first.id]);
 
-    const mine = toMyListing(decided, T0 + 60_000);
-    expect(mine.interestedCount).toBe(3);
+    const mine = toMyListing(decided, T0 + LAST);
+    expect(mine.interestedCount).toBe(ARRIVALS_MS.length - 2);
     expect(mine.matchCount).toBe(1);
     expect(MyListingSchema.safeParse(mine).error?.issues ?? []).toEqual([]);
     expect(mine).not.toHaveProperty("decisions");
   });
 
   it("turns an accepted tenant into a match seen from the lister's side", () => {
-    const [first] = arrivedBy(flat(), T0 + 60_000);
+    const [first] = arrivedBy(flat(), T0 + LAST);
     if (!first) throw new Error("no arrivals");
     const match = toListerMatch(
       flat(),

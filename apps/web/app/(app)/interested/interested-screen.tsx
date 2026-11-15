@@ -349,7 +349,7 @@ function NobodyWaiting({ listings }: { listings: MyListing[] }) {
       title={anyOpen ? "The desk is quiet" : "Your signs are off"}
       body={
         anyOpen
-          ? "No one is waiting right now. In this demo a few tenants turn up in the first minute after you post."
+          ? "No one is waiting right now. In this demo a couple of demo tenants turn up in the first minute or so after you post."
           : "A flat with its sign off takes no new likes. Switch one on to hear from tenants again."
       }
     >
