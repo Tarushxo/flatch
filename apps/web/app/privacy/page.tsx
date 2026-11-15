@@ -11,7 +11,7 @@ const SOURCE = "https://github.com/Tarushxo/flatch";
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="15 November 2026">
+    <LegalPage title="Privacy" updated="16 November 2026">
       <LegalSection title="The short version">
         <p>
           {APP_NAME} is a personal portfolio project, not a business. Every flat and every lister in
@@ -41,6 +41,17 @@ export default function PrivacyPage() {
             <strong>What you do:</strong> which flats you liked, passed or saved.
           </li>
           <li>
+            <strong>If you post a flat:</strong> what you enter about it, including the building and
+            flat number, which are shown only to a tenant you accept. Photos you upload are shrunk
+            in your browser first, and details hidden inside them, such as where they were taken,
+            are removed before they are sent.
+          </li>
+          <li>
+            <strong>If you confirm you are at the flat:</strong> your device's location at that
+            moment, once, kept as the flat's private location. Tenants only ever see a rough area.
+            The app never tracks your location otherwise.
+          </li>
+          <li>
             <strong>A session cookie,</strong> so the app knows it is you on your next visit. It is
             used for signing in only.
           </li>
@@ -61,9 +72,10 @@ export default function PrivacyPage() {
       <LegalSection title="Where it lives">
         <ul>
           <li>The site runs on Vercel and its database is hosted by Neon, in the United States.</li>
+          <li>Photos you upload are stored by Cloudinary.</li>
           <li>
-            Photos load from Unsplash and maps from OpenFreeMap. Like any website you visit, those
-            services see your device's network address when your browser fetches from them.
+            Demo photos load from Unsplash and maps from OpenFreeMap. Like any website you visit,
+            those services see your device's network address when your browser fetches from them.
           </li>
           <li>Google is involved only if you choose to sign in with Google.</li>
         </ul>

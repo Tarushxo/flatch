@@ -33,7 +33,7 @@ A swipe-based flat and flatmate finder: tenants swipe on flats, listers accept i
 - No `backdrop-blur` and no large `blur()` filters or blend modes. They are slow on phones. Use a more opaque background, or a radial gradient for soft light.
 - Zod schemas live in `@repo/shared/schemas`. Import them only on the server and in tests; the app imports types and helpers from `@repo/shared`, which keeps the validation library out of the browser.
 - Load anything a screen does not need at first (sheets, the map) with `next/dynamic`, and warm it after a short delay.
-- Serve images through Cloudinary transformation URLs, not `next/image` optimization.
+- Serve images through Cloudinary transformation URLs, not `next/image` optimization. Uploaded photos are redrawn in the browser before they are sent (`lib/photo-upload.ts`), which is what removes location data from them; never add a path that uploads the original file.
 - Everything must stay on free tiers. Do not add a paid service or a new third-party dependency without asking.
 
 ## Working here

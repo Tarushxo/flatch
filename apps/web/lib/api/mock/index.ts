@@ -388,6 +388,7 @@ export const mockApi: Api = {
       addressLine: draft.addressLine.trim(),
       id: `mine-${now.toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
       isOpen: true,
+      isVerified: false,
       createdAt: new Date(now).toISOString(),
       opensAt: now,
       closedAt: null,
@@ -413,6 +414,19 @@ export const mockApi: Api = {
   async deleteListing(listingId) {
     await delay(120);
     writeListings(readListings().filter((listing) => listing.id !== listingId));
+  },
+
+  // The mock takes the lister's word for it: there is no map to check against.
+  async confirmOnSite(listingId) {
+    await delay(150);
+    return toMyListing(
+      updateListing(listingId, (listing) => ({ ...listing, isVerified: true })),
+      Date.now(),
+    );
+  },
+
+  async uploadPhoto() {
+    throw new Error("Photo uploads are not available in the demo data mode.");
   },
 
   async getApplicants(listingId) {

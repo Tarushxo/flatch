@@ -4,6 +4,7 @@ import type { FeedFilters, Listing } from "@repo/shared";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { FilterBar } from "@/components/deck/filter-bar";
+import { FirstLikePrompt } from "@/components/deck/first-like-prompt";
 import { SwipeDeck } from "@/components/deck/swipe-deck";
 import { ListingDetail } from "@/components/listing/listing-detail";
 import { filtersToSearch, useFilterStore } from "@/lib/deck/filters";
@@ -68,6 +69,7 @@ export function DiscoverScreen() {
         <FilterBar />
         <div className="min-h-0 flex-1">
           <SwipeDeck onTopChange={setTop} onOpenDetails={openDetails} />
+          <FirstLikePrompt />
         </div>
       </div>
 

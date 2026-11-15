@@ -9,14 +9,18 @@ import {
 import { SAMPLE_PHOTOS } from "@repo/db/seed-data";
 import {
   AMENITIES,
+  checkOnSite,
+  type DevicePosition,
   EXPECTATION_OPTIONS,
   HOUSE_RULE_OPTIONS,
   type ListingDraft,
   type ListingPhoto,
   type MyListing,
+  ON_SITE_REASONS,
   SOCIETY_RULE_OPTIONS,
 } from "@repo/shared";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { type CloudinaryConfig, destroyPhotos, ownedPublicId } from "../cloudinary";
 import {
   type Actor,
   mayManageListing,
@@ -114,6 +118,7 @@ function ownListings(db: Db) {
       societyRules: listings.societyRules,
       expectations: listings.expectations,
       createdAt: listings.createdAt,
+      isVerified: listings.isVerified,
       photos: photosInOrder,
     })
     .from(listings)
@@ -162,12 +167,21 @@ async function findOwn(db: Db, listingId: string): Promise<OwnRow> {
   return row;
 }
 
-/** Post a flat. It starts open to likes. */
+/** The device's position as the flat's private location, to the nearest metre or so. */
+function exactFrom(position: DevicePosition): LatLng {
+  return { lat: Number(position.lat.toFixed(5)), lng: Number(position.lng.toFixed(5)) };
+}
+
+/**
+ * Post a flat. It starts open to likes. If the lister said where they are
+ * standing and that is in the flat's area, the flat is marked as posted from
+ * there and that spot becomes its private location.
+ */
 export async function createListing(
   db: Db,
   actor: Actor,
-  draft: ListingDraft,
-  context: { signInOffered: boolean },
+  draft: ListingDraft & { postedFrom?: DevicePosition },
+  context: { signInOffered: boolean; storage: CloudinaryConfig | null },
 ): Promise<MyListing> {
   const refusal = mayPostListing(actor, {
     signInOffered: context.signInOffered,
@@ -181,17 +195,23 @@ export async function createListing(
     .where(and(eq(localities.city, draft.city), eq(localities.name, draft.locality)));
   if (!locality) throw new Refused(400, "unknown_area", "Choose an area from the list.");
 
-  // Photos are taken from the server's own list by address, never from what was sent.
-  const photos = draft.photos.flatMap((photo) => {
-    const known = SAMPLE_BY_URL.get(photo.url);
-    return known ? [known] : [];
+  // A photo is either one of the offered samples (taken from the server's own list, never
+  // from what was sent) or one this person uploaded to their own folder. Nothing else.
+  const photos = draft.photos.flatMap((photo): ListingPhoto[] => {
+    const sample = SAMPLE_BY_URL.get(photo.url);
+    if (sample) return [sample];
+    const mine = context.storage && ownedPublicId(photo.url, context.storage, actor.userId);
+    return mine ? [photo] : [];
   });
-  if (photos.length !== draft.photos.length || new Set(photos).size !== photos.length) {
-    throw new Refused(400, "unknown_photo", "Choose photos from the ones offered.");
+  const distinct = new Set(photos.map((photo) => photo.url));
+  if (photos.length !== draft.photos.length || distinct.size !== photos.length) {
+    throw new Refused(400, "unknown_photo", "Use photos you uploaded here, or the ones offered.");
   }
 
   const id = crypto.randomUUID();
-  const exact = placeIn({ lat: locality.centroid.y, lng: locality.centroid.x }, id);
+  const centre = { lat: locality.centroid.y, lng: locality.centroid.x };
+  const onSite = draft.postedFrom ? checkOnSite(centre, draft.postedFrom).ok : false;
+  const exact = onSite && draft.postedFrom ? exactFrom(draft.postedFrom) : placeIn(centre, id);
   const shown = publicLocation(exact, id);
 
   await db.transaction(async (tx) => {
@@ -226,7 +246,7 @@ export async function createListing(
       // A fixed place in the deck's order until the ranking engine scores flats per tenant (M5).
       qualityScore: 70,
       isSeed: false,
-      isVerified: false,
+      isVerified: onSite,
     });
     await tx.insert(listingPhotos).values(
       photos.map((photo, position) => ({
@@ -266,9 +286,61 @@ export async function setListingOpen(
   return toMyListing({ ...row, status: open ? "active" : "paused" });
 }
 
+/**
+ * "Posted from here", after the fact: the lister is at the flat now and says
+ * so. If their device agrees, the flat is marked and that spot becomes its
+ * private location.
+ */
+export async function confirmOnSite(
+  db: Db,
+  actor: Actor,
+  listingId: string,
+  position: DevicePosition,
+): Promise<MyListing> {
+  const row = await findOwn(db, listingId);
+  if (mayManageListing(actor, row)) throw GONE;
+
+  const [area] = await db
+    .select({ centroid: localities.centroid })
+    .from(listings)
+    .innerJoin(localities, eq(localities.id, listings.localityId))
+    .where(eq(listings.id, listingId));
+  if (!area) throw GONE;
+
+  const result = checkOnSite({ lat: area.centroid.y, lng: area.centroid.x }, position);
+  if (!result.ok)
+    throw new Refused(409, `on_site_${result.reason}`, ON_SITE_REASONS[result.reason]);
+
+  const exact = exactFrom(position);
+  const shown = publicLocation(exact, listingId);
+  await db
+    .update(listings)
+    .set({
+      isVerified: true,
+      locationExact: { x: exact.lng, y: exact.lat },
+      locationPublic: { x: shown.lng, y: shown.lat },
+    })
+    .where(eq(listings.id, listingId));
+  return toMyListing({ ...row, isVerified: true });
+}
+
 /** Take a flat down for good, with its photos and the swipes on it. */
-export async function deleteListing(db: Db, actor: Actor, listingId: string): Promise<void> {
+export async function deleteListing(
+  db: Db,
+  actor: Actor,
+  listingId: string,
+  storage: CloudinaryConfig | null,
+): Promise<void> {
   const row = await findOwn(db, listingId);
   if (mayManageListing(actor, row)) throw GONE;
   await db.delete(listings).where(eq(listings.id, listingId));
+
+  // The lister's own uploads go with the flat. Sample photos are shared and stay.
+  if (storage) {
+    const uploads = row.photos.flatMap((photo) => {
+      const publicId = ownedPublicId(photo.url, storage, actor.userId);
+      return publicId ? [publicId] : [];
+    });
+    await destroyPhotos(storage, uploads);
+  }
 }

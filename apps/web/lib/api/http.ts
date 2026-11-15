@@ -6,6 +6,7 @@ import type {
   Listing,
   MyListing,
   TenantProfile,
+  UploadTicket,
 } from "@repo/shared";
 import { hc } from "hono/client";
 import {
@@ -15,6 +16,7 @@ import {
   forgetSession,
   startGuestSession,
 } from "@/lib/auth/client";
+import { preparePhoto, sendPhoto } from "@/lib/photo-upload";
 import type { Api } from "./client";
 
 /*
@@ -132,8 +134,29 @@ export const httpApi = {
   getMyListings: async () =>
     (await answer<{ items: MyListing[] }>(() => v1.listings.mine.$get())).items,
 
-  createListing: async (draft) =>
-    (await answer<{ listing: MyListing }>(() => v1.listings.$post({ json: draft }))).listing,
+  createListing: async (draft, postedFrom) =>
+    (
+      await answer<{ listing: MyListing }>(() =>
+        v1.listings.$post({ json: postedFrom ? { ...draft, postedFrom } : draft }),
+      )
+    ).listing,
+
+  confirmOnSite: async (listingId, position) =>
+    (
+      await answer<{ listing: MyListing }>(() =>
+        v1.listings[":listingId"]["on-site"].$post({ param: { listingId }, json: position }),
+      )
+    ).listing,
+
+  /**
+   * Upload one photo: shrink and clean it in the browser, get a ticket from our
+   * server, then send the photo straight to the image store.
+   */
+  uploadPhoto: async (file) => {
+    const prepared = await preparePhoto(file);
+    const { ticket } = await answer<{ ticket: UploadTicket }>(() => v1.uploads.ticket.$post());
+    return { url: await sendPhoto(ticket, prepared.blob), dominantColor: prepared.dominantColor };
+  },
 
   setListingOpen: async (listingId, isOpen) =>
     (

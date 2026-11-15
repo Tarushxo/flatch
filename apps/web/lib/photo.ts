@@ -2,9 +2,9 @@
  * Photo sizing. A phone should never download a photo bigger than it can show,
  * so every photo is requested at a few widths and the browser picks one.
  *
- * In M1 the photos come from Unsplash's image server, which resizes on request
- * through the `w` and `q` parameters. From M2 they come from Cloudinary and
- * this is the one file that changes.
+ * Demo photos come from Unsplash's image server, which resizes on request
+ * through the `w` and `q` parameters. Photos a lister uploads are on
+ * Cloudinary, which resizes through a segment in the address.
  */
 
 /** Widths offered for each use. The browser picks the smallest that is sharp enough. */
@@ -27,11 +27,32 @@ export function photoUrl(url: string, width: number): string {
   } catch {
     return url;
   }
+  if (parsed.hostname === "res.cloudinary.com") return cloudinaryUrl(parsed, width);
   if (parsed.hostname !== "images.unsplash.com") return url;
   parsed.searchParams.set("auto", "format");
   parsed.searchParams.set("fit", "crop");
   parsed.searchParams.set("w", String(width));
   parsed.searchParams.set("q", QUALITY);
+  return parsed.toString();
+}
+
+const UPLOAD = "/image/upload/";
+
+/**
+ * A lister's uploaded photo at a given width. Cloudinary resizes on request
+ * when told how in the address, between "/upload/" and the rest: the best
+ * format for the browser, sensible quality, and no wider than asked. A resized
+ * copy also has the photo's hidden details (such as where it was taken) removed.
+ */
+function cloudinaryUrl(parsed: URL, width: number): string {
+  const at = parsed.pathname.indexOf(UPLOAD);
+  if (at === -1) return parsed.toString();
+  const before = parsed.pathname.slice(0, at + UPLOAD.length);
+  // Drop a resize that is already there, so asking twice does not stack them.
+  const rest = parsed.pathname
+    .slice(at + UPLOAD.length)
+    .replace(/^(?:[a-z]+_[^/]+\/)*(?=v\d+\/)/, "");
+  parsed.pathname = `${before}f_auto,q_auto,c_limit,w_${width}/${rest}`;
   return parsed.toString();
 }
 

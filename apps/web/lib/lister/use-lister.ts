@@ -1,6 +1,6 @@
 "use client";
 
-import type { Applicant, ListingDraft, MyListing } from "@repo/shared";
+import type { Applicant, DevicePosition, ListingDraft, MyListing } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { MATCHES_KEY } from "@/lib/matches/use-matches";
@@ -42,7 +42,8 @@ export function useSamplePhotos() {
 export function useCreateListing() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (draft: ListingDraft) => api.createListing(draft),
+    mutationFn: ({ draft, postedFrom }: { draft: ListingDraft; postedFrom?: DevicePosition }) =>
+      api.createListing(draft, postedFrom),
     onSuccess: (created) => {
       queryClient.setQueryData<MyListing[]>(MY_LISTINGS_KEY, (current) => [
         created,
@@ -112,6 +113,20 @@ export function useDecideApplicant() {
       void queryClient.invalidateQueries({ queryKey: APPLICANTS_KEY });
       void queryClient.invalidateQueries({ queryKey: MY_LISTINGS_KEY });
       void queryClient.invalidateQueries({ queryKey: MATCHES_KEY });
+    },
+  });
+}
+
+/** Mark a flat as posted on site, from where the lister's device is now. */
+export function useConfirmOnSite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: DevicePosition }) =>
+      api.confirmOnSite(id, position),
+    onSuccess: (confirmed) => {
+      queryClient.setQueryData<MyListing[]>(MY_LISTINGS_KEY, (current) =>
+        current?.map((listing) => (listing.id === confirmed.id ? confirmed : listing)),
+      );
     },
   });
 }

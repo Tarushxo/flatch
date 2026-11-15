@@ -245,6 +245,7 @@ export function toMyListing(listing: StoredListing, now: number): MyListing {
   const { opensAt: _opensAt, closedAt: _closedAt, decisions: _decisions, ...rest } = listing;
   return {
     ...rest,
+    isVerified: rest.isVerified ?? false,
     interestedCount: waitingFor(listing, now).length,
     matchCount: acceptedFor(listing, now).length,
   };

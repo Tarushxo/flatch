@@ -5,14 +5,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ScreenMessage } from "@/components/app-shell/screen-message";
-import { BellIcon, KeyIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { BellIcon, CheckIcon, KeyIcon, MapPinIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { ListingThumb } from "@/components/match/listing-thumb";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { SignboardDrawing } from "@/components/motifs/neon-drawing";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
 import { SignLink } from "@/components/sign-link";
 import { ApiError } from "@/lib/api/http";
-import { useDeleteListing, useMyListings, useSetListingOpen } from "@/lib/lister/use-lister";
+import { PositionError, whereAmI } from "@/lib/geo";
+import {
+  useConfirmOnSite,
+  useDeleteListing,
+  useMyListings,
+  useSetListingOpen,
+} from "@/lib/lister/use-lister";
 
 /**
  * The lister's first tab: the flats they have posted. Each one has its own
@@ -110,8 +116,27 @@ export function ListingsScreen() {
 function FlatCard({ listing }: { listing: MyListing }) {
   const setOpen = useSetListingOpen();
   const remove = useDeleteListing();
+  const onSite = useConfirmOnSite();
   const [confirming, setConfirming] = useState(false);
+  const [locating, setLocating] = useState(false);
   const { interestedCount, matchCount } = listing;
+
+  async function confirmHere() {
+    setLocating(true);
+    try {
+      const position = await whereAmI();
+      await onSite.mutateAsync({ id: listing.id, position });
+      toast("Marked as posted on site");
+    } catch (error) {
+      toast.error(
+        error instanceof PositionError || error instanceof ApiError
+          ? error.message
+          : "Couldn't confirm just now. Try again in a moment.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  }
 
   function toggle() {
     const isOpen = !listing.isOpen;
@@ -148,6 +173,25 @@ function FlatCard({ listing }: { listing: MyListing }) {
           </p>
           <p className="font-mono text-fg-2 text-sm tabular-nums">{formatRent(listing.rent)}</p>
         </div>
+      </div>
+
+      <div className="mt-3">
+        {listing.isVerified ? (
+          <p className="flex items-center gap-1.5 text-like text-xs">
+            <CheckIcon className="size-3.5" />
+            Posted on site
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={locating}
+            onClick={() => void confirmHere()}
+            className="flex items-center gap-1.5 text-fg-2 text-xs underline-offset-4 transition-colors hover:text-like hover:underline disabled:opacity-50"
+          >
+            <MapPinIcon className="size-3.5" />
+            {locating ? "Finding you…" : 'At the flat now? Confirm it for a "Posted on site" mark'}
+          </button>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-hairline border-t pt-4">

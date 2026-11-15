@@ -17,6 +17,8 @@ export type Decision = { decision: "accept" | "decline"; at: number };
 export type StoredListing = ListingDraft & {
   id: string;
   isOpen: boolean;
+  /** Whether the lister confirmed they posted from the flat. Missing on flats saved before this existed. */
+  isVerified?: boolean;
   createdAt: string;
   /** The moment the bot tenants' arrival times are counted from. */
   opensAt: number;

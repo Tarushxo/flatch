@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkOnSite,
   draftAsListing,
   draftProblems,
   EMPTY_DRAFT,
   LISTING_STEPS,
   type ListingDraft,
+  metresApart,
+  ON_SITE,
 } from "./lister";
 import { ListingDraftSchema, ListingSchema } from "./schemas";
 
@@ -99,5 +102,31 @@ describe("draftAsListing", () => {
     expect(early.title).toBe("Your flat");
     expect(early.lister.name).toBe("You");
     expect(early.availableFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("posted from here", () => {
+  const hsr = { lat: 12.9116, lng: 77.6474 };
+
+  it("passes for a device in the area with a tight fix", () => {
+    expect(checkOnSite(hsr, { lat: 12.915, lng: 77.65, accuracy: 30 })).toEqual({ ok: true });
+  });
+
+  it("fails when the device is in another part of town", () => {
+    const whitefield = { lat: 12.9698, lng: 77.75, accuracy: 20 };
+    expect(checkOnSite(hsr, whitefield)).toEqual({ ok: false, reason: "elsewhere" });
+  });
+
+  it("fails when the device only roughly knows where it is, even if that is nearby", () => {
+    expect(checkOnSite(hsr, { ...hsr, accuracy: ON_SITE.maxAccuracyMetres + 1 })).toEqual({
+      ok: false,
+      reason: "imprecise",
+    });
+  });
+
+  it("measures distance in metres, near enough", () => {
+    // A hundredth of a degree of latitude is about 1.1 km.
+    expect(metresApart(hsr, { lat: hsr.lat + 0.01, lng: hsr.lng })).toBeGreaterThan(1090);
+    expect(metresApart(hsr, { lat: hsr.lat + 0.01, lng: hsr.lng })).toBeLessThan(1130);
   });
 });

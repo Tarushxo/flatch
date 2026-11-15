@@ -1,7 +1,13 @@
 import type { z } from "zod";
 import { DEFAULT_CITY } from "./constants";
 import type { Listing } from "./listing";
-import type { ApplicantSchema, ListingDraftSchema, MyListingSchema } from "./schemas";
+import type {
+  ApplicantSchema,
+  DevicePositionSchema,
+  ListingDraftSchema,
+  MyListingSchema,
+  UploadTicketSchema,
+} from "./schemas";
 
 /*
  * The lister's side: the flat they post, and the tenants who like it. The
@@ -78,6 +84,61 @@ export type ListingStep = (typeof LISTING_STEPS)[number];
 export type ListingDraft = z.infer<typeof ListingDraftSchema>;
 export type MyListing = z.infer<typeof MyListingSchema>;
 export type Applicant = z.infer<typeof ApplicantSchema>;
+export type DevicePosition = z.infer<typeof DevicePositionSchema>;
+export type UploadTicket = z.infer<typeof UploadTicketSchema>;
+
+/** The rooms a lister can label a photo with, and how each is worded. */
+export const ROOM_TAG_LABELS = {
+  bedroom: "Bedroom",
+  living: "Living room",
+  kitchen: "Kitchen",
+  bathroom: "Bathroom",
+  balcony: "Balcony",
+  building: "Building",
+} as const;
+
+/*
+ * "Posted from here": the lister's device said it was at the flat when they
+ * posted. It shows they were standing there, not that the flat is theirs.
+ */
+export const ON_SITE = {
+  /** How far from the middle of the chosen area the device may be, in metres. Areas are big. */
+  maxFromAreaMetres: 6000,
+  /** The widest radius of doubt that still counts as knowing where the device is, in metres. */
+  maxAccuracyMetres: 500,
+} as const;
+
+export type OnSiteResult = { ok: true } | { ok: false; reason: "imprecise" | "elsewhere" };
+
+/** Roughly how far apart two points are, in metres. Good enough at city scale. */
+export function metresApart(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const north = (a.lat - b.lat) * 111_320;
+  const east = (a.lng - b.lng) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.hypot(north, east);
+}
+
+/** Whether a device's position is good enough to say the lister is at a flat in this area. */
+export function checkOnSite(
+  areaCentre: { lat: number; lng: number },
+  position: DevicePosition,
+): OnSiteResult {
+  if (position.accuracy > ON_SITE.maxAccuracyMetres) return { ok: false, reason: "imprecise" };
+  if (metresApart(areaCentre, position) > ON_SITE.maxFromAreaMetres) {
+    return { ok: false, reason: "elsewhere" };
+  }
+  return { ok: true };
+}
+
+/** What to tell the lister when the check does not pass. */
+export const ON_SITE_REASONS: Record<"imprecise" | "elsewhere", string> = {
+  imprecise:
+    "Your device could not tell where it is closely enough. Try again outdoors or with location turned up.",
+  elsewhere:
+    "Your device is not in the area you chose for this flat. Try again when you are there.",
+};
 
 /** A blank form. Nothing is chosen for the person except the city. */
 export const EMPTY_DRAFT: ListingDraft = {

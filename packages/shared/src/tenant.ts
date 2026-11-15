@@ -82,7 +82,12 @@ export type TenantProfile = z.infer<typeof TenantProfileSchema>;
 export type Account = z.infer<typeof AccountSchema>;
 
 /** Someone who has not signed in, on a server (or a mock) with no sign-in to offer. */
-export const GUEST_ACCOUNT: Account = { isGuest: true, email: null, canSignIn: false };
+export const GUEST_ACCOUNT: Account = {
+  isGuest: true,
+  email: null,
+  canSignIn: false,
+  canUpload: false,
+};
 
 /** What a brand-new visitor starts with: the default city and no other limits. */
 export const DEFAULT_PREFERENCES: TenantPreferences = {

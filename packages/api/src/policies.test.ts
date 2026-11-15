@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mayManageListing, mayPostListing, maySwitchListing } from "./policies";
+import { mayManageListing, mayPostListing, maySwitchListing, mayUploadPhotos } from "./policies";
 
 const member = { userId: "user-a", isGuest: false };
 const guest = { userId: "guest-a", isGuest: true };
@@ -98,5 +98,13 @@ describe("who may switch a flat's sign", () => {
 
   it("does not count a flat that is already open against itself", () => {
     expect(maySwitchListing(member, mine, { open: true, openCount: 2 })).toBeNull();
+  });
+});
+
+describe("who may upload photos", () => {
+  it("lets signed-in people, and guests only where there is no sign-in to offer", () => {
+    expect(mayUploadPhotos(member, { signInOffered: true })).toBeNull();
+    expect(mayUploadPhotos(guest, { signInOffered: true })?.code).toBe("sign_in_required");
+    expect(mayUploadPhotos(guest, { signInOffered: false })).toBeNull();
   });
 });

@@ -253,6 +253,8 @@ export const ListingDraftSchema = z.object({
 /** A flat the person has posted, with its status and how it is doing. */
 export const MyListingSchema = ListingDraftSchema.extend({
   id: z.string(),
+  /** True once the lister has confirmed, by their device's location, that they posted from the flat. */
+  isVerified: z.boolean(),
   /** The VACANCY sign: true while the flat is open to likes. */
   isOpen: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -267,4 +269,25 @@ export const AccountSchema = z.object({
   email: z.email().nullable(),
   /** Whether this server offers Google sign-in at all. */
   canSignIn: z.boolean(),
+  /** Whether this person may upload their own photos (needs image storage, and an account). */
+  canUpload: z.boolean(),
+});
+
+/** Where a device says it is, from the browser. `accuracy` is the radius of doubt, in metres. */
+export const DevicePositionSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  accuracy: z.number().min(0).max(100_000),
+});
+
+/** A flat as it is sent for posting: the form's answers, and where the lister is standing if they chose to say. */
+export const ListingSubmissionSchema = ListingDraftSchema.extend({
+  postedFrom: DevicePositionSchema.optional(),
+});
+
+/** What the app needs to send one photo straight to the image store. Good for that one photo only. */
+export const UploadTicketSchema = z.object({
+  uploadUrl: z.url(),
+  /** Sent as form fields along with the file, exactly as given. */
+  fields: z.record(z.string(), z.string()),
 });

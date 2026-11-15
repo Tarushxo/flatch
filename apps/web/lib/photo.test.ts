@@ -42,3 +42,24 @@ describe("photoSrc", () => {
     expect(photoSrc(unsplash, "tile")).toContain("w=480");
   });
 });
+
+describe("uploaded photos", () => {
+  const uploaded =
+    "https://res.cloudinary.com/demo-cloud/image/upload/v1794760000/flatch/u/abc/photo-1.jpg";
+
+  it("are asked for at the given width, in the best format for the browser", () => {
+    expect(photoUrl(uploaded, 640)).toBe(
+      "https://res.cloudinary.com/demo-cloud/image/upload/f_auto,q_auto,c_limit,w_640/v1794760000/flatch/u/abc/photo-1.jpg",
+    );
+  });
+
+  it("do not stack one resize on another", () => {
+    expect(photoUrl(photoUrl(uploaded, 640), 400)).toBe(photoUrl(uploaded, 400));
+  });
+
+  it("get a srcset like any other photo", () => {
+    const candidates = photoSrcSet(uploaded, "tile").split(", ");
+    expect(candidates).toHaveLength(3);
+    expect(candidates[0]).toMatch(/w_320\/v1794760000.* 320w$/);
+  });
+});

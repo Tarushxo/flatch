@@ -41,6 +41,14 @@ export function mayPostListing(
   return null;
 }
 
+/**
+ * May this person upload photos? The same people who may post: a guest may
+ * not wherever signing in is on offer.
+ */
+export function mayUploadPhotos(actor: Actor, context: { signInOffered: boolean }): Refusal | null {
+  return actor.isGuest && context.signInOffered ? SIGN_IN : null;
+}
+
 /** May this person change or take down this flat? Only its lister. */
 export function mayManageListing(actor: Actor, listing: { listerId: string }): Refusal | null {
   return listing.listerId === actor.userId ? null : NOT_YOURS;

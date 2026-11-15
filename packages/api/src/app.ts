@@ -1,12 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
 import { getDb, hasDatabase } from "@repo/db";
 import { type Account, CITIES, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
-import { FeedFiltersSchema, ListingDraftSchema, TenantProfileSchema } from "@repo/shared/schemas";
+import {
+  DevicePositionSchema,
+  FeedFiltersSchema,
+  ListingSubmissionSchema,
+  TenantProfileSchema,
+} from "@repo/shared/schemas";
 import { Hono } from "hono";
 import { z } from "zod";
 import { getAuth, googleEnabled } from "./auth";
+import { cloudinaryConfig, uploadTicket } from "./cloudinary";
+import { mayUploadPhotos } from "./policies";
 import { countFeed, getFeedPage, getLocalityNames } from "./services/feed";
 import {
+  confirmOnSite,
   createListing,
   deleteListing,
   getMyListings,
@@ -138,11 +146,32 @@ const routes = new Hono<Env>()
     c.json({ items: await getMyListings(getDb(), c.get("userId")) }),
   )
 
-  .post("/listings", zValidator("json", ListingDraftSchema, invalid), async (c) => {
+  .post("/listings", zValidator("json", ListingSubmissionSchema, invalid), async (c) => {
     const listing = await createListing(getDb(), viewer(c), c.req.valid("json"), {
       signInOffered: googleEnabled(),
+      storage: cloudinaryConfig(),
     });
     return c.json({ listing }, 201);
+  })
+
+  .post(
+    "/listings/:listingId/on-site",
+    zValidator("param", z.object({ listingId: z.uuid() }), invalid),
+    zValidator("json", DevicePositionSchema, invalid),
+    async (c) => {
+      const { listingId } = c.req.valid("param");
+      const listing = await confirmOnSite(getDb(), viewer(c), listingId, c.req.valid("json"));
+      return c.json({ listing });
+    },
+  )
+
+  // A ticket to send one photo straight to the image store.
+  .post("/uploads/ticket", async (c) => {
+    const storage = cloudinaryConfig();
+    if (!storage) throw new Refused(409, "no_uploads", "Photo uploads are not set up here.");
+    const refusal = mayUploadPhotos(viewer(c), { signInOffered: googleEnabled() });
+    if (refusal) throw new Refused(403, refusal.code, refusal.message);
+    return c.json({ ticket: uploadTicket(storage, c.get("userId")) });
   })
 
   .patch(
@@ -160,7 +189,7 @@ const routes = new Hono<Env>()
     "/listings/:listingId",
     zValidator("param", z.object({ listingId: z.uuid() }), invalid),
     async (c) => {
-      await deleteListing(getDb(), viewer(c), c.req.valid("param").listingId);
+      await deleteListing(getDb(), viewer(c), c.req.valid("param").listingId, cloudinaryConfig());
       return c.json({ ok: true });
     },
   );
@@ -181,6 +210,7 @@ const signedIn = new Hono<Env>()
       isGuest: guest,
       email: guest ? null : session.user.email,
       canSignIn: googleEnabled(),
+      canUpload: cloudinaryConfig() !== null && !(guest && googleEnabled()),
     });
     await next();
   })
@@ -196,7 +226,14 @@ export const app = new Hono<Env>()
   })
   // Sign-in, sign-out and the session itself.
   .on(["GET", "POST"], "/auth/*", (c) => getAuth().handler(c.req.raw))
-  .get("/v1/health", (c) => c.json({ ok: true, database: hasDatabase(), google: googleEnabled() }))
+  .get("/v1/health", (c) =>
+    c.json({
+      ok: true,
+      database: hasDatabase(),
+      google: googleEnabled(),
+      uploads: cloudinaryConfig() !== null,
+    }),
+  )
   .use("/v1/*", async (c, next) => {
     // Personal answers must never be kept by a shared cache.
     c.header("cache-control", "private, no-store");

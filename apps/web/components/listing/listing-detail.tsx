@@ -142,6 +142,12 @@ export function ListingDetail({
               </span>
             </p>
             <p className="mt-1 text-fg-2 text-sm leading-relaxed">{lister.about}</p>
+            {listing.isVerified ? (
+              <p className="mt-2 text-like text-xs leading-relaxed">
+                Posted on site: the lister's device was at this flat's location when they posted. It
+                does not prove the flat is theirs to let.
+              </p>
+            ) : null}
             <p className="mt-2 text-fg-3 text-xs">
               {lister.flatmateCount === 0
                 ? "You would have the place to yourself"

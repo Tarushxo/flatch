@@ -2,6 +2,7 @@ import type {
   Account,
   Applicant,
   City,
+  DevicePosition,
   FeedFilters,
   FeedPage,
   Listing,
@@ -83,8 +84,16 @@ export interface Api {
 
   /** The flats the person has posted, newest first. */
   getMyListings(): Promise<MyListing[]>;
-  /** Post a flat. It starts open to likes. Rejects a draft that is not complete. */
-  createListing(draft: ListingDraft): Promise<MyListing>;
+  /**
+   * Post a flat. It starts open to likes. Rejects a draft that is not complete.
+   * Pass where the lister's device is, if they chose to share it, to have the
+   * flat marked "posted on site" when that is in the flat's area.
+   */
+  createListing(draft: ListingDraft, postedFrom?: DevicePosition): Promise<MyListing>;
+  /** Mark a flat already posted as "posted on site", from where the lister's device is now. */
+  confirmOnSite(listingId: string, position: DevicePosition): Promise<MyListing>;
+  /** Upload one of the lister's own photos. Returns its address and overall colour. */
+  uploadPhoto(file: File): Promise<{ url: string; dominantColor: string }>;
   /** Switch the vacancy sign on or off. A closed flat takes no new likes. */
   setListingOpen(listingId: string, isOpen: boolean): Promise<MyListing>;
   /** Take a flat down for good, with its likes and matches. */
@@ -129,8 +138,8 @@ const withServer: Api = {
     return syncListings(await httpApi.getMyListings());
   },
 
-  async createListing(draft) {
-    const made = await httpApi.createListing(draft);
+  async createListing(draft, postedFrom) {
+    const made = await httpApi.createListing(draft, postedFrom);
     const all = syncListings(await httpApi.getMyListings());
     return all.find((listing) => listing.id === made.id) ?? made;
   },
@@ -144,6 +153,12 @@ const withServer: Api = {
   async deleteListing(listingId) {
     await httpApi.deleteListing(listingId);
     syncListings(await httpApi.getMyListings());
+  },
+
+  async confirmOnSite(listingId, position) {
+    const confirmed = await httpApi.confirmOnSite(listingId, position);
+    const all = syncListings(await httpApi.getMyListings());
+    return all.find((listing) => listing.id === listingId) ?? confirmed;
   },
 
   // The profile lives on the server. A copy is kept in the browser because the

@@ -3,6 +3,7 @@
 import {
   AMENITIES,
   CITIES,
+  type DevicePosition,
   draftAsListing,
   draftProblems,
   EMPTY_DRAFT,
@@ -17,6 +18,8 @@ import {
   type ListingPhoto,
   type ListingStep,
   NAME_MAX_LENGTH,
+  ROOM_TAG_LABELS,
+  ROOM_TAGS,
   ROOM_TYPE_LABELS,
   ROOM_TYPES,
   SOCIETY_RULE_OPTIONS,
@@ -28,14 +31,23 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ScreenMessage } from "@/components/app-shell/screen-message";
 import { CardFace } from "@/components/deck/card-face";
-import { CheckIcon, GoogleIcon, KeyIcon } from "@/components/icons";
+import {
+  CheckIcon,
+  CrossIcon,
+  GoogleIcon,
+  KeyIcon,
+  MapPinIcon,
+  PlusIcon,
+} from "@/components/icons";
 import { FadeImage } from "@/components/listing/fade-image";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { KeyDrawing } from "@/components/motifs/neon-drawing";
 import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/http";
+import { PositionError, whereAmI } from "@/lib/geo";
 import { useCreateListing, useSamplePhotos } from "@/lib/lister/use-lister";
+import { PhotoError } from "@/lib/photo-upload";
 import { PROFILE_KEY, useAccount, useProfile } from "@/lib/profile/use-profile";
 
 /** A half-filled form survives a reload, until the tab is closed. */
@@ -126,6 +138,8 @@ export function PostFlat() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<ListingDraft | null>(null);
   const [name, setName] = useState("");
+  // Where the lister's device is, if they chose to confirm they are at the flat.
+  const [postedFrom, setPostedFrom] = useState<DevicePosition | null>(null);
   const [pressed, setPressed] = useState(false);
   const top = useRef<HTMLDivElement>(null);
 
@@ -181,10 +195,13 @@ export function PostFlat() {
         const saved = await api.saveProfile({ ...me, name: typed });
         queryClient.setQueryData(PROFILE_KEY, saved);
       }
-      await create.mutateAsync(ready);
+      const made = await create.mutateAsync({ draft: ready, postedFrom: postedFrom ?? undefined });
       window.sessionStorage.removeItem(DRAFT_KEY);
       toast("Your flat is on the board", {
-        description: "Tenants who like it will show up under Interested.",
+        description:
+          postedFrom && !made.isVerified
+            ? 'Your location did not match the area you chose, so it has no "Posted on site" mark. You can try again from Your flats.'
+            : "Tenants who like it will show up under Interested.",
       });
       router.push("/listings");
     } catch (error) {
@@ -223,7 +240,14 @@ export function PostFlat() {
           {current === "photos" ? <PhotosStep draft={draft} set={set} /> : null}
           {current === "home" ? <HomeStep draft={draft} set={set} /> : null}
           {current === "preview" ? (
-            <PreviewStep draft={draft} about={me.about} name={name} onName={setName} />
+            <PreviewStep
+              draft={draft}
+              about={me.about}
+              name={name}
+              onName={setName}
+              postedFrom={postedFrom}
+              onPostedFrom={setPostedFrom}
+            />
           ) : null}
         </div>
       </div>
@@ -533,6 +557,10 @@ function CostsStep({ draft, set }: StepProps) {
 
 function PhotosStep({ draft, set }: StepProps) {
   const samples = useSamplePhotos();
+  const account = useAccount();
+  const canUpload = account.data?.canUpload ?? false;
+  const picker = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(0);
   const chosen = draft.photos.map((photo) => photo.url);
   const full = chosen.length >= LISTING_LIMITS.photosMax;
 
@@ -545,21 +573,152 @@ function PhotosStep({ draft, set }: StepProps) {
     });
   }
 
+  /** Upload the photos the person picked, one after another, adding each as it arrives. */
+  async function addFiles(files: File[]) {
+    const room = LISTING_LIMITS.photosMax - chosen.length;
+    const taken = files.slice(0, room);
+    if (taken.length < files.length) {
+      toast(
+        `A flat can have ${LISTING_LIMITS.photosMax} photos, so only ${taken.length} were added.`,
+      );
+    }
+    setUploading(taken.length);
+    for (const file of taken) {
+      try {
+        const { url, dominantColor } = await api.uploadPhoto(file);
+        set((latest) =>
+          latest.photos.length >= LISTING_LIMITS.photosMax
+            ? {}
+            : { photos: [...latest.photos, { url, roomTag: "bedroom", dominantColor }] },
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof PhotoError || error instanceof ApiError
+            ? error.message
+            : "A photo did not upload. Try again in a moment.",
+        );
+      }
+      setUploading((left) => left - 1);
+    }
+  }
+
   if (!samples.data) return <p className="text-fg-3 text-sm">Loading photos…</p>;
 
+  const sampleUrls = new Set(samples.data.map((photo) => photo.url));
+  const mine = draft.photos.filter((photo) => !sampleUrls.has(photo.url));
   const rooms = [...new Set(samples.data.map((photo) => photo.roomTag))];
 
   return (
     <div className="space-y-7">
-      <p className="text-sm" aria-live="polite">
-        <span className="font-mono font-semibold text-lg tabular-nums">{chosen.length}</span>
-        <span className="text-fg-2"> of {LISTING_LIMITS.photosMax} chosen</span>
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm" aria-live="polite">
+          <span className="font-mono font-semibold text-lg tabular-nums">{chosen.length}</span>
+          <span className="text-fg-2"> of {LISTING_LIMITS.photosMax} chosen</span>
+          {uploading > 0 ? <span className="text-fg-3"> · uploading {uploading}…</span> : null}
+        </p>
+        {canUpload ? (
+          <>
+            <input
+              ref={picker}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              aria-label="Add your own photos"
+              onChange={(event) => {
+                const files = [...(event.target.files ?? [])];
+                // Cleared so that picking the same photo again is still noticed.
+                event.target.value = "";
+                if (files.length > 0) void addFiles(files);
+              }}
+            />
+            <button
+              type="button"
+              disabled={full || uploading > 0}
+              onClick={() => picker.current?.click()}
+              className="flex items-center gap-1.5 rounded-full border border-like/40 px-4 py-2 font-medium text-like text-sm transition-colors hover:bg-like/10 disabled:opacity-40"
+            >
+              <PlusIcon className="size-4" />
+              Add your photos
+            </button>
+          </>
+        ) : null}
+      </div>
+
+      {mine.length > 0 ? (
+        <section>
+          <h2 className="mb-3 font-medium text-fg-3 text-xs uppercase tracking-[0.18em]">
+            Your photos
+          </h2>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {mine.map((photo) => {
+              const order = chosen.indexOf(photo.url) + 1;
+              return (
+                <li key={photo.url}>
+                  <div
+                    className="relative aspect-square overflow-hidden rounded-2xl border-2 border-brand-b"
+                    style={{ backgroundColor: photo.dominantColor }}
+                  >
+                    <FadeImage
+                      src={photo.url}
+                      alt={`Your photo ${order}`}
+                      use="tile"
+                      sizes="(min-width: 640px) 180px, 45vw"
+                    />
+                    <span className="bubble-mine absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full font-semibold text-xs tabular-nums">
+                      {order}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove your photo ${order}`}
+                      onClick={() => pick(photo)}
+                      className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded-full bg-ink/85 text-fg transition-colors hover:text-pass"
+                    >
+                      <CrossIcon className="size-3.5" />
+                    </button>
+                  </div>
+                  <label className="mt-2 block">
+                    <span className="sr-only">Which room is photo {order}?</span>
+                    <select
+                      value={photo.roomTag}
+                      onChange={(event) => {
+                        const roomTag = event.target.value as ListingPhoto["roomTag"];
+                        set((latest) => ({
+                          photos: latest.photos.map((each) =>
+                            each.url === photo.url ? { ...each, roomTag } : each,
+                          ),
+                        }));
+                      }}
+                      className="w-full rounded-lg border border-hairline bg-surface-2 px-2.5 py-2 text-sm [color-scheme:dark]"
+                    >
+                      {ROOM_TAGS.map((tag) => (
+                        <option key={tag} value={tag}>
+                          {ROOM_TAG_LABELS[tag]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      {canUpload ? (
+        <p className="text-fg-3 text-xs leading-relaxed">
+          Photos are shrunk on your device before they are sent, and details hidden inside them,
+          such as where they were taken, are removed. No photos to hand? Use the samples below.
+        </p>
+      ) : null}
 
       {rooms.map((room) => (
         <section key={room}>
           <h2 className="mb-3 font-medium text-fg-3 text-xs uppercase tracking-[0.18em]">
-            {ROOM_HEADINGS[room] ?? room}
+            {canUpload ? "Sample " : ""}
+            {canUpload
+              ? (ROOM_HEADINGS[room] ?? room).toLowerCase()
+              : (ROOM_HEADINGS[room] ?? room)}
           </h2>
           <ul className="grid grid-cols-3 gap-2">
             {samples.data
@@ -599,9 +758,11 @@ function PhotosStep({ draft, set }: StepProps) {
         </section>
       ))}
 
-      <p className="text-fg-3 text-xs leading-relaxed">
-        These are sample photos for the demo. Uploading your own arrives with accounts.
-      </p>
+      {canUpload ? null : (
+        <p className="text-fg-3 text-xs leading-relaxed">
+          These are sample photos for the demo. Uploading your own is not set up here yet.
+        </p>
+      )}
     </div>
   );
 }
@@ -699,13 +860,32 @@ function PreviewStep({
   about,
   name,
   onName,
+  postedFrom,
+  onPostedFrom,
 }: {
   draft: ListingDraft;
   about: string;
   name: string;
   onName: (name: string) => void;
+  postedFrom: DevicePosition | null;
+  onPostedFrom: (position: DevicePosition | null) => void;
 }) {
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [locating, setLocating] = useState(false);
+
+  async function confirmHere() {
+    setLocating(true);
+    try {
+      onPostedFrom(await whereAmI());
+    } catch (error) {
+      toast.error(
+        error instanceof PositionError ? error.message : "Could not find your location just now.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  }
+
   const listing = draftAsListing(draft, { name, about });
   const total = draft.rent + draft.maintenance + draft.utilitiesEstimate;
   const facts: [string, string][] = [
@@ -748,6 +928,44 @@ function PreviewStep({
           </div>
         ))}
       </dl>
+
+      <section aria-labelledby="on-site-heading" className="surface rounded-2xl p-4">
+        <h2
+          id="on-site-heading"
+          className="flex items-center gap-2 font-sign text-like text-sm uppercase tracking-[0.18em]"
+        >
+          <MapPinIcon className="size-4" />
+          Posted on site
+        </h2>
+        <p className="mt-2 text-fg-2 text-sm leading-relaxed">
+          At the flat right now? Confirm it, and tenants see a "Posted on site" mark on your card.
+          It shows you were there when you posted. Your exact spot is never shown to anyone.
+        </p>
+        {postedFrom ? (
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-win">
+            <span className="flex items-center gap-1.5">
+              <CheckIcon className="size-4" />
+              Location captured, to within about {postedFrom.accuracy} m
+            </span>
+            <button
+              type="button"
+              onClick={() => onPostedFrom(null)}
+              className="font-medium text-fg-2 underline-offset-4 hover:text-fg hover:underline"
+            >
+              Remove
+            </button>
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={locating}
+            onClick={() => void confirmHere()}
+            className="mt-3 rounded-full border border-like/40 px-4 py-2 font-medium text-like text-sm transition-colors hover:bg-like/10 disabled:opacity-50"
+          >
+            {locating ? "Finding you…" : "I'm at the flat now"}
+          </button>
+        )}
+      </section>
 
       <Field label="Your first name" htmlFor="lister-name">
         <input

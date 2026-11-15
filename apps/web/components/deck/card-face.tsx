@@ -69,7 +69,7 @@ export function CardFace({
       <div className="absolute inset-x-4 top-9 flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {listing.isSeed ? <Tag>Demo</Tag> : null}
-          {listing.isVerified ? <Tag tone="like">Verified</Tag> : null}
+          {listing.isVerified ? <Tag tone="like">Posted on site</Tag> : null}
           {listing.stretchLabel ? <Tag tone="save">{listing.stretchLabel}</Tag> : null}
         </div>
         {showMatch ? <CompatRing percent={listing.compatibility.percent} /> : null}
