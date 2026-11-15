@@ -158,7 +158,13 @@ export default function HomePage() {
       <footer className="border-hairline border-t">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-fg-3 text-sm sm:px-8">
           <p>A portfolio project. Every listing is demo data.</p>
-          <nav aria-label="Footer" className="flex items-center gap-6">
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <Link href="/privacy" className="transition-colors hover:text-fg">
+              Privacy
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-fg">
+              Terms
+            </Link>
             <Link href="/styleguide" className="transition-colors hover:text-fg">
               Design tokens
             </Link>

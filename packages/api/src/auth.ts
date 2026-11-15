@@ -70,6 +70,8 @@ function createAuth() {
       // requests are recognised without a trip to the database.
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
+    // The sign-in record Google issues is stored scrambled, not as plain text.
+    account: { encryptOAuthTokens: true },
     user: {
       // "Check out" and "Delete account" remove the person and everything of theirs.
       deleteUser: { enabled: true },

@@ -134,6 +134,15 @@ export function SignInScreen() {
           A guest pass lives in this browser only. You can sign in later from your profile and keep
           everything you did as a guest.
         </p>
+        <p className="mt-4 text-fg-3 text-xs">
+          <Link href="/privacy" className="underline-offset-4 hover:text-fg-2 hover:underline">
+            Privacy
+          </Link>
+          <span aria-hidden="true"> · </span>
+          <Link href="/terms" className="underline-offset-4 hover:text-fg-2 hover:underline">
+            Terms
+          </Link>
+        </p>
       </main>
     </div>
   );
