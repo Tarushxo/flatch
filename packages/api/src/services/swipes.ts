@@ -1,7 +1,7 @@
 import { type Db, listings, swipes, users } from "@repo/db";
 import type { Listing, SwipeAction } from "@repo/shared";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { publicListings, withPhotos } from "./feed";
+import { publicListings, toListings } from "./feed";
 
 /*
  * Swipes: one decision per person per flat. Everything here is scoped to the
@@ -69,5 +69,5 @@ export async function getSaved(db: Db, userId: string): Promise<Listing[]> {
     .innerJoin(swipes, eq(swipes.listingId, listings.id))
     .where(and(eq(swipes.userId, userId), eq(swipes.action, "save")))
     .orderBy(desc(swipes.updatedAt));
-  return withPhotos(db, rows);
+  return toListings(rows);
 }

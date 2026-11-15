@@ -544,7 +544,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0 is done. M1 is done and live. Every screen exists on the mock API: the match flow, the tenant side and the lister side (see 3.6); only the profile prompt at the first like is missing. **M2 is in progress:** the database package, seed pipeline, API and typed client are written and tested, and the app switches to them by itself once `DATABASE_URL` is set. Still to do for M2: create the Neon database, run the migration and seed, and check the deck against it locally and on Vercel. After that: M3 accounts, M4 real matching, M5 feed engine, M6 scale.
+**Progress (15 Nov 2026).** M0 is done. M1 is done and live. Every screen exists on the mock API: the match flow, the tenant side and the lister side (see 3.6); only the profile prompt at the first like is missing. **M2 is done:** the Neon database (US East, created through Vercel's storage tab) holds the 142 demo flats, and the deck, filters, live count, swipes, undo and saved flats run on it through the API. Checked end to end: a swiped flat does not come back after a reload, and the feed answers in about 300 ms from India in one database round trip. Next: M3 accounts, M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 
@@ -568,7 +568,8 @@ _As built._ `packages/db` holds the Drizzle schema (users, localities, listings,
 - **Match score, commute and stretch label** are the hand-written seed values, stored on the listing, until M5 works them out per tenant. The feed is ordered by that score.
 - **Location.** `location_public` is the exact point snapped to a ~400 m grid plus a fixed per-flat offset (`packages/db/src/location.ts`). The feed query does not select the private columns and the serializer's input type has no place for them; both are tested.
 - **One database for now.** Local development and the live site share it. A separate Neon dev branch is worth adding when real accounts arrive.
-- **Tests.** Pure parts are unit-tested (location, seed rows, cursors, serializer). There are no tests that run SQL yet; that needs the PostGIS container in CI (section 12).
+- **One query per page.** Photos are gathered in the same query as the flats (`json_agg`), which took the feed from about 850 ms to about 300 ms when the database is far away.
+- **Tests.** Pure parts are unit-tested (location, seed rows, cursors, serializer). The SQL was checked by hand against the real database (paging, filters, swipes, undo, saved, two visitors kept apart); automated tests that run SQL need the PostGIS container in CI (section 12) and are not written yet.
 - **Not yet:** commute anchors and the commute matrix (M5), ~80 seed tenants (M4), server-rendering the first card.
 
 **M3. Accounts and onboarding**

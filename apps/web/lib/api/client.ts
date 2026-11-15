@@ -101,14 +101,14 @@ const withServer: Api = {
     return saved;
   },
 
+  // Both at once, so the bot lister's answer is not held up by the trip to the server.
+  // The mock ignores a swipe it has already seen, so a retry after a failure is safe.
   async sendSwipes(swipes) {
-    await httpApi.sendSwipes(swipes);
-    await mockApi.sendSwipes(swipes);
+    await Promise.all([httpApi.sendSwipes(swipes), mockApi.sendSwipes(swipes)]);
   },
 
   async undoSwipe(listingId) {
-    await httpApi.undoSwipe(listingId);
-    await mockApi.undoSwipe(listingId);
+    await Promise.all([httpApi.undoSwipe(listingId), mockApi.undoSwipe(listingId)]);
   },
 };
 

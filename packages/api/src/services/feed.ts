@@ -1,4 +1,4 @@
-import { type Db, listingPhotos, listings, localities, swipes, users } from "@repo/db";
+import { type Db, listings, localities, swipes, users } from "@repo/db";
 import type { City, FeedFilters, FeedPage, Listing } from "@repo/shared";
 import { and, asc, desc, eq, gt, inArray, lt, lte, notExists, or, sql } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../cursor";
@@ -69,37 +69,32 @@ function inDeck(db: Db, filters: FeedFilters, userId: string | null) {
   );
 }
 
-/** Attach each listing's photos, in order, and shape the result for the app. */
-export async function withPhotos(db: Db, rows: PublicListingRow[]): Promise<Listing[]> {
-  if (rows.length === 0) return [];
-  const photos = await db
-    .select({
-      listingId: listingPhotos.listingId,
-      url: listingPhotos.url,
-      roomTag: listingPhotos.roomTag,
-      dominantColor: listingPhotos.dominantColor,
-    })
-    .from(listingPhotos)
-    .where(
-      inArray(
-        listingPhotos.listingId,
-        rows.map((row) => row.id),
-      ),
-    )
-    .orderBy(asc(listingPhotos.position));
+/**
+ * A listing's photos, in order, fetched as part of the same query as the
+ * listing. One trip to the database instead of two matters when the database
+ * is an ocean away.
+ */
+const photosInOrder = sql<PublicPhotoRow[]>`coalesce((
+  select json_agg(
+    json_build_object('url', p.url, 'roomTag', p.room_tag, 'dominantColor', p.dominant_color)
+    order by p.position
+  )
+  from listing_photos p
+  where p.listing_id = ${listings.id}
+), '[]'::json)`;
 
-  const byListing = new Map<string, PublicPhotoRow[]>();
-  for (const photo of photos) {
-    byListing.set(photo.listingId, [...(byListing.get(photo.listingId) ?? []), photo]);
-  }
+type ListingWithPhotos = PublicListingRow & { photos: PublicPhotoRow[] };
+
+/** Shape rows for the app. */
+export function toListings(rows: ListingWithPhotos[]): Listing[] {
   const today = new Date();
-  return rows.map((row) => toListing(row, byListing.get(row.id) ?? [], today));
+  return rows.map(({ photos, ...row }) => toListing(row, photos, today));
 }
 
-/** The public columns of listings, joined to their area and lister. */
+/** The public columns of listings with their photos, joined to their area and lister. */
 export function publicListings(db: Db) {
   return db
-    .select(PUBLIC_COLUMNS)
+    .select({ ...PUBLIC_COLUMNS, photos: photosInOrder })
     .from(listings)
     .innerJoin(localities, eq(localities.id, listings.localityId))
     .innerJoin(users, eq(users.id, listings.listerId));
@@ -129,7 +124,7 @@ export async function getFeedPage(
   const page = rows.slice(0, PAGE_SIZE);
   const last = page[page.length - 1];
   return {
-    items: await withPhotos(db, page),
+    items: toListings(page),
     nextCursor:
       rows.length > PAGE_SIZE && last
         ? encodeCursor({ score: last.qualityScore, id: last.id })
