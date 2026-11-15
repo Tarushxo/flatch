@@ -297,27 +297,51 @@
 }
 
 /*
- * The plain primary button, for the main action in a form or sheet (the neon
- * arrow sign is for links that take you somewhere). The logo's violet and pink,
- * deep enough for white text.
+ * The primary button, for the main action in a form or sheet (the neon arrow
+ * sign is for links that take you somewhere). It is lit like the logo: a pink
+ * neon tube around a dark face that the tube tints, with lettering that glows.
+ * The glow brightens on hover and focus, and goes out when the button is
+ * disabled.
  */
 @utility button-primary {
+  --tube: var(--brand-b);
   border-radius: 9999px;
-  padding: 0.875rem 1.5rem;
+  padding: 0.8125rem 1.5rem;
   font-weight: 600;
-  color: var(--text);
+  letter-spacing: 0.01em;
+  color: color-mix(in oklab, var(--tube) 16%, white);
+  text-shadow: 0 0 10px color-mix(in oklab, var(--tube) 85%, transparent);
+  border: 1.5px solid color-mix(in oklab, var(--tube) 72%, white);
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--brand-a) 74%, var(--bg)),
-    color-mix(in oklab, var(--brand-b) 64%, var(--bg))
+    color-mix(in oklab, var(--brand-a) 34%, var(--bg)),
+    color-mix(in oklab, var(--tube) 34%, var(--bg))
   );
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  box-shadow:
+    0 0 14px -1px color-mix(in oklab, var(--tube) 80%, transparent),
+    0 0 42px -6px color-mix(in oklab, var(--tube) 60%, transparent),
+    inset 0 0 14px color-mix(in oklab, var(--tube) 40%, transparent);
   transition:
+    box-shadow 0.2s,
     opacity 0.2s,
     transform 0.2s;
 
+  &:hover,
+  &:focus-visible {
+    box-shadow:
+      0 0 18px 0 var(--tube),
+      0 0 58px -4px color-mix(in oklab, var(--tube) 75%, transparent),
+      inset 0 0 18px color-mix(in oklab, var(--tube) 55%, transparent);
+  }
+
   &:active {
     transform: scale(0.98);
+  }
+
+  /* An unlit sign: no glow, so it is clear the button will not respond. */
+  &:disabled {
+    box-shadow: none;
+    text-shadow: none;
   }
 }
 

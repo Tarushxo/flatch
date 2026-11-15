@@ -21,7 +21,7 @@ A swipe-based app for finding a flat and the people in it. Tenants swipe through
 
 - Payments, monetization, KYC, phone OTP, email sending.
 - Native apps. This is a PWA; a native wrapper is a later project.
-- Many cities. Two are covered, Bangalore and Gurgaon, each done properly. The city is something the tenant chooses, and the feed, the locality list and the landing sign's city plaque all follow it.
+- Every city in India. Ten are covered, the big metros and IT hubs: Bangalore, Hyderabad, Pune, Chennai, Mumbai, Delhi, Gurgaon, Noida, Kolkata and Ahmedabad. The city is something the tenant chooses, and the feed, the locality list and the landing sign's city plaque all follow it. The list lives in one place (`CITIES` in `packages/shared`); adding a city means adding it there and giving it data.
 - ML models. Ranking is hand-built features plus simple online learning.
 
 ---
@@ -79,7 +79,7 @@ Most portfolio visitors arrive on a desktop and will not sign in with Google. Th
 
 One question per screen, large type, a thin neon progress line. Every step has a sensible default and can be skipped.
 
-1. Role (tenant / lister), then city (Bangalore or Gurgaon).
+1. Role (tenant / lister), then city (one of the ten in `CITIES`).
 2. Budget: dual slider. **A live counter shows "42 flats match" and updates as the user drags.** This is the first moment the feed engine is visible; make it feel instant (debounced call to `POST /feed/count`).
 3. Where: pick localities from our own list, and/or pick a work/college anchor plus a max commute.
 4. Move-in date and expected stay.
@@ -452,7 +452,7 @@ A script creates synthetic tenants with hidden "true" preferences, lets them swi
 
 ## 9. Seed data and bots
 
-- **Two cities, real geography.** For each of Bangalore and Gurgaon, a hand-checked file of ~20 localities with centroids and typical rent ranges, and ~10 commute anchors (major tech parks, colleges, metro hubs). Society names are invented.
+- **Ten cities, real geography.** For each city, a hand-checked file of localities with centroids and typical rent ranges, and commute anchors (major tech parks, colleges, metro hubs). Society names are invented. Ten cities is a lot of seed data: start M2 with Bangalore and one other at full depth (~20 localities, ~100 listings each) and give the rest a thinner set (~8 localities, ~30 listings), rather than spreading evenly thin. In the M1 mock, Bangalore and Gurgaon are hand-written and the other eight get six generated flats each (`lib/api/mock/city-flats.ts`).
 - **~200 listings, ~80 tenants**, generated with Faker from those ranges so prices and commutes are believable.
 - **Coherent photo sets.** Photos are curated into sets that plausibly belong to one flat (bedroom, living room, kitchen, bathroom, balcony, building), ~40 sets with variation. Random stock photos per listing look fake immediately. Downloaded once from free-licence sources and uploaded to Cloudinary by the seed script.
 - **Rolling dates.** Seed `available_from` and `published_at` are stored relative to "today" and refreshed by the daily job, so the demo never looks abandoned.
@@ -590,7 +590,7 @@ Learning from swipes, duplicate-photo detection with perceptual hashes, visit sc
 
 ## 15. Defaults chosen (change any of these by telling me)
 
-- Cities: Bangalore (shown by default) and Gurgaon.
+- Cities: Bangalore, Hyderabad, Pune, Chennai, Mumbai, Delhi, Gurgaon, Noida, Kolkata and Ahmedabad. Bangalore is shown by default.
 - Name: Flatch.
 - Guests can only interact with seed listings.
 - Declines are silent.

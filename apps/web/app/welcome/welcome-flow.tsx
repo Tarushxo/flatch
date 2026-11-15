@@ -186,7 +186,7 @@ type StepProps = {
 
 function CityStep({ draft, set }: StepProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {CITIES.map((city) => {
         const chosen = draft.city === city;
         return (
@@ -196,7 +196,7 @@ function CityStep({ draft, set }: StepProps) {
             aria-pressed={chosen}
             // A new city has different areas, so the old choices are dropped.
             onClick={() => set(chosen ? {} : { city, localities: [] })}
-            className={`rounded-2xl border bg-surface-2 px-5 py-7 text-center font-sign text-2xl uppercase tracking-[0.2em] transition-colors ${
+            className={`rounded-2xl border bg-surface-2 px-2 py-5 text-center font-sign text-base uppercase tracking-[0.14em] transition-colors sm:text-lg ${
               chosen ? "glow border-transparent" : "border-hairline hover:border-fg/25"
             }`}
             style={{ "--glow": "var(--like)" } as CSSProperties}

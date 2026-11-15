@@ -1,9 +1,11 @@
 import type { City, HouseRule, Listing } from "@repo/shared";
+import { GENERATED_CITY_CENTRES, GENERATED_LOCALITY_CENTRES, GENERATED_SPECS } from "./city-flats";
 import { PHOTO_COLORS } from "./photo-colors";
 
 /*
  * Mock listings for M1, so the front end can be built before there is a
- * database. Real localities in Bangalore and Gurgaon, invented flats. Photos are free-licence
+ * database. Real localities, invented flats. Bangalore and Gurgaon are written
+ * out here; the other cities are generated in city-flats.ts. Photos are free-licence
  * Unsplash images loaded straight from their CDN; M2 replaces all of this with
  * seeded database rows and Cloudinary-hosted photo sets.
  */
@@ -168,11 +170,13 @@ const LOCALITY_CENTRES: Record<string, { lat: number; lng: number }> = {
 const CITY_CENTRES: Record<City, { lat: number; lng: number }> = {
   Bangalore: { lat: 12.9716, lng: 77.5946 },
   Gurgaon: { lat: 28.4595, lng: 77.0266 },
+  ...GENERATED_CITY_CENTRES,
 };
 
 /** A point a few hundred metres from the locality centre, different for each flat. */
 function areaFor(locality: string, city: City, position: number) {
-  const centre = LOCALITY_CENTRES[locality] ?? CITY_CENTRES[city];
+  const centre =
+    LOCALITY_CENTRES[locality] ?? GENERATED_LOCALITY_CENTRES[locality] ?? CITY_CENTRES[city];
   const angle = position * 2.4;
   const reach = 0.002 + (position % 4) * 0.0012;
   return {
@@ -188,7 +192,8 @@ const NEARBY = [
   ["Tech park 900 m", "Hospital 1.5 km", "Grocery 300 m"],
 ];
 
-type Spec = Pick<
+/** Everything needed to describe one mock flat; the rest is filled in when the list is built. */
+export type Spec = Pick<
   Listing,
   | "title"
   | "description"
@@ -906,7 +911,9 @@ const SPECS: Spec[] = [
   },
 ];
 
-export const MOCK_LISTINGS: Listing[] = SPECS.map((spec, position) => {
+// Bangalore and Gurgaon are written out by hand above; the other cities are generated.
+// The hand-written flats come first, so their ids never change when a city is added.
+export const MOCK_LISTINGS: Listing[] = [...SPECS, ...GENERATED_SPECS].map((spec, position) => {
   const { depositMonths, availableIn, rules, society, expect, city = "Bangalore", ...rest } = spec;
   return {
     ...rest,
