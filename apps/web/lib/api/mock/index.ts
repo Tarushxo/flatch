@@ -325,6 +325,15 @@ export const mockApi: Api = {
     return GUEST_ACCOUNT;
   },
 
+  // Nothing to choose at the front desk: the mock lets everyone straight in.
+  async getEntry() {
+    return { hasSession: true, canSignIn: false };
+  },
+
+  async continueAsGuest() {
+    await delay(20);
+  },
+
   async signInWithGoogle() {
     throw new Error("Sign-in is not available in the demo data mode.");
   },

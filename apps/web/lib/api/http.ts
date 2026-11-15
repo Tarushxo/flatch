@@ -1,7 +1,13 @@
 import type { AppType } from "@repo/api";
 import type { Account, FeedFilters, FeedPage, Listing, TenantProfile } from "@repo/shared";
 import { hc } from "hono/client";
-import { authClient, ensureSession, forgetSession } from "@/lib/auth/client";
+import {
+  authClient,
+  ensureSession,
+  entryState,
+  forgetSession,
+  startGuestSession,
+} from "@/lib/auth/client";
 import type { Api } from "./client";
 
 /*
@@ -116,9 +122,13 @@ export const httpApi = {
     forgetSession();
   },
 
-  /** Hand over to Google. The page leaves, and comes back to the Profile tab signed in. */
-  signInWithGoogle: async () => {
-    const started = await authClient.signIn.social({ provider: "google", callbackURL: "/profile" });
+  getEntry: () => entryState(),
+
+  continueAsGuest: () => startGuestSession(),
+
+  /** Hand over to Google. The page leaves, and comes back signed in. */
+  signInWithGoogle: async (next = "/profile") => {
+    const started = await authClient.signIn.social({ provider: "google", callbackURL: next });
     if (started.error) throw new Error(started.error.message ?? "Could not start sign-in.");
   },
 

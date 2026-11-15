@@ -20,10 +20,13 @@ export function SignAssembly() {
 
   useEffect(() => {
     let current = true;
+    // The landing page is open to everyone, so it only looks up the city of someone who
+    // already has a session. Asking for a profile without one would send them to sign in.
     api
-      .getProfile()
+      .getEntry()
+      .then((entry) => (entry.hasSession ? api.getProfile() : null))
       .then((profile) => {
-        if (current) setCity(profile.preferences.city);
+        if (current && profile) setCity(profile.preferences.city);
       })
       .catch(() => {
         // The default city stays on the sign.

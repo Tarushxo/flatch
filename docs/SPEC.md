@@ -578,8 +578,8 @@ _Done when:_ a stranger reaches a personalised feed in under 10 seconds via the 
 
 _As built so far._ Sign-in is Better Auth, mounted by the API at `/api/auth/*`, with its tables in `packages/db` (`users`, `sessions`, `accounts`, `verifications`) and UUID ids. Choices made where the plan was silent:
 
-- **Everyone is a guest first.** The app starts a guest session the first time it needs one (`apps/web/lib/auth/client.ts`); nobody sees a sign-in wall. Every `/api/v1` route needs a session and answers 401 without one, and the app then starts a new one and retries once. This replaces M2's visitor cookie.
-- **Signing in with Google** carries the guest's swipes and profile to the account (`moveGuestData`). Untested until the keys exist.
+- **The front desk (`/sign-in`).** A visitor with no session who presses "Start swiping" (or opens any app screen) is asked once how they want to come in: "Continue with Google" or "Continue as a guest". The choice is theirs; nothing is created before they make it. Someone who already has a session goes straight through, and the landing page stays open to everyone. Where Google sign-in is not set up there is nothing to choose, so a guest session is started quietly. Every `/api/v1` route needs a session and answers 401 without one; the app then sends the person back to the front desk. This replaces M2's visitor cookie.
+- **Signing in with Google** later, from the Profile tab, carries the guest's swipes and profile to the account (`moveGuestData`). Sign-in itself was checked by hand; the carry-over has no automated test.
 - **Profile storage.** The name and "about" live on the user; the rest is one `profiles` row with the preferences kept whole as JSON. M5 will pull out the columns it needs to rank by.
 - **Session cookie signing.** `BETTER_AUTH_SECRET` if set, otherwise a key worked out from `DATABASE_URL`, so a deployment needs no extra setting.
 - **Check out** deletes a guest's account and everything of theirs. A signed-in person gets "Sign out" and "Delete my account" instead.

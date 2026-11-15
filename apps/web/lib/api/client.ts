@@ -14,6 +14,7 @@ import type {
   Swipe,
   TenantProfile,
 } from "@repo/shared";
+import type { Entry } from "@/lib/auth/client";
 import { httpApi } from "./http";
 import { mockApi, rememberListings } from "./mock";
 import { readProfile, writeProfile } from "./mock/profile-store";
@@ -65,8 +66,18 @@ export interface Api {
 
   /** How the person is signed in, and whether signing in is on offer. */
   getAccount(): Promise<Account>;
-  /** Start signing in with Google. The page leaves for Google and comes back signed in. */
-  signInWithGoogle(): Promise<void>;
+  /**
+   * What the front desk needs to know: whether this browser already has a
+   * session, and whether signing in is on offer. Starts nothing.
+   */
+  getEntry(): Promise<Entry>;
+  /** Carry on without signing in: start a guest session for this browser. */
+  continueAsGuest(): Promise<void>;
+  /**
+   * Start signing in with Google. The page leaves for Google and comes back
+   * signed in, at `next` (a path on this site) or the Profile tab.
+   */
+  signInWithGoogle(next?: string): Promise<void>;
   /** Sign out of this browser. The account and its data stay. */
   signOut(): Promise<void>;
 
