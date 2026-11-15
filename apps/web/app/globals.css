@@ -54,6 +54,87 @@
   --animate-flicker: flicker 2.2s linear 0.2s 1 both;
   --animate-drift: drift 24s ease-in-out infinite alternate;
 
+  /*
+   * The motel-sign effect: flicker on once, then buzz now and again forever.
+   * The two loops have different lengths (9s and 5.3s) so the combined
+   * pattern takes a long time to repeat and never feels like a loop.
+   */
+  --animate-neon: flicker 2.2s linear 0.2s 1 both, neon-buzz 9s steps(1, end) 2.6s infinite;
+  --animate-neon-faulty: neon-faulty 5.3s steps(1, end) 3.4s infinite;
+
+  /* Whole sign: steady most of the time, with three short faults per cycle. */
+  @keyframes neon-buzz {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    /* a quick double stutter */
+    41% {
+      opacity: 0.2;
+    }
+    41.7% {
+      opacity: 1;
+    }
+    42.6% {
+      opacity: 0.35;
+    }
+    43.1% {
+      opacity: 1;
+    }
+    /* a single blink */
+    71% {
+      opacity: 0.3;
+    }
+    71.6% {
+      opacity: 1;
+    }
+    /* the power dips for a moment, then catches */
+    88% {
+      opacity: 0.12;
+    }
+    89.6% {
+      opacity: 1;
+    }
+    90.2% {
+      opacity: 0.45;
+    }
+    90.7% {
+      opacity: 1;
+    }
+  }
+
+  /* One letter with a loose connection: it drops out by itself more often. */
+  @keyframes neon-faulty {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    18% {
+      opacity: 0.15;
+    }
+    19.2% {
+      opacity: 1;
+    }
+    20.1% {
+      opacity: 0.3;
+    }
+    20.9% {
+      opacity: 1;
+    }
+    57% {
+      opacity: 0.1;
+    }
+    61.5% {
+      opacity: 1;
+    }
+    62.4% {
+      opacity: 0.4;
+    }
+    63% {
+      opacity: 1;
+    }
+  }
+
   @keyframes flicker {
     0% {
       opacity: 0.12;
@@ -110,6 +191,12 @@
     0 0 14px var(--glow),
     0 0 42px color-mix(in oklab, var(--glow) 65%, transparent),
     0 0 96px color-mix(in oklab, var(--glow) 40%, transparent);
+}
+
+/* The same tube with the power off: dark glass with a hint of its colour. */
+@utility sign-unlit {
+  font-family: var(--font-sign);
+  color: color-mix(in oklab, var(--glow) 30%, var(--surface-2));
 }
 
 /* Fine film grain so dark gradients do not band. */

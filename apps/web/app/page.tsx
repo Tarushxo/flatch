@@ -2,6 +2,7 @@ import { APP_NAME } from "@repo/shared";
 import Link from "next/link";
 import { Ambient } from "@/components/ambient";
 import { ArrowRightIcon } from "@/components/icons";
+import { NeonSign } from "@/components/neon-sign";
 import { PreviewCard } from "@/components/preview-card";
 
 export default function HomePage() {
@@ -10,7 +11,7 @@ export default function HomePage() {
       <Ambient />
 
       <header className="flex items-center justify-between">
-        <span className="sign animate-flicker text-3xl [--glow:var(--brand-b)]">{APP_NAME}</span>
+        <NeonSign text={APP_NAME} className="text-3xl [--glow:var(--brand-b)]" />
         <span className="rounded-full border border-like/50 px-3 py-1 font-sign text-like text-xs tracking-[0.22em]">
           VACANCY
         </span>

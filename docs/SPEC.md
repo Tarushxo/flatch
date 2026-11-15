@@ -213,6 +213,7 @@ Notes:
 - Springs, not durations, for anything the finger touches.
 - Shared-element transitions for card → detail and card → match.
 - Stagger list and chip entrances by 20–30 ms.
+- The logo behaves like an old motel sign (`NeonSign`): it flickers on at load, the whole sign buzzes a few times a minute, and one letter has a loose connection. Only the lit layer's opacity animates, over an always-visible unlit tube.
 - Respect `prefers-reduced-motion`: remove rotation, flings, flicker and particles; keep fades.
 
 ### 4.5 Components and libraries
