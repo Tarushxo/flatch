@@ -1,13 +1,18 @@
 import {
+  ABOUT_MAX_LENGTH,
   cleanMessage,
+  cleanPreferences,
   type Listing,
   type Match,
   matchesFilters,
+  NAME_MAX_LENGTH,
   type Swipe,
   type SwipeAction,
+  type TenantProfile,
 } from "@repo/shared";
 import type { Api } from "../client";
 import { MOCK_LISTINGS } from "./listings";
+
 import {
   acceptTime,
   isMatched,
@@ -20,6 +25,7 @@ import {
   toPendingLike,
   visibleMessages,
 } from "./matchmaker";
+import { clearProfile, readProfile, writeProfile } from "./profile-store";
 
 /*
  * An in-memory stand-in for the server. It keeps swipes for as long as the
@@ -114,9 +120,10 @@ export const mockApi: Api = {
       .length;
   },
 
-  async getLocalities() {
+  async getLocalities(city) {
     await delay(60);
-    return [...new Set(MOCK_LISTINGS.map((listing) => listing.locality))].sort();
+    const inCity = MOCK_LISTINGS.filter((listing) => listing.city === city);
+    return [...new Set(inCity.map((listing) => listing.locality))].sort();
   },
 
   async sendSwipes(batch: Swipe[]) {
@@ -210,5 +217,28 @@ export const mockApi: Api = {
   async unmatch(matchId) {
     await delay(100);
     ended.add(matchId);
+  },
+
+  async getProfile() {
+    await delay(40);
+    return readProfile();
+  },
+
+  async saveProfile(profile) {
+    await delay(100);
+    const previous = readProfile();
+    const saved: TenantProfile = {
+      ...profile,
+      name: profile.name.trim().slice(0, NAME_MAX_LENGTH),
+      about: profile.about.trim().slice(0, ABOUT_MAX_LENGTH),
+      preferences: cleanPreferences(profile.preferences, previous.preferences),
+    };
+    writeProfile(saved);
+    return saved;
+  },
+
+  async resetProfile() {
+    await delay(60);
+    clearProfile();
   },
 };

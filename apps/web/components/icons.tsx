@@ -16,6 +16,7 @@ import {
   NavigationArrow,
   PaperPlaneRight,
   SlidersHorizontal,
+  Star,
   Trash,
   User,
   X,
@@ -50,6 +51,7 @@ export const KeyIcon = themed(Key);
 export const MapPinIcon = themed(MapPin);
 export const MoreIcon = themed(DotsThree);
 export const SendIcon = themed(PaperPlaneRight);
+export const StarIcon = themed(Star);
 export const SwipeIcon = themed(HandSwipeRight);
 export const TrashIcon = themed(Trash);
 export const UndoIcon = themed(ArrowCounterClockwise);

@@ -1,12 +1,12 @@
 "use client";
 
-import type { Listing } from "@repo/shared";
+import type { FeedFilters, Listing } from "@repo/shared";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { FilterBar } from "@/components/deck/filter-bar";
 import { SwipeDeck } from "@/components/deck/swipe-deck";
 import { ListingDetail } from "@/components/listing/listing-detail";
-import { filtersFromSearch, filtersToSearch, useFilterStore } from "@/lib/deck/filters";
+import { filtersToSearch, useFilterStore } from "@/lib/deck/filters";
 
 const WIDE_SCREEN = "(min-width: 1024px)";
 
@@ -40,19 +40,14 @@ export function DiscoverScreen() {
   }, []);
   const panel = useRef<HTMLElement>(null);
 
-  // Filters start from the page address, and the address follows the filters,
-  // so a filtered deck can be reloaded or shared.
+  // The page address follows the filters, so a filtered deck can be reloaded or
+  // shared. (The starting filters are set by the onboarding gate.)
   useEffect(() => {
-    const fromAddress = filtersFromSearch(window.location.search);
-    const store = useFilterStore.getState();
-    // Only replace the filters if the address really says something different.
-    if (filtersToSearch(fromAddress) !== filtersToSearch(store.filters)) {
-      store.setFilters(fromAddress);
-    }
-    return useFilterStore.subscribe((state) => {
-      const address = window.location.pathname + filtersToSearch(state.filters);
-      window.history.replaceState(null, "", address);
-    });
+    const write = (filters: FeedFilters) => {
+      window.history.replaceState(null, "", window.location.pathname + filtersToSearch(filters));
+    };
+    write(useFilterStore.getState().filters);
+    return useFilterStore.subscribe((state) => write(state.filters));
   }, []);
 
   // On a wide screen the details are already showing beside the deck, so

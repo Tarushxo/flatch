@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { DEFAULT_CITY } from "./constants";
 import type {
   CompatibilitySchema,
   FeedFiltersSchema,
@@ -58,9 +59,20 @@ export function monthlyCost(listing: Pick<Listing, "rent" | "maintenance" | "uti
   return listing.rent + listing.maintenance + listing.utilitiesEstimate;
 }
 
-export const NO_FILTERS: FeedFilters = { budgetMax: null, localities: [], roomTypes: [] };
+/** No limits beyond the default city. */
+export const NO_FILTERS: FeedFilters = {
+  city: DEFAULT_CITY,
+  budgetMax: null,
+  localities: [],
+  roomTypes: [],
+};
 
-/** How many kinds of filter are switched on (for the badge on the Filters button). */
+/** The same city with every other filter cleared. */
+export function clearedFilters(filters: FeedFilters): FeedFilters {
+  return { ...NO_FILTERS, city: filters.city };
+}
+
+/** How many kinds of filter are switched on (for the badge on the Filters button). The city is not one. */
 export function countActiveFilters(filters: FeedFilters): number {
   return (
     (filters.budgetMax === null ? 0 : 1) +
@@ -71,9 +83,13 @@ export function countActiveFilters(filters: FeedFilters): number {
 
 /** Whether a flat passes the filters. Budget is checked against the real monthly cost. */
 export function matchesFilters(
-  listing: Pick<Listing, "rent" | "maintenance" | "utilitiesEstimate" | "locality" | "roomType">,
+  listing: Pick<
+    Listing,
+    "city" | "rent" | "maintenance" | "utilitiesEstimate" | "locality" | "roomType"
+  >,
   filters: FeedFilters,
 ): boolean {
+  if (listing.city !== filters.city) return false;
   if (filters.budgetMax !== null && monthlyCost(listing) > filters.budgetMax) return false;
   if (filters.localities.length > 0 && !filters.localities.includes(listing.locality)) return false;
   if (filters.roomTypes.length > 0 && !filters.roomTypes.includes(listing.roomType)) return false;

@@ -1,4 +1,5 @@
 import type {
+  City,
   FeedFilters,
   FeedPage,
   Listing,
@@ -6,6 +7,7 @@ import type {
   Message,
   PendingLike,
   Swipe,
+  TenantProfile,
 } from "@repo/shared";
 import { mockApi } from "./mock";
 
@@ -19,8 +21,8 @@ export interface Api {
   getFeed(cursor: string | null, filters: FeedFilters): Promise<FeedPage>;
   /** How many flats the filters would leave in the deck. Powers the live counter. */
   countFeed(filters: FeedFilters): Promise<number>;
-  /** The areas a tenant can filter by, in alphabetical order. */
-  getLocalities(): Promise<string[]>;
+  /** The areas of a city a tenant can choose from, in alphabetical order. */
+  getLocalities(city: City): Promise<string[]>;
   /** Record a batch of swipes. Safe to retry: repeats of a `clientId` are ignored. */
   sendSwipes(swipes: Swipe[]): Promise<void>;
   /** Take back a swipe so the listing can be shown again. */
@@ -42,6 +44,13 @@ export interface Api {
   markRead(matchId: string): Promise<void>;
   /** End a match. The chat and the address are no longer available. */
   unmatch(matchId: string): Promise<void>;
+
+  /** The tenant's profile and preferences. A new visitor gets the defaults. */
+  getProfile(): Promise<TenantProfile>;
+  /** Save the profile. Returns it as stored. */
+  saveProfile(profile: TenantProfile): Promise<TenantProfile>;
+  /** Forget the profile, as if the person had never been here. */
+  resetProfile(): Promise<void>;
 }
 
 export const api: Api = mockApi;

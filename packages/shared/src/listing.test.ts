@@ -11,6 +11,7 @@ const flat = {
   rent: 18500,
   maintenance: 2000,
   utilitiesEstimate: 1400,
+  city: "Bangalore",
   locality: "HSR Layout",
   roomType: "private_room",
 } as const;
@@ -45,6 +46,11 @@ describe("matchesFilters", () => {
     expect(matchesFilters(flat, only({ roomTypes: ["whole_flat", "shared_room"] }))).toBe(false);
   });
 
+  it("never shows a flat from another city", () => {
+    expect(matchesFilters(flat, only({ city: "Gurgaon" }))).toBe(false);
+    expect(matchesFilters({ ...flat, city: "Gurgaon" }, only({ city: "Gurgaon" }))).toBe(true);
+  });
+
   it("needs every active filter to pass", () => {
     const filters = only({
       budgetMax: 25000,
@@ -58,10 +64,13 @@ describe("matchesFilters", () => {
 describe("countActiveFilters", () => {
   it("counts kinds of filter, not individual choices", () => {
     expect(countActiveFilters(NO_FILTERS)).toBe(0);
+    expect(countActiveFilters(only({ city: "Gurgaon" }))).toBe(0);
     expect(countActiveFilters(only({ budgetMax: 20000 }))).toBe(1);
     expect(countActiveFilters(only({ localities: ["HSR Layout", "Domlur"] }))).toBe(1);
     expect(
-      countActiveFilters({ budgetMax: 20000, localities: ["Domlur"], roomTypes: ["whole_flat"] }),
+      countActiveFilters(
+        only({ budgetMax: 20000, localities: ["Domlur"], roomTypes: ["whole_flat"] }),
+      ),
     ).toBe(3);
   });
 });

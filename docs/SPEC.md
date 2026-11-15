@@ -67,6 +67,16 @@ Most portfolio visitors arrive on a desktop and will not sign in with Google. Th
 
 ### 3.2 Tenant onboarding
 
+**As built on the mock API (`/welcome`, "check in").** Six steps with a marquee-bulb progress row: city, monthly budget, areas, timing, room type, lifestyle. Budget, areas and room type show a live "N flats in <city> fit so far". Every step can be skipped, and "Skip, just show me flats" on the first screen goes straight to the deck with the defaults. Differences from the plan below, to revisit with the backend:
+
+- Timing is two quick choices (when, how long), not a date picker.
+- The eight lifestyle questions are on one scrolling screen, each with a star for "dealbreaker".
+- Lifestyle answers and dealbreakers are saved but do not change the feed or the match percentage yet. That is the feed engine's job (M5).
+- No work/college anchor or commute limit yet.
+- The profile is kept in the browser (`localStorage`), not in an account, so it survives a reload but not a different device. Swipes and matches still reset on reload.
+- Saved preferences become the deck's starting filters; the Profile tab shows them and links back here to change them. "Check out" on the Profile tab clears everything.
+- The app is gated: anyone who has not checked in (or skipped) is sent here first.
+
 One question per screen, large type, a thin neon progress line. Every step has a sensible default and can be skipped.
 
 1. Role (tenant / lister), then city (Bangalore or Gurgaon).
@@ -524,7 +534,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch). Still to build on mock: tenant onboarding and profile (including the city choice), then the lister side. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
+**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch) and the tenant side (check-in, Profile tab, two cities). Still to build on mock: the lister side, and the profile prompt at the first like. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 

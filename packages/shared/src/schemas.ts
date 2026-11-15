@@ -1,6 +1,17 @@
 import { z } from "zod";
+import { CITIES } from "./constants";
 import { FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "./listing";
 import { MESSAGE_MAX_LENGTH } from "./match";
+import {
+  ABOUT_MAX_LENGTH,
+  AGE_RANGES,
+  LIFESTYLE,
+  LIFESTYLE_KEYS,
+  MOVE_IN,
+  NAME_MAX_LENGTH,
+  OCCUPATIONS,
+  STAY,
+} from "./tenant";
 
 /*
  * The contract between the API and the app, as Zod schemas. The types the app
@@ -11,6 +22,7 @@ import { MESSAGE_MAX_LENGTH } from "./match";
  * not shipped to phones, which only need the types.
  */
 
+export const CitySchema = z.enum(CITIES);
 export const RoomTypeSchema = z.enum(ROOM_TYPES);
 export const FurnishingSchema = z.enum(FURNISHINGS);
 export const SwipeActionSchema = z.enum(SWIPE_ACTIONS);
@@ -55,6 +67,7 @@ export const ListingSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  city: CitySchema,
   locality: z.string(),
   /** Rounded to 5 minutes by the server; null when the tenant has set no commute anchor. */
   commuteMinutes: z.number().int().nullable(),
@@ -100,6 +113,8 @@ export const FeedPageSchema = z.object({
 
 /** What the tenant has narrowed the deck to. Empty lists and null mean "anything". */
 export const FeedFiltersSchema = z.object({
+  /** The city being searched. Always set; it is not counted as a filter the person chose. */
+  city: CitySchema,
   /** The most the flat may cost each month, all in (rent + maintenance + utilities). */
   budgetMax: z.number().int().positive().nullable(),
   localities: z.array(z.string()),
@@ -143,4 +158,41 @@ export const MatchSchema = z.object({
 export const PendingLikeSchema = z.object({
   listing: ListingSchema,
   likedAt: z.iso.datetime(),
+});
+
+/** One answer per lifestyle question the tenant has answered. */
+export const LifestyleSchema = z.object({
+  food: z.enum(LIFESTYLE.food).optional(),
+  smoking: z.enum(LIFESTYLE.smoking).optional(),
+  drinking: z.enum(LIFESTYLE.drinking).optional(),
+  pets: z.enum(LIFESTYLE.pets).optional(),
+  sleep: z.enum(LIFESTYLE.sleep).optional(),
+  cleanliness: z.enum(LIFESTYLE.cleanliness).optional(),
+  guests: z.enum(LIFESTYLE.guests).optional(),
+  workMode: z.enum(LIFESTYLE.workMode).optional(),
+});
+
+/** What a tenant is looking for. These become the deck's default filters. */
+export const TenantPreferencesSchema = z.object({
+  city: CitySchema,
+  /** The most they will pay each month, all in. Null means no limit. */
+  budgetMax: z.number().int().positive().nullable(),
+  localities: z.array(z.string()),
+  moveIn: z.enum(MOVE_IN).nullable(),
+  stay: z.enum(STAY).nullable(),
+  roomTypes: z.array(RoomTypeSchema),
+  lifestyle: LifestyleSchema,
+  /** Lifestyle questions where a mismatch rules a flat out. */
+  dealbreakers: z.array(z.enum(LIFESTYLE_KEYS)),
+});
+
+/** The tenant: a little about them, and what they are looking for. */
+export const TenantProfileSchema = z.object({
+  name: z.string().max(NAME_MAX_LENGTH),
+  ageRange: z.enum(AGE_RANGES).nullable(),
+  occupation: z.enum(OCCUPATIONS).nullable(),
+  about: z.string().max(ABOUT_MAX_LENGTH),
+  preferences: TenantPreferencesSchema,
+  /** When they finished (or skipped) onboarding. Null until then. */
+  onboardedAt: z.iso.datetime().nullable(),
 });

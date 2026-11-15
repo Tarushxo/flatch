@@ -1,9 +1,9 @@
-import type { HouseRule, Listing } from "@repo/shared";
+import type { City, HouseRule, Listing } from "@repo/shared";
 import { PHOTO_COLORS } from "./photo-colors";
 
 /*
  * Mock listings for M1, so the front end can be built before there is a
- * database. Real Bangalore localities, invented flats. Photos are free-licence
+ * database. Real localities in Bangalore and Gurgaon, invented flats. Photos are free-licence
  * Unsplash images loaded straight from their CDN; M2 replaces all of this with
  * seeded database rows and Cloudinary-hosted photo sets.
  */
@@ -140,7 +140,7 @@ const EXPECT = {
   easy: ["Pay rent by the 5th", "Tell us before guests stay over", "Be kind to the cat"],
 };
 
-// Approximate centres of real Bangalore localities.
+// Approximate centres of real localities, by name.
 const LOCALITY_CENTRES: Record<string, { lat: number; lng: number }> = {
   "HSR Layout": { lat: 12.9116, lng: 77.6474 },
   Indiranagar: { lat: 12.9719, lng: 77.6412 },
@@ -155,12 +155,24 @@ const LOCALITY_CENTRES: Record<string, { lat: number; lng: number }> = {
   Marathahalli: { lat: 12.9591, lng: 77.6974 },
   Malleshwaram: { lat: 13.0031, lng: 77.5643 },
   "Electronic City": { lat: 12.8452, lng: 77.6602 },
+  // Gurgaon
+  "DLF Phase 2": { lat: 28.488, lng: 77.089 },
+  "DLF Phase 3": { lat: 28.4935, lng: 77.0995 },
+  "DLF Phase 4": { lat: 28.4672, lng: 77.0817 },
+  "Sector 56": { lat: 28.424, lng: 77.1 },
+  "Golf Course Road": { lat: 28.442, lng: 77.101 },
+  "Sushant Lok": { lat: 28.462, lng: 77.078 },
+  "Sohna Road": { lat: 28.407, lng: 77.042 },
+  "Palam Vihar": { lat: 28.51, lng: 77.033 },
 };
-const CITY_CENTRE = { lat: 12.9716, lng: 77.5946 };
+const CITY_CENTRES: Record<City, { lat: number; lng: number }> = {
+  Bangalore: { lat: 12.9716, lng: 77.5946 },
+  Gurgaon: { lat: 28.4595, lng: 77.0266 },
+};
 
 /** A point a few hundred metres from the locality centre, different for each flat. */
-function areaFor(locality: string, position: number) {
-  const centre = LOCALITY_CENTRES[locality] ?? CITY_CENTRE;
+function areaFor(locality: string, city: City, position: number) {
+  const centre = LOCALITY_CENTRES[locality] ?? CITY_CENTRES[city];
   const angle = position * 2.4;
   const reach = 0.002 + (position % 4) * 0.0012;
   return {
@@ -199,6 +211,8 @@ type Spec = Pick<
   society: keyof typeof SOCIETY;
   expect: keyof typeof EXPECT;
   stretchLabel?: string;
+  /** Left out for Bangalore, which most of the flats are in. */
+  city?: City;
 };
 
 const SPECS: Spec[] = [
@@ -633,17 +647,275 @@ const SPECS: Spec[] = [
     },
     isVerified: false,
   },
+  // --- Gurgaon ---
+  {
+    city: "Gurgaon",
+    title: "Bright room near the Rapid Metro",
+    description:
+      "A corner room on the eighth floor, five minutes' walk from the Phase 2 station. Offices in Cyber City are one stop away.",
+    locality: "DLF Phase 2",
+    commuteMinutes: 15,
+    rent: 22000,
+    maintenance: 2500,
+    utilitiesEstimate: 1600,
+    depositMonths: 2,
+    roomType: "private_room",
+    bhk: 3,
+    furnishing: "furnished",
+    availableIn: 9,
+    amenities: ["Wifi", "Air conditioned", "Lift", "Power backup", "Washing machine"],
+    rules: "easygoing",
+    society: "gated",
+    expect: "tidy",
+    lister: {
+      name: "Ishita",
+      role: "flatmate",
+      about: "Works in consulting. Out early, back late, reads on Sundays.",
+      flatmateCount: 2,
+    },
+    compatibility: {
+      percent: 93,
+      reasons: ["15 min to work", "Within your budget", "Both tidy"],
+    },
+    isVerified: true,
+  },
+  {
+    city: "Gurgaon",
+    title: "Room in a builder floor with a terrace",
+    description:
+      "The second floor of a quiet builder floor, with the terrace above shared between two flats. Markets are a short walk away.",
+    locality: "Sector 56",
+    commuteMinutes: 25,
+    rent: 16500,
+    maintenance: 1000,
+    utilitiesEstimate: 1400,
+    depositMonths: 2,
+    roomType: "private_room",
+    bhk: 3,
+    furnishing: "semi_furnished",
+    availableIn: 4,
+    amenities: ["Wifi", "Terrace", "Parking", "Water purifier"],
+    rules: "vegHome",
+    society: "strict",
+    expect: "quiet",
+    lister: {
+      name: "Mr. Khanna",
+      role: "owner",
+      about: "Owner, lives on the ground floor. Fixes things the day you ask.",
+      flatmateCount: 1,
+    },
+    compatibility: {
+      percent: 89,
+      reasons: ["Both vegetarian", "₹3,100 under your budget", "Quiet household"],
+      caution: "25 min commute",
+    },
+    isVerified: true,
+  },
+  {
+    city: "Gurgaon",
+    title: "High-rise room with a skyline view",
+    description:
+      "Eighteenth floor in a condominium on Golf Course Road. Pool, gym and a shuttle to the metro.",
+    locality: "Golf Course Road",
+    commuteMinutes: 20,
+    rent: 30000,
+    maintenance: 4000,
+    utilitiesEstimate: 2000,
+    depositMonths: 3,
+    roomType: "private_room",
+    bhk: 3,
+    furnishing: "furnished",
+    availableIn: 14,
+    amenities: ["Wifi", "Air conditioned", "Pool", "Gym", "Parking", "Power backup"],
+    rules: "social",
+    society: "gated",
+    expect: "easy",
+    lister: {
+      name: "Kabir",
+      role: "flatmate",
+      about: "Product manager. Hosts a board-game night most Fridays.",
+      flatmateCount: 2,
+    },
+    compatibility: {
+      percent: 85,
+      reasons: ["Gym and pool", "Guests welcome", "20 min to work"],
+      caution: "₹6,000 over your budget",
+    },
+    isVerified: true,
+    stretchLabel: "₹6,000 over budget",
+  },
+  {
+    city: "Gurgaon",
+    title: "Whole 1BHK in Sushant Lok",
+    description:
+      "A compact one-bedroom flat to yourself, with a kitchen, a small balcony and a guard at the gate.",
+    locality: "Sushant Lok",
+    commuteMinutes: 20,
+    rent: 24000,
+    maintenance: 1500,
+    utilitiesEstimate: 1800,
+    depositMonths: 2,
+    roomType: "whole_flat",
+    bhk: 1,
+    furnishing: "semi_furnished",
+    availableIn: 20,
+    amenities: ["Parking", "Power backup", "Balcony", "Lift"],
+    rules: "easygoing",
+    society: "standard",
+    expect: "easy",
+    lister: {
+      name: "Mrs. Bhatia",
+      role: "owner",
+      about: "Owner, lives in Delhi. Friendly on the phone and prompt with paperwork.",
+      flatmateCount: 0,
+    },
+    compatibility: {
+      percent: 82,
+      reasons: ["A whole flat to yourself", "Pets allowed", "20 min to work"],
+    },
+    isVerified: false,
+  },
+  {
+    city: "Gurgaon",
+    title: "Budget room off Sohna Road",
+    description:
+      "A plain, clean room in a new society. Shared cabs to the office parks leave from the gate each morning.",
+    locality: "Sohna Road",
+    commuteMinutes: 35,
+    rent: 12000,
+    maintenance: 1800,
+    utilitiesEstimate: 1200,
+    depositMonths: 2,
+    roomType: "shared_room",
+    bhk: 3,
+    furnishing: "semi_furnished",
+    availableIn: 2,
+    amenities: ["Wifi", "Lift", "Gym", "Power backup"],
+    rules: "quiet",
+    society: "gated",
+    expect: "tidy",
+    lister: {
+      name: "Tanvi",
+      role: "flatmate",
+      about: "First job, first flat. Looking for someone easy to share with.",
+      flatmateCount: 2,
+    },
+    compatibility: {
+      percent: 77,
+      reasons: ["₹7,000 under your budget", "Available now", "Gym in the building"],
+      caution: "Shared room, and 35 min commute",
+    },
+    isVerified: false,
+  },
+  {
+    city: "Gurgaon",
+    title: "Room five minutes from Cyber City",
+    description:
+      "Walk to work. A modern flat with a cook who comes twice a day and a balcony that faces the park.",
+    locality: "DLF Phase 3",
+    commuteMinutes: 10,
+    rent: 26000,
+    maintenance: 2000,
+    utilitiesEstimate: 1700,
+    depositMonths: 2,
+    roomType: "private_room",
+    bhk: 2,
+    furnishing: "furnished",
+    availableIn: 11,
+    amenities: ["Wifi", "Air conditioned", "Cook", "Balcony", "Power backup"],
+    rules: "easygoing",
+    society: "standard",
+    expect: "easy",
+    lister: {
+      name: "Aditya",
+      role: "flatmate",
+      about: "Lawyer. Keeps odd hours and makes very good coffee.",
+      flatmateCount: 1,
+    },
+    compatibility: {
+      percent: 80,
+      reasons: ["10 min to work", "Cook included", "Similar work hours"],
+      caution: "Night owl, and you are an early riser",
+    },
+    isVerified: true,
+  },
+  {
+    city: "Gurgaon",
+    title: "Garden-facing room in Palam Vihar",
+    description:
+      "The ground floor of a family house with its own small garden. Calm, green and a little out of the way.",
+    locality: "Palam Vihar",
+    commuteMinutes: 40,
+    rent: 14000,
+    maintenance: 0,
+    utilitiesEstimate: 1300,
+    depositMonths: 2,
+    roomType: "private_room",
+    bhk: 2,
+    furnishing: "furnished",
+    availableIn: 25,
+    amenities: ["Wifi", "Garden", "Parking", "Water purifier"],
+    rules: "vegHome",
+    society: "strict",
+    expect: "quiet",
+    lister: {
+      name: "Mr. Sethi",
+      role: "owner",
+      about: "Retired colonel. Tends the garden and minds his own business.",
+      flatmateCount: 1,
+    },
+    compatibility: {
+      percent: 70,
+      reasons: ["No maintenance fee", "Both vegetarian", "A garden"],
+      caution: "40 min commute, over your limit",
+    },
+    isVerified: false,
+    stretchLabel: "5 min over your commute limit",
+  },
+  {
+    city: "Gurgaon",
+    title: "Lively flat near Galleria",
+    description:
+      "Three flatmates, a big living room and a terrace with fairy lights. Galleria market is across the road.",
+    locality: "DLF Phase 4",
+    commuteMinutes: 15,
+    rent: 19500,
+    maintenance: 2200,
+    utilitiesEstimate: 1500,
+    depositMonths: 2,
+    roomType: "private_room",
+    bhk: 4,
+    furnishing: "furnished",
+    availableIn: 6,
+    amenities: ["Wifi", "Air conditioned", "Terrace", "Washing machine", "Cook"],
+    rules: "social",
+    society: "standard",
+    expect: "easy",
+    lister: {
+      name: "Naina",
+      role: "flatmate",
+      about: "Designer. Will ask your opinion on the playlist and then ignore it.",
+      flatmateCount: 3,
+    },
+    compatibility: {
+      percent: 74,
+      reasons: ["15 min to work", "Within your budget", "Guests welcome"],
+      caution: "A busier household than you prefer",
+    },
+    isVerified: false,
+  },
 ];
 
 export const MOCK_LISTINGS: Listing[] = SPECS.map((spec, position) => {
-  const { depositMonths, availableIn, rules, society, expect, ...rest } = spec;
+  const { depositMonths, availableIn, rules, society, expect, city = "Bangalore", ...rest } = spec;
   return {
     ...rest,
+    city,
     id: `mock-${String(position + 1).padStart(2, "0")}`,
     deposit: spec.rent * depositMonths,
     availableFrom: inDays(availableIn),
     photos: photosFor(position),
-    area: areaFor(spec.locality, position),
+    area: areaFor(spec.locality, city, position),
     nearby: NEARBY[position % NEARBY.length] ?? [],
     houseRules: RULES[rules],
     societyRules: SOCIETY[society],

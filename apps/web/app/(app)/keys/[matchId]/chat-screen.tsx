@@ -140,7 +140,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
                 <button
                   type="button"
                   onClick={() => submit(reply)}
-                  className="rounded-full border border-like/40 px-3.5 py-2 text-like text-sm transition-colors hover:bg-like/10"
+                  className="rounded-full border border-brand-b/45 px-3.5 py-2 text-brand-b text-sm transition-colors hover:bg-brand-b/10"
                 >
                   {reply}
                 </button>
@@ -175,7 +175,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
           type="submit"
           aria-label="Send"
           disabled={cleanMessage(draft) === null}
-          className="grid size-12 shrink-0 place-items-center rounded-full bg-like text-ink transition-opacity disabled:opacity-35"
+          className="bubble-mine grid size-12 shrink-0 place-items-center rounded-full transition-opacity disabled:opacity-35"
         >
           <SendIcon className="size-5" />
         </button>
@@ -293,14 +293,14 @@ function Bubble({ message, name }: { message: Message; name: string }) {
     <li className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[82%] rounded-3xl px-4 py-2.5 ${
-          mine ? "rounded-br-lg bg-like text-ink" : "surface rounded-bl-lg"
+          mine ? "bubble-mine rounded-br-lg" : "surface rounded-bl-lg"
         }`}
       >
         <span className="sr-only">{mine ? "You said: " : `${name} said: `}</span>
         <p className="whitespace-pre-wrap break-words text-[0.9375rem] leading-relaxed">
           {message.body}
         </p>
-        <p className={`mt-1 text-right text-[0.6875rem] ${mine ? "text-ink/60" : "text-fg-3"}`}>
+        <p className={`mt-1 text-right text-[0.6875rem] ${mine ? "text-fg/65" : "text-fg-3"}`}>
           {clockTime(message.sentAt)}
         </p>
       </div>

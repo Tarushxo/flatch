@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
 import { AppNav } from "@/components/app-shell/app-nav";
+import { OnboardingGate } from "@/components/app-shell/onboarding-gate";
 import { Logo } from "@/components/logo";
 import { MatchWatcher } from "@/components/match/match-watcher";
 import { Providers } from "@/components/providers";
@@ -35,7 +36,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           </header>
 
-          <main className="min-h-0 flex-1">{children}</main>
+          <main className="min-h-0 flex-1">
+            <OnboardingGate>{children}</OnboardingGate>
+          </main>
 
           <AppNav layout="bar" />
         </div>

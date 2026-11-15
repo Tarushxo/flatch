@@ -1,10 +1,10 @@
 "use client";
 
 import {
+  clearedFilters,
   countActiveFilters,
   type FeedFilters,
   formatRupees,
-  NO_FILTERS,
   ROOM_TYPE_LABELS,
   ROOM_TYPES,
 } from "@repo/shared";
@@ -41,8 +41,8 @@ export function FilterSheet({
   }, [open, applied]);
 
   const localities = useQuery({
-    queryKey: ["localities"],
-    queryFn: () => api.getLocalities(),
+    queryKey: ["localities", applied.city],
+    queryFn: () => api.getLocalities(applied.city),
     staleTime: Number.POSITIVE_INFINITY,
     enabled: open,
   });
@@ -76,7 +76,7 @@ export function FilterSheet({
             <button
               type="button"
               disabled={countActiveFilters(draft) === 0}
-              onClick={() => setDraft(NO_FILTERS)}
+              onClick={() => setDraft(clearedFilters(draft))}
               className="rounded-full px-3 py-1.5 font-medium text-like text-sm transition-opacity disabled:opacity-0"
             >
               Clear all
@@ -155,7 +155,7 @@ export function FilterSheet({
                 onApply(draft);
                 onClose();
               }}
-              className="w-full rounded-full bg-like px-6 py-3.5 font-semibold text-ink transition-opacity disabled:opacity-40"
+              className="button-primary w-full disabled:opacity-40"
             >
               <span aria-live="polite">
                 {matching === undefined
