@@ -1,5 +1,6 @@
 "use client";
 
+import type { Listing } from "@repo/shared";
 import {
   animate,
   type MotionStyle,
@@ -10,7 +11,6 @@ import {
 } from "motion/react";
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CardFace } from "@/components/deck/card-face";
-import { MOCK_LISTINGS } from "@/lib/api/mock/listings";
 import { PHOTO_SIZES } from "@/lib/photo";
 
 /*
@@ -18,8 +18,6 @@ import { PHOTO_SIZES } from "@/lib/photo";
  * the product, not the product: nothing here can be dragged or tapped. People
  * who want to swipe follow the sign into the app.
  */
-
-const CARDS = MOCK_LISTINGS.slice(0, 6);
 
 // What the invisible hand does to each card in turn.
 const SCRIPT = [
@@ -38,7 +36,12 @@ const SCRIPT = [
 const VISIBLE = 3;
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export function ShowcaseDeck() {
+export function ShowcaseDeck({
+  cards: CARDS,
+}: {
+  /** The flats to show, chosen by the page. Passed in so the demo data stays off the phone. */
+  cards: Listing[];
+}) {
   const [step, setStep] = useState(0);
   const stillOnly = useReducedMotion();
   const scene = useRef<HTMLDivElement>(null);

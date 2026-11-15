@@ -101,8 +101,8 @@ export function KeysScreen() {
           </ul>
         ) : (
           <p className="surface mt-6 rounded-3xl p-5 text-fg-2 text-sm leading-relaxed">
-            No keys yet. Your likes are with the listers; in this demo they usually answer within a
-            few seconds.
+            No keys yet. Your likes are with the listers; in this demo they usually answer within
+            half a minute or so.
           </p>
         )}
 

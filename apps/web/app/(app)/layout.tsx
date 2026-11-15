@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         data-vaul-drawer-wrapper=""
         className="relative isolate flex h-dvh overflow-hidden bg-ink"
       >
-        <Ambient />
+        <Ambient still />
 
         <aside className="hidden w-60 shrink-0 flex-col gap-10 border-hairline border-r px-5 py-6 lg:flex">
           <Link href="/" className="rounded-lg">

@@ -1,4 +1,5 @@
 import { FURNISHING_LABELS, formatRent, type Listing, ROOM_TYPE_LABELS } from "@repo/shared";
+import { memo } from "react";
 import { CompatRing } from "@/components/listing/compat-ring";
 import { FadeImage } from "@/components/listing/fade-image";
 import { PHOTO_SIZES } from "@/lib/photo";
@@ -13,8 +14,11 @@ function availableLabel(isoDate: string): string {
 /**
  * What a flat looks like on a card: the photo, and the few facts a tenant
  * decides on. Purely visual; gestures and buttons live in DeckCard.
+ *
+ * Remembered between renders: after a swipe the deck re-renders, but a card
+ * whose flat and photo have not changed is not drawn again.
  */
-export function CardFace({
+export const CardFace = memo(function CardFace({
   listing,
   photoIndex,
   sizes = PHOTO_SIZES.deckCard,
@@ -98,7 +102,7 @@ export function CardFace({
       </div>
     </div>
   );
-}
+});
 
 const TONES = {
   plain: "border-hairline text-fg-2",

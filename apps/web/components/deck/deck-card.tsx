@@ -54,6 +54,8 @@ const STAMPS = [
   },
 ] as const;
 
+type StampAction = (typeof STAMPS)[number]["action"];
+
 function viewport() {
   return { width: window.innerWidth, height: window.innerHeight };
 }
@@ -121,10 +123,26 @@ export function DeckCard({
     details: useTransform(() => stampOpacity({ x: x.get(), y: y.get() }, size.current).details),
   };
 
+  // Which stamp is in play. Only that one is drawn: a stamp is a full-card glow with
+  // deep shadows, and four of them fading on every frame is heavy work for a phone.
+  const [showing, setShowing] = useState<StampAction | null>(null);
+  const showingRef = useRef<StampAction | null>(null);
+
   /** The top card tells the rest of the deck how far it has been dragged. */
   function report() {
     if (indexRef.current !== 0) return;
-    const next = dragProgress({ x: x.get(), y: y.get() }, size.current);
+    const offset = { x: x.get(), y: y.get() };
+    const strengths = stampOpacity(offset, size.current);
+    let strongest: StampAction | null = null;
+    for (const { action } of STAMPS) {
+      if (strengths[action] > (strongest ? strengths[strongest] : 0)) strongest = action;
+    }
+    // State changes only when the stamp in play changes, not on every frame.
+    if (strongest !== showingRef.current) {
+      showingRef.current = strongest;
+      setShowing(strongest);
+    }
+    const next = dragProgress(offset, size.current);
     if (next >= 1 && progress.get() < 1 && !flying.current) buzz(10);
     progress.set(next);
   }
@@ -219,12 +237,17 @@ export function DeckCard({
     else if (along > 2 / 3) showPhoto(1);
   }
 
+  const inPlay = STAMPS.find((each) => each.action === showing);
+
   return (
     <motion.div
       ref={element}
       aria-hidden={!isTop}
-      className={`absolute inset-0 touch-none select-none ${
-        isTop ? "cursor-grab will-change-transform active:cursor-grabbing" : "pointer-events-none"
+      // Every card in the stack moves or grows on each frame of a drag, so each gets its own
+      // layer. Without it the phone redraws the photo, gradients and ring of the cards behind
+      // on every frame.
+      className={`absolute inset-0 touch-none select-none will-change-transform ${
+        isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"
       }`}
       style={{ x, y: shownY, rotate, scale, zIndex: 10 - index }}
       onPointerDown={() => {
@@ -250,23 +273,23 @@ export function DeckCard({
         style={{ opacity: shade }}
       />
 
-      {STAMPS.map(({ action, label, colour, place }) => (
+      {isTop && inPlay ? (
         <motion.div
-          key={action}
+          key={inPlay.action}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{ opacity: stamp[action], "--glow": colour } as MotionStyle}
+          className="pointer-events-none absolute inset-0 will-change-[opacity]"
+          style={{ opacity: stamp[inPlay.action], "--glow": inPlay.colour } as MotionStyle}
         >
           {/* The card's edge lights up in the colour of the action */}
           <div className="glow absolute inset-0 rounded-[2rem]" />
           <span
-            className={`sign absolute rounded-xl border-[3px] bg-ink/75 px-4 py-1.5 font-sign text-4xl tracking-wide ${place}`}
-            style={{ borderColor: colour }}
+            className={`sign absolute rounded-xl border-[3px] bg-ink/75 px-4 py-1.5 font-sign text-4xl tracking-wide ${inPlay.place}`}
+            style={{ borderColor: inPlay.colour }}
           >
-            {label}
+            {inPlay.label}
           </span>
         </motion.div>
-      ))}
+      ) : null}
 
       {isTop ? (
         <button

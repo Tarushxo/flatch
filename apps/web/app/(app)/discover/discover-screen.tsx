@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import { FilterBar } from "@/components/deck/filter-bar";
 import { FirstLikePrompt } from "@/components/deck/first-like-prompt";
 import { SwipeDeck } from "@/components/deck/swipe-deck";
-import { ListingDetail } from "@/components/listing/listing-detail";
 import { filtersToSearch, useFilterStore } from "@/lib/deck/filters";
 
 const WIDE_SCREEN = "(min-width: 1024px)";
@@ -18,6 +17,13 @@ const loadDetailSheet = () => import("@/components/listing/detail-sheet");
 const DetailSheet = dynamic(() => loadDetailSheet().then((module) => module.DetailSheet), {
   ssr: false,
 });
+
+// The details beside the deck exist only on wide screens, so a phone never downloads them
+// for this (it gets them with the sheet, later).
+const SidePanelDetail = dynamic(
+  () => import("@/components/listing/listing-detail").then((module) => module.ListingDetail),
+  { ssr: false },
+);
 
 /** The deck screen: filters, the swipe deck, and the details beside or over it. */
 export function DiscoverScreen() {
@@ -80,7 +86,7 @@ export function DiscoverScreen() {
         className="hidden w-[27rem] shrink-0 overflow-y-auto border-hairline border-l px-7 py-8 outline-none lg:block"
       >
         {!wide ? null : top ? (
-          <ListingDetail listing={top} />
+          <SidePanelDetail listing={top} />
         ) : (
           <p className="text-fg-3 text-sm">Details of the flat on top appear here.</p>
         )}

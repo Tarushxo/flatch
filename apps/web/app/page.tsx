@@ -1,3 +1,4 @@
+import { SEED_FLATS } from "@repo/db/seed-data";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
@@ -15,6 +16,10 @@ import { CompatRing } from "@/components/listing/compat-ring";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { KeyTag } from "@/components/motifs/key-tag";
 import { SignLink } from "@/components/sign-link";
+
+// The six flats the landing page's self-swiping deck shows. Chosen here, on the server,
+// so the browser is sent six flats and not the whole demo data set.
+const SHOWCASE = SEED_FLATS.slice(0, 6);
 
 const STEPS = [
   {
@@ -83,7 +88,7 @@ export default function HomePage() {
                     ]}
                   />
                 </div>
-                <ShowcaseDeck />
+                <ShowcaseDeck cards={SHOWCASE} />
                 {/* The key you get when you match */}
                 <div className="absolute -top-12 -right-5 z-10 rotate-[7deg] scale-[0.8] sm:-right-10">
                   <KeyTag locality="HSR Layout" detail="It's a match" />

@@ -13,8 +13,13 @@ import type { Listing } from "./listing";
  * waiting.
  */
 
-/** How long a bot lister takes to say yes, in milliseconds. */
-export const ACCEPT_DELAY = { min: 2500, max: 5000 } as const;
+/**
+ * How long a bot lister takes to say yes, in milliseconds. Long and spread out
+ * on purpose: someone who likes several flats in a row should get their
+ * matches one at a time over the next half minute or so, not all at once.
+ * (It was 2.5 to 5 seconds, which felt like being bombarded.)
+ */
+export const ACCEPT_DELAY = { min: 15_000, max: 40_000 } as const;
 /** How long a bot takes to reply to a message. */
 export const REPLY_DELAY = { min: 2200, max: 4200 } as const;
 /** How long a bot takes to say hello once there is a match. */

@@ -1,5 +1,4 @@
 import type { AppType } from "@repo/api";
-import { SAMPLE_PHOTOS } from "@repo/db/seed-data";
 import type {
   Account,
   Applicant,
@@ -59,11 +58,12 @@ async function failure(response: Response): Promise<ApiError> {
 
 /**
  * Make a request as the person using this browser and return the body of the
- * answer. A session is started first if there is none. If the server says the
- * session has ended, a new one is started and the request is made once more.
+ * answer. Nearly everyone already has a session, so the request is simply
+ * made. Only if the server says there is none is one started (a guest pass, or
+ * a trip to the front desk), and the request made once more. Checking first
+ * would cost every page a wasted trip to the server.
  */
 async function answer<T>(request: () => Promise<Response>): Promise<T> {
-  await ensureSession();
   let response = await request();
   if (response.status === 401) {
     forgetSession();
@@ -186,8 +186,9 @@ export const httpApi: Api = {
       v1.applicants[":applicantId"].decision.$post({ param: { applicantId }, json: { decision } }),
     ),
 
-  // The sample photos are fixed and ship with the app, so there is nothing to ask the server.
-  getSamplePhotos: async () => SAMPLE_PHOTOS,
+  // The sample photos are fixed, so there is nothing to ask the server. They come with the
+  // rest of the demo data, which is only fetched when someone reaches the photos step.
+  getSamplePhotos: async () => (await import("@repo/db/seed-data")).SAMPLE_PHOTOS,
 
   getMyListings: async () =>
     (await answer<{ items: MyListing[] }>(() => v1.listings.mine.$get())).items,

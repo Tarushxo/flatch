@@ -16,7 +16,7 @@ export const messagesKey = (matchId: string) => ["messages", matchId] as const;
  * tab). A push connection can replace the timers later without touching the
  * screens.
  */
-const MATCHES_EVERY_MS = 4000;
+const MATCHES_EVERY_MS = 6000;
 const MESSAGES_EVERY_MS = 3000;
 
 /** Every match the person is part of, on both sides of the app, kept fresh. */

@@ -18,7 +18,6 @@ import type {
 } from "@repo/shared";
 import type { Entry } from "@/lib/auth/client";
 import { httpApi } from "./http";
-import { mockApi } from "./mock";
 
 /**
  * Everything the app asks the server for. Components and hooks depend on this
@@ -112,9 +111,25 @@ export interface Api {
   getSamplePhotos(): Promise<ListingPhoto[]>;
 }
 
+/**
+ * The in-browser mock, fetched only when it is actually used. It carries the
+ * demo data for every city, which is a lot to make a phone download and run
+ * when the real server is answering instead.
+ */
+const mockWhenNeeded = new Proxy({} as Api, {
+  get:
+    (_target, method: string) =>
+    async (...args: unknown[]) => {
+      const { mockApi } = await import("./mock");
+      const call = (mockApi as unknown as Record<string, (...given: unknown[]) => unknown>)[method];
+      if (!call) throw new Error(`The mock has no "${method}".`);
+      return call(...args);
+    },
+});
+
 /*
  * With a database behind the site, everything comes from the real server.
  * Without one (CI, a fresh clone) the in-browser mock stands in for all of it,
  * so the app always runs. Which one is decided when the site is built.
  */
-export const api: Api = process.env.NEXT_PUBLIC_DATA_SOURCE === "api" ? httpApi : mockApi;
+export const api: Api = process.env.NEXT_PUBLIC_DATA_SOURCE === "api" ? httpApi : mockWhenNeeded;

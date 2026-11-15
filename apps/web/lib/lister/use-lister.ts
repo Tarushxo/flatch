@@ -9,7 +9,7 @@ export const MY_LISTINGS_KEY = ["my-listings"] as const;
 export const APPLICANTS_KEY = ["applicants"] as const;
 
 // As with matches, these ask again every few seconds until there is a live connection.
-const EVERY_MS = 4000;
+const EVERY_MS = 6000;
 
 /** The flats the person has posted, with their counts kept fresh. */
 export function useMyListings() {
