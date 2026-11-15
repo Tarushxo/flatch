@@ -1,16 +1,20 @@
 import type { Icon, IconProps } from "@phosphor-icons/react";
 import {
   ArrowCounterClockwise,
+  ArrowLeft,
   ArrowRight,
   BookmarkSimple,
   Cards,
   Check,
+  DotsThree,
   GithubLogo,
   HandSwipeRight,
   Heart,
   Info,
   Key,
   MapPin,
+  NavigationArrow,
+  PaperPlaneRight,
   SlidersHorizontal,
   Trash,
   User,
@@ -31,6 +35,7 @@ function themed(Glyph: Icon) {
   };
 }
 
+export const ArrowLeftIcon = themed(ArrowLeft);
 export const ArrowRightIcon = themed(ArrowRight);
 export const BookmarkIcon = themed(BookmarkSimple);
 export const CardsIcon = themed(Cards);
@@ -40,8 +45,11 @@ export const FiltersIcon = themed(SlidersHorizontal);
 export const GithubIcon = themed(GithubLogo);
 export const HeartIcon = themed(Heart);
 export const InfoIcon = themed(Info);
+export const DirectionsIcon = themed(NavigationArrow);
 export const KeyIcon = themed(Key);
 export const MapPinIcon = themed(MapPin);
+export const MoreIcon = themed(DotsThree);
+export const SendIcon = themed(PaperPlaneRight);
 export const SwipeIcon = themed(HandSwipeRight);
 export const TrashIcon = themed(Trash);
 export const UndoIcon = themed(ArrowCounterClockwise);

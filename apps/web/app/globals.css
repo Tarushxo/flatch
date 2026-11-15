@@ -76,7 +76,7 @@
       opacity: 0;
     }
     to {
-      opacity: 0.3;
+      opacity: 1;
     }
   }
 
@@ -274,6 +274,26 @@
 /* The same tube with the power off: dark glass with a hint of its colour. */
 @utility sign-unlit {
   color: color-mix(in oklab, var(--glow) 30%, var(--surface-2));
+}
+
+/*
+ * The halo around the deck: soft light in the shape of the card, as if the
+ * card were a lit window. --halo is the top photo's colour. The halo keeps
+ * some of its hue but pulls it most of the way to the brand pink and redraws it
+ * deep and saturated, so every flat's light sits inside the app's palette
+ * (a warm room gives hot coral-pink, a blue one gives violet) and never turns to a
+ * brown haze. A static box-shadow is used, which is drawn once and is cheap.
+ */
+@utility deck-halo {
+  --halo-light: var(--halo);
+  border-radius: 2rem;
+  box-shadow:
+    0 0 56px 6px color-mix(in oklab, var(--halo-light) 50%, transparent),
+    0 0 150px 30px color-mix(in oklab, var(--halo-light) 22%, transparent);
+
+  @supports (color: oklch(from red l c h)) {
+    --halo-light: oklch(from color-mix(in oklch, var(--halo) 38%, var(--brand-b)) 0.6 0.21 h);
+  }
 }
 
 /* Fine film grain so dark gradients do not band. */

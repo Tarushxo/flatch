@@ -22,16 +22,20 @@ export function SignLink({
   children,
   colour = "var(--like)",
   size = "md",
+  onClick,
 }: {
   href: string;
   children: ReactNode;
   /** The neon colour. Defaults to the "like" cyan. */
   colour?: string;
   size?: keyof typeof SIZES;
+  /** Runs as the link is followed, e.g. to close the overlay it sits in. */
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className="group relative inline-block outline-offset-8 transition-transform duration-200 hover:translate-x-1 active:translate-x-0 active:scale-[0.97]"
       style={{ "--glow": colour } as CSSProperties}
     >

@@ -148,8 +148,8 @@ A public share link `/l/[id]` renders the same content server-side with an Open 
 
 ### 3.7 Match moment and chat
 
-- **Match moment**: the screen dims, a neon sign reading "YOU'RE IN" flickers on (three flickers, then steady), both photos slide in, light particles drift. Buttons: Say hi, Keep swiping. With reduced motion: a simple fade.
-- **Chat**: the first item is a system card with the listing and the now-unlocked address ("Open in Maps"). Quick replies ("When can I visit?"). A one-time safety banner: never pay before visiting. Report, block and unmatch in the header menu.
+- **Match moment**: the screen dims, a neon sign reading "YOU'RE IN" flickers on (three flickers, then steady), both photos slide in, light particles drift. Buttons: Say hi, Keep swiping. With reduced motion: a simple fade. It can appear over any screen: a watcher in the app's frame queues each new match and shows them one at a time. Matches that already existed when the app opened are not replayed.
+- **Chat**: the first item is a system card with the listing and the now-unlocked address ("Open in Maps"). Quick replies ("When can I visit?"). A one-time safety banner: never pay before visiting. Report, block and unmatch in the header menu. Built on the mock API: the Keys tab is a key rack of matches (photo, name, last message, unread count) with "Likes sent" underneath; the chat hides the tab bar, shows "typing" while a reply is on its way, and has a two-tap Unmatch in its menu. Until there is a push connection the app asks for new matches every 2.5 s and for new messages every 2.5 s while a chat is open.
 
 ### 3.8 Desktop layout (≥ 1024 px)
 
@@ -198,7 +198,7 @@ Notes:
 
 ### 4.2 Light effects
 
-- **Ambient glow.** Behind the deck, a large blurred blob takes the dominant colour of the current photo (stored at upload) and cross-fades between cards.
+- **Deck halo.** The top card throws soft light in its own shape, like a lit window. The colour starts from the current photo's dominant colour, is pulled most of the way to the brand pink and redrawn deep and saturated, so it always sits inside the palette (warm rooms give hot coral-pink, blue ones violet). A photo's true average is usually a dull beige that reads as brown haze; never use it raw, and never let the light wash across the whole screen.
 - **Glow recipe.** `box-shadow: 0 0 0 1px <c>, 0 0 24px -4px <c at 60%>, 0 0 64px -8px <c at 30%>`.
 - **Surfaces.** A 1 px inner highlight at the top edge, hairline border, and a fine film-grain noise overlay (2–3% opacity) so dark gradients do not band.
 - **Glass.** The floating tab bar and sticky action bar use backdrop blur over a translucent surface.
@@ -446,7 +446,7 @@ A script creates synthetic tenants with hidden "true" preferences, lets them swi
 - **~200 listings, ~80 tenants**, generated with Faker from those ranges so prices and commutes are believable.
 - **Coherent photo sets.** Photos are curated into sets that plausibly belong to one flat (bedroom, living room, kitchen, bathroom, balcony, building), ~40 sets with variation. Random stock photos per listing look fake immediately. Downloaded once from free-licence sources and uploaded to Cloudinary by the seed script.
 - **Rolling dates.** Seed `available_from` and `published_at` are stored relative to "today" and refreshed by the daily job, so the demo never looks abandoned.
-- **Bots respond lazily.** When a tenant likes a seed listing, the interest is written as already accepted with `visible_at = now + 2–10 min` (shorter for guests: 20–40 s). A scripted two-or-three message opener is written with staggered `visible_at`. Queries only return rows whose `visible_at` has passed. No scheduler is needed.
+- **Bots respond lazily.** When a tenant likes a seed listing, the interest is written as already accepted with `visible_at = now + 2–10 min` (shorter for guests: 20–40 s). A scripted two-or-three message opener is written with staggered `visible_at`. Queries only return rows whose `visible_at` has passed. No scheduler is needed. In the M1 mock (`lib/api/mock/matchmaker.ts`) two listers in three accept, 2.5 to 5 seconds after the like, and the rest never answer so that "Likes sent" has something to show; each then replies to up to four messages.
 - **Labelled honestly.** Seed listings and bot profiles carry a visible `Demo` tag.
 
 ---
@@ -523,6 +523,8 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 ---
 
 ## 13. Milestones
+
+**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch). Still to build on mock: tenant onboarding and profile (including the city choice), then the lister side. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 

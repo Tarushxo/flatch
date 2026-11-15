@@ -1,4 +1,12 @@
-import type { FeedFilters, FeedPage, Listing, Swipe } from "@repo/shared";
+import type {
+  FeedFilters,
+  FeedPage,
+  Listing,
+  Match,
+  Message,
+  PendingLike,
+  Swipe,
+} from "@repo/shared";
 import { mockApi } from "./mock";
 
 /**
@@ -21,6 +29,19 @@ export interface Api {
   getSaved(): Promise<Listing[]>;
   /** Forget every pass, so passed flats can come round again. */
   resetPasses(): Promise<void>;
+
+  /** Likes the lister accepted, most recent activity first. Chat and address are open. */
+  getMatches(): Promise<Match[]>;
+  /** Likes still waiting for the lister, most recent first. */
+  getPendingLikes(): Promise<PendingLike[]>;
+  /** The messages in one match, oldest first. */
+  getMessages(matchId: string): Promise<Message[]>;
+  /** Send a message. Returns it as stored. */
+  sendMessage(matchId: string, body: string): Promise<Message>;
+  /** Record that the person has seen everything in this match so far. */
+  markRead(matchId: string): Promise<void>;
+  /** End a match. The chat and the address are no longer available. */
+  unmatch(matchId: string): Promise<void>;
 }
 
 export const api: Api = mockApi;

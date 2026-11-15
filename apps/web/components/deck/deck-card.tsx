@@ -22,6 +22,7 @@ import {
   rotationFor,
   stampOpacity,
 } from "@/lib/deck/gesture";
+import { buzz } from "@/lib/haptics";
 import { CardFace } from "./card-face";
 
 /** What the deck can ask the top card to do (for the buttons and the keyboard). */
@@ -124,7 +125,7 @@ export function DeckCard({
   function report() {
     if (indexRef.current !== 0) return;
     const next = dragProgress({ x: x.get(), y: y.get() }, size.current);
-    if (next >= 1 && progress.get() < 1 && !flying.current) navigator.vibrate?.(10);
+    if (next >= 1 && progress.get() < 1 && !flying.current) buzz(10);
     progress.set(next);
   }
   useMotionValueEvent(x, "change", report);

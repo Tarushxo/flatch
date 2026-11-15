@@ -1,8 +1,10 @@
 "use client";
 
+import { totalUnread } from "@repo/shared";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookmarkIcon, CardsIcon, KeyIcon, UserIcon } from "@/components/icons";
+import { useMatches } from "@/lib/matches/use-matches";
 
 const TABS = [
   { href: "/discover", label: "Discover", icon: CardsIcon },
@@ -13,15 +15,22 @@ const TABS = [
 
 /**
  * The app's main navigation, in the lit/unlit language of the logo: the
- * current tab is a lit tube, the others are dark glass.
+ * current tab is a lit tube, the others are dark glass. The Keys tab carries
+ * a badge when there are unread messages.
  *
  * `bar` is the floating bar along the bottom of a phone. `rail` is the column
- * down the left of a wide screen.
+ * down the left of a wide screen. The bar steps aside inside a chat, where the
+ * space belongs to the message box.
  */
 export function AppNav({ layout }: { layout: "bar" | "rail" }) {
   const pathname = usePathname();
+  const matches = useMatches();
+  const unread = totalUnread(matches.data ?? []);
 
-  return (
+  const inChat = pathname.startsWith("/keys/");
+  if (layout === "bar" && inChat) return null;
+
+  const nav = (
     <nav
       aria-label="Main"
       className={
@@ -32,6 +41,7 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
     >
       {TABS.map(({ href, label, icon: TabIcon }) => {
         const lit = pathname === href || pathname.startsWith(`${href}/`);
+        const badge = href === "/keys" && unread > 0 ? unread : 0;
         return (
           <Link
             key={href}
@@ -43,17 +53,33 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
                 : "gap-3 rounded-xl px-3 py-2.5 text-sm"
             } ${lit ? "text-like" : "text-fg-3 hover:text-fg-2"}`}
           >
-            <TabIcon
-              key={lit ? "lit" : "unlit"}
-              weight={lit ? "fill" : "regular"}
-              className={`size-6 shrink-0 ${
-                lit ? "animate-switch-on [filter:drop-shadow(0_0_6px_var(--like))]" : ""
-              }`}
-            />
+            <span className="relative">
+              <TabIcon
+                key={lit ? "lit" : "unlit"}
+                weight={lit ? "fill" : "regular"}
+                className={`size-6 shrink-0 ${
+                  lit ? "animate-switch-on [filter:drop-shadow(0_0_6px_var(--like))]" : ""
+                }`}
+              />
+              {badge > 0 ? (
+                <span className="absolute -top-1.5 -right-2.5 grid min-w-[1.125rem] place-items-center rounded-full bg-win px-1 font-semibold text-[0.625rem] text-ink leading-[1.125rem]">
+                  {badge}
+                  <span className="sr-only"> unread</span>
+                </span>
+              ) : null}
+            </span>
             {label}
           </Link>
         );
       })}
     </nav>
+  );
+
+  if (layout === "rail") return nav;
+
+  return (
+    <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+      {nav}
+    </div>
   );
 }

@@ -141,9 +141,9 @@ export function SwipeDeck({
 
   return (
     <section aria-label="Flats for you" className="relative isolate flex h-full flex-col gap-5">
-      <AmbientGlow colour={top ? glow : null} />
-
       <div className="relative mx-auto min-h-0 w-full max-w-[26rem] flex-1">
+        <AmbientGlow colour={top ? glow : null} />
+
         {deck.isLoading ? <DeckLoading /> : null}
         {deck.isError ? <DeckError onRetry={deck.retry} /> : null}
         {deck.isExhausted ? (

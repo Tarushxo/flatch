@@ -2,9 +2,9 @@ import { APP_NAME } from "@repo/shared";
 import { NeonSign } from "./neon-sign";
 
 const SIZES = {
-  /** Compact: in-app top bars. */
+  /** Compact: tight spots such as a footer. */
   sm: "text-4xl",
-  /** Default: page headers. */
+  /** Default: page headers and the app's own header and side rail. */
   md: "text-5xl sm:text-6xl",
   /** Hero moments: landing page, match screen. */
   lg: "text-7xl sm:text-8xl",

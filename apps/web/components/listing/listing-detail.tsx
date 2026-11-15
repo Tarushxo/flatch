@@ -4,6 +4,7 @@ import { CheckIcon, CrossIcon, MapPinIcon } from "@/components/icons";
 import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
+import { initial } from "@/lib/names";
 import { PHOTO_SIZES } from "@/lib/photo";
 import { AreaMap } from "./area-map";
 import { CompatRing } from "./compat-ring";
@@ -121,7 +122,7 @@ export function ListingDetail({
             aria-hidden="true"
             className="grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-a to-brand-b font-display font-semibold text-lg text-white"
           >
-            {lister.name.replace(/^(Mr|Mrs|Ms)\.?\s+/, "").charAt(0)}
+            {initial(lister.name)}
           </span>
           <div>
             <p className="font-medium">

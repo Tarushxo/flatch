@@ -126,7 +126,7 @@ export function SavedFlats() {
                     <span className="block font-mono font-semibold text-xl tabular-nums tracking-tight">
                       {formatRent(listing.rent)}
                     </span>
-                    <span className="mt-1 line-clamp-1 block font-medium">{listing.title}</span>
+                    <span className="mt-1 line-clamp-1 font-medium">{listing.title}</span>
                     <span className="block text-fg-2 text-sm">{listing.locality}</span>
                   </span>
                 </button>

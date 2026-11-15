@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "./listing";
+import { MESSAGE_MAX_LENGTH } from "./match";
 
 /*
  * The contract between the API and the app, as Zod schemas. The types the app
@@ -110,4 +111,36 @@ export const SwipeSchema = z.object({
   clientId: z.uuid(),
   listingId: z.string(),
   action: SwipeActionSchema,
+});
+
+/** One chat message. "me" and "them" are from the point of view of whoever asked. */
+export const MessageSchema = z.object({
+  id: z.string(),
+  matchId: z.string(),
+  from: z.enum(["me", "them"]),
+  body: z.string().min(1).max(MESSAGE_MAX_LENGTH),
+  sentAt: z.iso.datetime(),
+});
+
+/** The part of a listing that stays private until both sides have matched. */
+export const AddressSchema = z.object({
+  society: z.string(),
+  line: z.string(),
+});
+
+/** A like the lister accepted: chat is open and the address is unlocked. */
+export const MatchSchema = z.object({
+  id: z.string(),
+  listing: ListingSchema,
+  address: AddressSchema,
+  matchedAt: z.iso.datetime(),
+  lastMessage: MessageSchema.nullable(),
+  /** Messages from the other person that have not been read yet. */
+  unreadCount: z.number().int().min(0),
+});
+
+/** A like the lister has not answered yet. */
+export const PendingLikeSchema = z.object({
+  listing: ListingSchema,
+  likedAt: z.iso.datetime(),
 });

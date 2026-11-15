@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 
 /**
- * The light the current photo throws on the room: a large blurred pool of the
- * photo's main colour behind the deck. When the colour changes, the new pool
- * fades in over the old one (opacity only, so it is cheap to animate). The
- * pool is a radial gradient, which a phone draws far more cheaply than a blur.
+ * The light the top card throws: a halo of the photo's colour hugging the
+ * deck, as if the card were a lit window. It keeps the photo's hue but is
+ * drawn deep and saturated (see `deck-halo` in globals.css), because a
+ * photo's true average colour is usually a dull beige that turns to haze.
+ *
+ * When the colour changes, the new halo fades in over the old one (opacity
+ * only). Render it inside the box the cards sit in.
  */
 export function AmbientGlow({ colour }: { colour: string | null }) {
   const [layers, setLayers] = useState<{ id: number; colour: string }[]>([]);
@@ -20,7 +23,7 @@ export function AmbientGlow({ colour }: { colour: string | null }) {
     setLayers((current) => {
       const last = current[current.length - 1];
       if (last?.colour === colour) return current;
-      // Keep the previous pool underneath while the new one fades in.
+      // Keep the previous halo underneath while the new one fades in.
       return [...current.slice(-1), { id: (last?.id ?? 0) + 1, colour }];
     });
   }, [colour]);
@@ -30,8 +33,8 @@ export function AmbientGlow({ colour }: { colour: string | null }) {
       {layers.map((layer) => (
         <div
           key={layer.id}
-          className="absolute top-1/2 left-1/2 size-[190%] -translate-x-1/2 -translate-y-1/2 animate-glow-in"
-          style={{ background: `radial-gradient(closest-side, ${layer.colour}, transparent)` }}
+          className="deck-halo absolute inset-2 animate-glow-in"
+          style={{ "--halo": layer.colour } as CSSProperties}
         />
       ))}
     </div>
