@@ -39,6 +39,7 @@ A swipe-based flat and flatmate finder: tenants swipe on flats, listers accept i
 ## Working here
 
 - Node 24 via nvm (`.nvmrc`); a plain shell may still default to an older Node, so run `nvm use` first. pnpm comes from corepack. There is no Docker: the local database is a Neon dev branch.
+- Database: `pnpm --filter @repo/db db:generate` writes a migration from the schema (no database needed), `db:migrate` applies it, `db:seed` loads the demo flats (safe to re-run). The web app uses the real API when `DATABASE_URL` is set and the in-browser mock when it is not, so check which one you are looking at (`/api/v1/health`).
 - Biome is the linter and formatter (`pnpm lint`, `pnpm format`). TypeScript is pinned to 6.0.x; check that Next.js supports a newer major before bumping it.
 - Secrets live in `.env.local` (git-ignored). Keep `.env.example` current with every variable and where to get it. Never print secret values or ask for them in chat.
 - Verify changes by running them: `pnpm typecheck`, `pnpm test`, and the app in a mobile viewport. UI work is not done until it has been looked at.

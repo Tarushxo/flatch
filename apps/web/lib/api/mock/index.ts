@@ -62,6 +62,14 @@ let messageCount = 0;
 
 const listingById = new Map(MOCK_LISTINGS.map((listing) => [listing.id, listing]));
 
+/**
+ * Tell the mock about flats that came from the real server, so a like on one
+ * of them can still be answered by a bot lister.
+ */
+export function rememberListings(more: Listing[]): void {
+  for (const listing of more) listingById.set(listing.id, listing);
+}
+
 function storeMessage(matchId: string, from: "me" | "them", body: string, visibleAt: number) {
   messageCount += 1;
   const message: StoredMessage = {

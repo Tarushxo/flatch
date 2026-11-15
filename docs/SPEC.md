@@ -544,7 +544,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 
 ## 13. Milestones
 
-**Progress (15 Nov 2026).** M0 is done. M1 is done and live. The order after M1 has changed: the remaining screens are being built on the mock API first, then the backend. Built on mock so far: the match flow (like, match moment, Keys tab, chat, unmatch), the tenant side (check-in, Profile tab, ten cities) and the lister side (post a flat, Your flats, Interested, lister chat; see 3.6). Still to build on mock: the profile prompt at the first like. After that: M2 data, M3 accounts, M4 real matching, M5 feed engine, M6 scale.
+**Progress (15 Nov 2026).** M0 is done. M1 is done and live. Every screen exists on the mock API: the match flow, the tenant side and the lister side (see 3.6); only the profile prompt at the first like is missing. **M2 is in progress:** the database package, seed pipeline, API and typed client are written and tested, and the app switches to them by itself once `DATABASE_URL` is set. Still to do for M2: create the Neon database, run the migration and seed, and check the deck against it locally and on Vercel. After that: M3 accounts, M4 real matching, M5 feed engine, M6 scale.
 
 Each milestone ends deployed to Vercel and demoable. Do not start the next one until the "done when" list is true.
 
@@ -559,6 +559,17 @@ _Done when:_ swiping on a real phone feels right, every action works by keyboard
 **M2. Data and a real feed (v0)**
 Schema and migrations, city dataset, photo sets, seed pipeline, Hono API, typed client, feed with hard filters (compute-on-read), swipes persisted, undo.
 _Done when:_ the deck runs on database data and a swiped flat never comes back.
+
+_As built._ `packages/db` holds the Drizzle schema (users, localities, listings, listing photos, swipes), one migration, and the seed pipeline: 142 demo flats across the ten cities (the 22 hand-written ones plus two generated rounds per city), with fixed ids so re-seeding updates in place. The same flats feed the in-browser mock (`@repo/db/seed-data`). `packages/api` is the Hono app (`/api/v1`: feed, feed count, localities, swipes, undo, reset passes, saved), mounted in Next at `app/api/[[...route]]`. The web app reads flats and swipes from it when `DATABASE_URL` is set at build time, and from the mock otherwise; profiles, matches, chat and the lister side stay on the mock until M3 and M4. Choices made where the plan was silent or heavier than needed:
+
+- **Who is swiping.** Until sign-in (M3), a visitor is a random id in an http-only cookie (`flatch_visitor`), and swipes are stored against it. M3 replaces this with Better Auth's guest accounts.
+- **Photos** stay on Unsplash's image server, stored as plain addresses. Cloudinary moves to M3, when people upload their own. One less account for now.
+- **Dates.** A seed flat stores "free in N days" and the API counts from today on every read, so no daily job is needed for dates.
+- **Match score, commute and stretch label** are the hand-written seed values, stored on the listing, until M5 works them out per tenant. The feed is ordered by that score.
+- **Location.** `location_public` is the exact point snapped to a ~400 m grid plus a fixed per-flat offset (`packages/db/src/location.ts`). The feed query does not select the private columns and the serializer's input type has no place for them; both are tested.
+- **One database for now.** Local development and the live site share it. A separate Neon dev branch is worth adding when real accounts arrive.
+- **Tests.** Pure parts are unit-tested (location, seed rows, cursors, serializer). There are no tests that run SQL yet; that needs the PostGIS container in CI (section 12).
+- **Not yet:** commute anchors and the commute matrix (M5), ~80 seed tenants (M4), server-rendering the first card.
 
 **M3. Accounts and onboarding**
 Better Auth (Google + guest), "Try the demo", tenant onboarding with the live match counter, profile-at-first-like, lister onboarding and the create-listing wizard with signed uploads.

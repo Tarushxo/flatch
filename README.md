@@ -33,10 +33,21 @@ Then open http://localhost:3000. The design tokens are at `/styleguide`.
 ## Layout
 
 ```
-apps/web          Next.js app: all UI
+apps/web          Next.js app: all UI; mounts the API at /api
+packages/api      The HTTP API (Hono): routes and services
+packages/db       Database tables (Drizzle), migrations and demo data
 packages/shared   Constants, formatting, shared schemas
 packages/feed     The ranking engine as pure functions
 docs/SPEC.md      Product, design, architecture and milestone plan
 ```
 
-`packages/api` and `packages/db` arrive in milestone 2.
+## Database (optional)
+
+Without a database the app runs on demo data held in the browser. To use a real one, put a
+Postgres address with PostGIS (Neon's free plan works) in `.env.local` as `DATABASE_URL`
+(see `.env.example`), then:
+
+```bash
+pnpm --filter @repo/db db:migrate   # create the tables
+pnpm --filter @repo/db db:seed      # load the demo flats (safe to run again)
+```

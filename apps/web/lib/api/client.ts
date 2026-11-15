@@ -13,12 +13,14 @@ import type {
   Swipe,
   TenantProfile,
 } from "@repo/shared";
-import { mockApi } from "./mock";
+import { httpApi } from "./http";
+import { mockApi, rememberListings } from "./mock";
 
 /**
  * Everything the app asks the server for. Components and hooks depend on this
- * interface only. In M1 it is backed by an in-memory mock; in M2 the real
- * HTTP client implements the same interface and is swapped in below.
+ * interface only. The real server takes it over a piece at a time: flats and
+ * swipes come from the database (M2), while profiles, matches, chat and the
+ * lister side are still the in-browser mock until their milestones.
  */
 export interface Api {
   /** One page of the ranked feed. Pass the previous page's `nextCursor` to continue. */
@@ -78,4 +80,36 @@ export interface Api {
   getSamplePhotos(): Promise<ListingPhoto[]>;
 }
 
-export const api: Api = mockApi;
+/**
+ * Flats and swipes from the real server, everything else from the mock. The
+ * mock is still told about each like, with the flat it was for, because the
+ * bot listers who answer likes live there until M4.
+ */
+const withServer: Api = {
+  ...mockApi,
+  ...httpApi,
+
+  async getFeed(cursor, filters) {
+    const page = await httpApi.getFeed(cursor, filters);
+    rememberListings(page.items);
+    return page;
+  },
+
+  async getSaved() {
+    const saved = await httpApi.getSaved();
+    rememberListings(saved);
+    return saved;
+  },
+
+  async sendSwipes(swipes) {
+    await httpApi.sendSwipes(swipes);
+    await mockApi.sendSwipes(swipes);
+  },
+
+  async undoSwipe(listingId) {
+    await httpApi.undoSwipe(listingId);
+    await mockApi.undoSwipe(listingId);
+  },
+};
+
+export const api: Api = process.env.NEXT_PUBLIC_DATA_SOURCE === "api" ? withServer : mockApi;

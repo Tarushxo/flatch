@@ -1,11 +1,11 @@
 import type { City } from "@repo/shared";
-import type { Spec } from "./listings";
+import type { Spec } from "./flats";
 
 /*
- * Mock flats for the cities that are not written out by hand in listings.ts.
- * Each city gets the same six kinds of flat, placed in six of its real
- * localities and priced for that city. It is filler so that every city has a
- * deck; M2 replaces all of it with seeded database rows.
+ * Generated flats, so every city has a full deck. Each city gets the same six
+ * kinds of flat twice over (a second round in different localities, with its
+ * own wording and prices), placed in six of its real localities and priced
+ * for that city. Bangalore and Gurgaon also have hand-written flats in flats.ts.
  *
  * Coordinates are approximate locality centres, good enough for the area map.
  */
@@ -20,9 +20,8 @@ type CityPlan = {
   places: [Place, Place, Place, Place, Place, Place];
 };
 
-type GeneratedCity = Exclude<City, "Bangalore" | "Gurgaon">;
-
-const PLANS: Record<GeneratedCity, CityPlan> = {
+// New cities go at the end: flat ids follow this order, and must not change.
+const PLANS: Record<City, CityPlan> = {
   Hyderabad: {
     centre: { lat: 17.385, lng: 78.4867 },
     rentScale: 0.95,
@@ -117,6 +116,30 @@ const PLANS: Record<GeneratedCity, CityPlan> = {
       { name: "Vastrapur", lat: 23.038, lng: 72.529 },
       { name: "Prahlad Nagar", lat: 23.012, lng: 72.5108 },
       { name: "SG Highway", lat: 23.07, lng: 72.517 },
+    ],
+  },
+  Bangalore: {
+    centre: { lat: 12.9716, lng: 77.5946 },
+    rentScale: 1,
+    places: [
+      { name: "Whitefield", lat: 12.9698, lng: 77.75 },
+      { name: "Hebbal", lat: 13.0358, lng: 77.597 },
+      { name: "Marathahalli", lat: 12.9591, lng: 77.6974 },
+      { name: "Electronic City", lat: 12.8452, lng: 77.6602 },
+      { name: "Malleshwaram", lat: 13.0031, lng: 77.5643 },
+      { name: "Sarjapur Road", lat: 12.9102, lng: 77.6857 },
+    ],
+  },
+  Gurgaon: {
+    centre: { lat: 28.4595, lng: 77.0266 },
+    rentScale: 1.05,
+    places: [
+      { name: "Sector 56", lat: 28.424, lng: 77.1 },
+      { name: "Sohna Road", lat: 28.407, lng: 77.042 },
+      { name: "DLF Phase 4", lat: 28.4672, lng: 77.0817 },
+      { name: "Palam Vihar", lat: 28.51, lng: 77.033 },
+      { name: "Sushant Lok", lat: 28.462, lng: 77.078 },
+      { name: "Sector 49", lat: 28.412, lng: 77.049 },
     ],
   },
 };
@@ -310,47 +333,107 @@ function scaled(amount: number, scale: number): number {
   return Math.round((amount * scale) / 500) * 500;
 }
 
-const GENERATED_CITIES = Object.keys(PLANS) as GeneratedCity[];
+const GENERATED_CITIES = Object.keys(PLANS) as City[];
+/** The cities with no hand-written flats. Their first round came first, and keeps its ids. */
+const FIRST_CITIES = GENERATED_CITIES.filter((city) => city !== "Bangalore" && city !== "Gurgaon");
+const DEPTH_CITIES: City[] = ["Bangalore", "Gurgaon"];
 
-/** One spec per template per generated city, in a fixed order so ids stay stable. */
-export const GENERATED_SPECS: Spec[] = GENERATED_CITIES.flatMap((city, cityIndex) => {
+/** How the second round of each kind of flat is worded, in template order. */
+const SECOND_ROUND = [
+  {
+    title: "Airy room with an attached bath",
+    description:
+      "A large room with a wardrobe wall and its own bathroom, on a middle floor with a lift. The two flatmates keep regular hours.",
+  },
+  {
+    title: "Compact 1BHK near the main road",
+    description:
+      "A tidy one-bedroom flat with a proper kitchen and a utility balcony. Shops and an auto stand are two minutes away.",
+  },
+  {
+    title: "Room in a flat with a rooftop",
+    description:
+      "A relaxed flat with rooftop access where the household eats together on Fridays. Cross-ventilated and bright.",
+  },
+  {
+    title: "Shared room, bills kept low",
+    description:
+      "A twin-sharing room with two cupboards and a study table each. The building is new and the water never runs out.",
+  },
+  {
+    title: "Quiet room with a family upstairs",
+    description:
+      "The owners live on the floor above and let this floor to working people. Peaceful lane, filter coffee most mornings.",
+  },
+  {
+    title: "Tower flat with a clubhouse",
+    description:
+      "A room on a high floor in a gated tower, with a clubhouse, a jogging track and a co-working room downstairs.",
+  },
+] as const;
+
+function specFor(city: City, cityIndex: number, index: number, round: 0 | 1): Spec {
   const plan = PLANS[city];
-  return TEMPLATES.map((template, index): Spec => {
-    const names = template.role === "owner" ? OWNER_NAMES : FLATMATE_NAMES;
-    return {
-      city,
-      title: template.title,
-      description: template.description,
-      locality: plan.places[index]?.name ?? city,
-      commuteMinutes: template.commuteMinutes,
-      rent: scaled(template.rent, plan.rentScale),
-      maintenance: scaled(template.maintenance, plan.rentScale),
-      utilitiesEstimate: template.utilitiesEstimate,
-      depositMonths: template.depositMonths,
-      roomType: template.roomType,
-      bhk: template.bhk,
-      furnishing: template.furnishing,
-      availableIn: template.availableIn,
-      amenities: [...template.amenities],
-      rules: template.rules,
-      society: template.society,
-      expect: template.expect,
-      lister: {
-        name: names[(cityIndex * 3 + index) % names.length] ?? "Asha",
-        role: template.role,
-        about: template.about,
-        flatmateCount: template.flatmateCount,
-      },
-      compatibility: {
-        // A little variety between cities, so the decks are not identical.
-        percent: template.percent - (cityIndex % 3),
-        reasons: [...template.reasons],
-        ...("caution" in template ? { caution: template.caution } : {}),
-      },
-      isVerified: template.isVerified,
-    };
-  });
-});
+  const template = TEMPLATES[index] as (typeof TEMPLATES)[number];
+  const names = template.role === "owner" ? OWNER_NAMES : FLATMATE_NAMES;
+  const wording = round === 0 ? template : (SECOND_ROUND[index] ?? template);
+  // The second round sits three localities along, costs a little more or less, and is free later.
+  const place = plan.places[(index + round * 3) % plan.places.length];
+  const priceShift = round === 0 ? 1 : index % 2 === 0 ? 1.08 : 0.93;
+  return {
+    city,
+    title: wording.title,
+    description: wording.description,
+    locality: place?.name ?? city,
+    commuteMinutes: template.commuteMinutes + round * 5,
+    rent: scaled(template.rent * priceShift, plan.rentScale),
+    maintenance: scaled(template.maintenance, plan.rentScale),
+    utilitiesEstimate: template.utilitiesEstimate,
+    depositMonths: template.depositMonths,
+    roomType: template.roomType,
+    bhk: template.bhk,
+    furnishing: template.furnishing,
+    availableIn: template.availableIn + round * 9,
+    amenities: [...template.amenities],
+    rules: template.rules,
+    society: template.society,
+    expect: template.expect,
+    lister: {
+      name: names[(cityIndex * 3 + index + round * 7) % names.length] ?? "Asha",
+      role: template.role,
+      about: template.about,
+      flatmateCount: template.flatmateCount,
+    },
+    compatibility: {
+      // A little variety between cities and rounds, so the decks are not identical.
+      percent: template.percent - (cityIndex % 3) - round * 4,
+      reasons: [...template.reasons],
+      ...("caution" in template ? { caution: template.caution } : {}),
+    },
+    isVerified: template.isVerified && round === 0,
+  };
+}
+
+const KINDS = TEMPLATES.map((_, index) => index);
+
+/**
+ * The generated flats, in a fixed order so ids stay stable: the first round
+ * for the eight generated cities (as it always was), then their second round,
+ * then both rounds for Bangalore and Gurgaon.
+ */
+export const GENERATED_SPECS: Spec[] = [
+  ...FIRST_CITIES.flatMap((city, cityIndex) =>
+    KINDS.map((kind) => specFor(city, cityIndex, kind, 0)),
+  ),
+  ...FIRST_CITIES.flatMap((city, cityIndex) =>
+    KINDS.map((kind) => specFor(city, cityIndex, kind, 1)),
+  ),
+  ...DEPTH_CITIES.flatMap((city, cityIndex) =>
+    ([0, 1] as const).flatMap((round) =>
+      KINDS.map((kind) => specFor(city, cityIndex, kind, round)),
+    ),
+  ),
+];
 
 /** Locality centres for the generated cities, by name, for the area map. */
 export const GENERATED_LOCALITY_CENTRES: Record<string, { lat: number; lng: number }> =
@@ -363,4 +446,4 @@ export const GENERATED_LOCALITY_CENTRES: Record<string, { lat: number; lng: numb
 /** City centres for the generated cities, used when a locality is not in the list. */
 export const GENERATED_CITY_CENTRES = Object.fromEntries(
   GENERATED_CITIES.map((city) => [city, PLANS[city].centre]),
-) as Record<GeneratedCity, { lat: number; lng: number }>;
+) as Record<City, { lat: number; lng: number }>;

@@ -1,0 +1,30 @@
+{
+  "name": "@repo/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./seed-data": "./src/seed/data.ts",
+    "./seed-rows": "./src/seed/rows.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=../../.env.local src/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=../../.env.local src/seed/run.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
+    "@repo/shared": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
