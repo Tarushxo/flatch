@@ -63,6 +63,45 @@
   --animate-neon: flicker 2.2s linear 0.2s 1 both, neon-buzz 9s steps(1, end) 2.6s infinite;
   --animate-neon-faulty: neon-faulty 5.3s steps(1, end) 3.4s infinite;
 
+  /* Roadside motifs (SPEC 4.7). */
+  --animate-switch-on: flicker 0.5s linear 1 both;
+  --animate-chase: bulb-chase 1.4s ease-in-out infinite;
+  --animate-swing: swing 1.8s ease-out 0.15s 1 both;
+
+  /* A light running along a row of marquee bulbs (stagger with animation-delay). */
+  @keyframes bulb-chase {
+    0%,
+    60%,
+    100% {
+      opacity: 0.25;
+    }
+    25% {
+      opacity: 1;
+    }
+  }
+
+  /* A key tag settling on its hook. */
+  @keyframes swing {
+    0% {
+      transform: rotate(-12deg);
+    }
+    22% {
+      transform: rotate(8deg);
+    }
+    44% {
+      transform: rotate(-5deg);
+    }
+    64% {
+      transform: rotate(3deg);
+    }
+    82% {
+      transform: rotate(-1.5deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
   /* Whole sign: steady most of the time, with three short faults per cycle. */
   @keyframes neon-buzz {
     0%,

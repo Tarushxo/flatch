@@ -4,7 +4,12 @@ import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
 import { BookmarkIcon, CrossIcon, HeartIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
+import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
+import { GuestCheck } from "@/components/motifs/guest-check";
+import { KeyTag } from "@/components/motifs/key-tag";
+import { CoffeeCupDrawing } from "@/components/motifs/neon-drawing";
 import { SiteHeader } from "@/components/site-header";
+import { BulbsDemo, TabBarDemo, VacancyDemo } from "./motif-demos";
 
 export const metadata: Metadata = { title: "Style guide" };
 
@@ -136,6 +141,67 @@ export default function StyleguidePage() {
           </li>
         </ul>
       </Section>
+
+      <Section title="Roadside motifs">
+        <p className="mb-6 max-w-xl text-fg-2 text-sm">
+          Samples of the motel and diner theme. Each one has a job in the app; none is decoration
+          only. Try the buttons.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Motif
+            name="VACANCY sign"
+            where="Listing status. A lister opens a listing by switching the sign on."
+          >
+            <VacancyDemo />
+          </Motif>
+          <Motif
+            name="Marquee bulbs"
+            where="Onboarding progress and loaders. One bulb lights per finished step."
+          >
+            <BulbsDemo />
+          </Motif>
+          <Motif
+            name="Lit and unlit tubes"
+            where="The tab bar and toggles. The active tab lights up like the logo."
+          >
+            <TabBarDemo />
+          </Motif>
+          <Motif name="Amenity plaques" where="Listing details: what the flat comes with.">
+            <AmenityPlaques
+              items={["Wifi", "Air conditioned", "Parking", "Lift", "Power backup"]}
+            />
+          </Motif>
+          <Motif name="Guest check" where="What a flat really costs each month.">
+            <GuestCheck
+              number="0427"
+              lines={[
+                { label: "Rent", amount: 18500 },
+                { label: "Maintenance", amount: 2000 },
+                { label: "Electricity + wifi", amount: 1400 },
+              ]}
+              upfront={{ label: "deposit, refundable", amount: 55500 }}
+            />
+          </Motif>
+          <Motif name="Room key" where="What you are handed when you match.">
+            <KeyTag locality="HSR Layout" detail="Private room · 2BHK" />
+          </Motif>
+          <div className="md:col-span-2">
+            <Motif name="Neon line drawing" where="Empty and error screens.">
+              <div className="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:gap-8 sm:text-left">
+                <CoffeeCupDrawing className="size-28 shrink-0 [--glow:var(--save)]" />
+                <div>
+                  <p className="font-display font-semibold text-2xl tracking-tight">
+                    Kitchen's closed
+                  </p>
+                  <p className="mt-2 max-w-sm text-fg-2 text-sm leading-relaxed">
+                    You have seen every flat that fits. Widen your budget or your area to see more.
+                  </p>
+                </div>
+              </div>
+            </Motif>
+          </div>
+        </div>
+      </Section>
     </main>
   );
 }
@@ -146,6 +212,16 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h2 className="mb-5 font-medium text-fg-3 text-xs uppercase tracking-[0.18em]">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function Motif({ name, where, children }: { name: string; where: string; children: ReactNode }) {
+  return (
+    <div className="surface flex h-full min-w-0 flex-col rounded-2xl p-6">
+      <p className="font-medium">{name}</p>
+      <p className="mt-1 text-fg-2 text-sm">{where}</p>
+      <div className="mt-6 flex flex-1 items-center justify-center">{children}</div>
+    </div>
   );
 }
 

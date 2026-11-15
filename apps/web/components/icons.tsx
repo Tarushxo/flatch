@@ -47,6 +47,33 @@ export function BookmarkIcon(props: IconProps) {
   );
 }
 
+export function CardsIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="7" width="13" height="14" rx="2.5" />
+      <path d="M8 3.5h9.5A2.5 2.5 0 0 1 20 6v11" />
+    </Icon>
+  );
+}
+
+export function KeyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="16" r="4" />
+      <path d="M11 13 20 4M16.5 7.5l3 3M13.5 10.5l2 2" />
+    </Icon>
+  );
+}
+
+export function UserIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+    </Icon>
+  );
+}
+
 export function ArrowRightIcon(props: IconProps) {
   return (
     <Icon {...props}>
