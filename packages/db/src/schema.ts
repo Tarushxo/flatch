@@ -1,4 +1,10 @@
-import type { Compatibility, HouseRule, TenantPreferences, TenantProfile } from "@repo/shared";
+import type {
+  Compatibility,
+  HouseRule,
+  ReportReason,
+  TenantPreferences,
+  TenantProfile,
+} from "@repo/shared";
 import { CITIES, FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "@repo/shared";
 import { sql } from "drizzle-orm";
 import {
@@ -204,6 +210,11 @@ export const listings = pgTable(
     /** The key the seed script knows this flat by, so re-seeding updates rather than duplicates. */
     seedKey: text("seed_key").unique(),
 
+    /** When the flat comes off the board unless its lister renews it. Null (demo flats): never. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Set when enough people have reported the flat. It stays off the board until cleared by hand. */
+    underReview: boolean("under_review").notNull().default(false),
+
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt,
   },
@@ -255,6 +266,24 @@ export const swipes = pgTable(
     uniqueIndex("swipes_user_listing").on(table.userId, table.listingId),
     index("swipes_user_action").on(table.userId, table.action, table.updatedAt.desc()),
   ],
+);
+
+/** One person's report about one flat. A second report from the same person replaces the first. */
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reporterId: uuid("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    reason: text("reason").$type<ReportReason>().notNull(),
+    note: text("note").notNull().default(""),
+    createdAt,
+  },
+  (table) => [uniqueIndex("reports_reporter_listing").on(table.reporterId, table.listingId)],
 );
 
 export type ListingRow = typeof listings.$inferSelect;

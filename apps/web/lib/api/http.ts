@@ -165,6 +165,19 @@ export const httpApi = {
       )
     ).listing,
 
+  renewListing: async (listingId) =>
+    (
+      await answer<{ listing: MyListing }>(() =>
+        v1.listings[":listingId"].renew.$post({ param: { listingId } }),
+      )
+    ).listing,
+
+  reportListing: async (listingId, report) => {
+    await answer(() =>
+      v1.listings[":listingId"].report.$post({ param: { listingId }, json: report }),
+    );
+  },
+
   deleteListing: async (listingId) => {
     await answer(() => v1.listings[":listingId"].$delete({ param: { listingId } }));
   },

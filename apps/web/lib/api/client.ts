@@ -12,6 +12,7 @@ import type {
   Message,
   MyListing,
   PendingLike,
+  ReportReason,
   Swipe,
   TenantProfile,
 } from "@repo/shared";
@@ -96,6 +97,10 @@ export interface Api {
   uploadPhoto(file: File): Promise<{ url: string; dominantColor: string }>;
   /** Switch the vacancy sign on or off. A closed flat takes no new likes. */
   setListingOpen(listingId: string, isOpen: boolean): Promise<MyListing>;
+  /** "Still available": give a flat a fresh thirty days on the board, and switch it on. */
+  renewListing(listingId: string): Promise<MyListing>;
+  /** Report a flat someone posted. Enough reports take it off the board. */
+  reportListing(listingId: string, report: { reason: ReportReason; note?: string }): Promise<void>;
   /** Take a flat down for good, with its likes and matches. */
   deleteListing(listingId: string): Promise<void>;
   /** Tenants waiting for an answer, oldest first. Pass a listing to see only its tenants. */
@@ -153,6 +158,12 @@ const withServer: Api = {
   async deleteListing(listingId) {
     await httpApi.deleteListing(listingId);
     syncListings(await httpApi.getMyListings());
+  },
+
+  async renewListing(listingId) {
+    const renewed = await httpApi.renewListing(listingId);
+    const all = syncListings(await httpApi.getMyListings());
+    return all.find((listing) => listing.id === listingId) ?? renewed;
   },
 
   async confirmOnSite(listingId, position) {

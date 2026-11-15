@@ -130,3 +130,16 @@ export function useConfirmOnSite() {
     },
   });
 }
+
+/** "Still available": a fresh thirty days on the board. */
+export function useRenewListing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.renewListing(id),
+    onSuccess: (renewed) => {
+      queryClient.setQueryData<MyListing[]>(MY_LISTINGS_KEY, (current) =>
+        current?.map((listing) => (listing.id === renewed.id ? renewed : listing)),
+      );
+    },
+  });
+}

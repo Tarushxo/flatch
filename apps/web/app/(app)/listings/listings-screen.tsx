@@ -1,11 +1,20 @@
 "use client";
 
-import { formatRent, LISTING_LIMITS, type MyListing } from "@repo/shared";
+import { daysLeft, formatRent, LISTING_LIMITS, type MyListing } from "@repo/shared";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ScreenMessage } from "@/components/app-shell/screen-message";
-import { BellIcon, CheckIcon, KeyIcon, MapPinIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import {
+  BellIcon,
+  CheckIcon,
+  KeyIcon,
+  MapPinIcon,
+  PlusIcon,
+  ShareIcon,
+  TrashIcon,
+} from "@/components/icons";
+import { shareAndTell } from "@/components/listing/flat-actions";
 import { ListingThumb } from "@/components/match/listing-thumb";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { SignboardDrawing } from "@/components/motifs/neon-drawing";
@@ -17,6 +26,7 @@ import {
   useConfirmOnSite,
   useDeleteListing,
   useMyListings,
+  useRenewListing,
   useSetListingOpen,
 } from "@/lib/lister/use-lister";
 
@@ -117,6 +127,7 @@ function FlatCard({ listing }: { listing: MyListing }) {
   const setOpen = useSetListingOpen();
   const remove = useDeleteListing();
   const onSite = useConfirmOnSite();
+  const renew = useRenewListing();
   const [confirming, setConfirming] = useState(false);
   const [locating, setLocating] = useState(false);
   const { interestedCount, matchCount } = listing;
@@ -136,6 +147,23 @@ function FlatCard({ listing }: { listing: MyListing }) {
     } finally {
       setLocating(false);
     }
+  }
+
+  // Worked out when the card is drawn; the list is refreshed every few seconds anyway.
+  const left = daysLeft(listing.expiresAt, new Date());
+  const expired = left !== null && left <= 0;
+  const endingSoon = left !== null && left > 0 && left <= LISTING_LIMITS.remindDays;
+
+  function stillAvailable() {
+    renew.mutate(listing.id, {
+      onSuccess: () => toast(`Back on the board for ${LISTING_LIMITS.openDays} more days`),
+      onError: (error) =>
+        toast.error(
+          error instanceof ApiError
+            ? error.message
+            : "Couldn't renew just now. Try again in a moment.",
+        ),
+    });
   }
 
   function toggle() {
@@ -194,6 +222,29 @@ function FlatCard({ listing }: { listing: MyListing }) {
         )}
       </div>
 
+      {listing.underReview ? (
+        <p className="mt-4 rounded-2xl border border-pass/30 bg-pass/10 px-4 py-3 text-pass text-sm leading-relaxed">
+          This flat was taken off the board after several people reported it. It cannot be switched
+          back on. If that is a mistake, take it down and post it again with correct details.
+        </p>
+      ) : expired ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-save/30 bg-save/10 px-4 py-3">
+          <p className="text-save text-sm">
+            Its {LISTING_LIMITS.openDays} days are up, so it is off the board.
+          </p>
+          <StillAvailable onClick={stillAvailable} busy={renew.isPending} />
+        </div>
+      ) : endingSoon ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-save/30 bg-save/10 px-4 py-3">
+          <p className="text-save text-sm">
+            Comes off the board in {left} {left === 1 ? "day" : "days"}.
+          </p>
+          <StillAvailable onClick={stillAvailable} busy={renew.isPending} />
+        </div>
+      ) : left !== null && listing.isOpen ? (
+        <p className="mt-3 text-fg-3 text-xs">On the board for {left} more days.</p>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-hairline border-t pt-4">
         <button
           type="button"
@@ -201,7 +252,8 @@ function FlatCard({ listing }: { listing: MyListing }) {
           aria-checked={listing.isOpen}
           aria-label={`Taking likes for ${listing.title}`}
           onClick={toggle}
-          className="rounded-lg transition-transform active:scale-[0.97]"
+          disabled={listing.underReview || expired}
+          className="rounded-lg transition-transform active:scale-[0.97] disabled:opacity-60"
         >
           <VacancySign open={listing.isOpen} />
         </button>
@@ -227,6 +279,17 @@ function FlatCard({ listing }: { listing: MyListing }) {
             <span className="tabular-nums">{matchCount}</span>
             <span className="sr-only sm:not-sr-only">{matchCount === 1 ? "key" : "keys"}</span>
           </Link>
+          {listing.isOpen && !listing.underReview ? (
+            <button
+              type="button"
+              onClick={() => void shareAndTell(listing)}
+              aria-label={`Share ${listing.title}`}
+              className="flex items-center gap-1.5 rounded-full border border-hairline px-3 py-2 text-fg-2 text-sm transition-colors hover:text-like"
+            >
+              <ShareIcon className="size-4" />
+              <span className="sr-only sm:not-sr-only">Share</span>
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => (confirming ? takeDown() : setConfirming(true))}
@@ -243,5 +306,18 @@ function FlatCard({ listing }: { listing: MyListing }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function StillAvailable({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      className="rounded-full border border-save/50 px-3.5 py-1.5 font-medium text-save text-sm transition-colors hover:bg-save/15 disabled:opacity-50"
+    >
+      Still available
+    </button>
   );
 }

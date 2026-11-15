@@ -246,6 +246,8 @@ export function toMyListing(listing: StoredListing, now: number): MyListing {
   return {
     ...rest,
     isVerified: rest.isVerified ?? false,
+    expiresAt: rest.expiresAt ?? null,
+    underReview: rest.underReview ?? false,
     interestedCount: waitingFor(listing, now).length,
     matchCount: acceptedFor(listing, now).length,
   };

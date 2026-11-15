@@ -5,6 +5,8 @@ import {
   listings,
   localities,
   publicLocation,
+  reports,
+  users,
 } from "@repo/db";
 import { SAMPLE_PHOTOS } from "@repo/db/seed-data";
 import {
@@ -12,19 +14,23 @@ import {
   checkOnSite,
   type DevicePosition,
   EXPECTATION_OPTIONS,
+  expiryFrom,
   HOUSE_RULE_OPTIONS,
   type ListingDraft,
   type ListingPhoto,
   type MyListing,
   ON_SITE_REASONS,
+  REPORTS_TO_PAUSE,
+  type ReportReason,
   SOCIETY_RULE_OPTIONS,
 } from "@repo/shared";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
 import { type CloudinaryConfig, destroyPhotos, ownedPublicId } from "../cloudinary";
 import {
   type Actor,
   mayManageListing,
   mayPostListing,
+  mayReportListing,
   maySwitchListing,
   type Refusal,
 } from "../policies";
@@ -48,8 +54,11 @@ export class Refused extends Error {
   }
 }
 
+/** A refusal about the state of things is a conflict; one about who is asking is forbidden. */
+const CONFLICTS: Refusal["code"][] = ["listing_limit", "under_review"];
+
 function refuse(refusal: Refusal): never {
-  throw new Refused(refusal.code === "listing_limit" ? 409 : 403, refusal.code, refusal.message);
+  throw new Refused(CONFLICTS.includes(refusal.code) ? 409 : 403, refusal.code, refusal.message);
 }
 
 const GONE = new Refused(404, "not_found", "That flat is no longer listed.");
@@ -119,6 +128,8 @@ function ownListings(db: Db) {
       expectations: listings.expectations,
       createdAt: listings.createdAt,
       isVerified: listings.isVerified,
+      expiresAt: listings.expiresAt,
+      underReview: listings.underReview,
       photos: photosInOrder,
     })
     .from(listings)
@@ -127,17 +138,19 @@ function ownListings(db: Db) {
 
 type OwnRow = Awaited<ReturnType<typeof ownListings>>[number];
 
-function toMyListing({
-  listerId: _listerId,
-  status,
-  deposit,
-  createdAt,
-  ...row
-}: OwnRow): MyListing {
+const stillRunning = (expiresAt: Date | null, now: Date) =>
+  expiresAt === null || expiresAt.getTime() > now.getTime();
+
+function toMyListing(
+  { listerId: _listerId, status, deposit, createdAt, expiresAt, ...row }: OwnRow,
+  now = new Date(),
+): MyListing {
   return {
     ...row,
     depositMonths: row.rent > 0 ? Math.round(deposit / row.rent) : 0,
-    isOpen: status === "active",
+    // A flat that has run out of time is closed, whatever its switch says.
+    isOpen: status === "active" && stillRunning(expiresAt, now),
+    expiresAt: expiresAt ? expiresAt.toISOString() : null,
     createdAt: createdAt.toISOString(),
     // Real likes and matches arrive with the match loop (M4).
     interestedCount: 0,
@@ -150,14 +163,22 @@ export async function getMyListings(db: Db, userId: string): Promise<MyListing[]
   const rows = await ownListings(db)
     .where(and(eq(listings.listerId, userId), ne(listings.status, "expired")))
     .orderBy(desc(listings.createdAt));
-  return rows.map(toMyListing);
+  const now = new Date();
+  return rows.map((row) => toMyListing(row, now));
 }
 
 async function openCount(db: Db, userId: string): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(listings)
-    .where(and(eq(listings.listerId, userId), eq(listings.status, "active")));
+    .where(
+      and(
+        eq(listings.listerId, userId),
+        eq(listings.status, "active"),
+        // A flat that has run out of time no longer takes up one of the person's places.
+        or(isNull(listings.expiresAt), gt(listings.expiresAt, sql`now()`)),
+      ),
+    );
   return row?.count ?? 0;
 }
 
@@ -247,6 +268,7 @@ export async function createListing(
       qualityScore: 70,
       isSeed: false,
       isVerified: onSite,
+      expiresAt: expiryFrom(new Date()),
     });
     await tx.insert(listingPhotos).values(
       photos.map((photo, position) => ({
@@ -262,7 +284,10 @@ export async function createListing(
   return toMyListing(await findOwn(db, id));
 }
 
-/** Switch a flat's vacancy sign on or off. */
+/**
+ * Switch a flat's vacancy sign on or off. Switching on a flat that had run out
+ * of time also gives it a fresh thirty days.
+ */
 export async function setListingOpen(
   db: Db,
   actor: Actor,
@@ -270,20 +295,89 @@ export async function setListingOpen(
   open: boolean,
 ): Promise<MyListing> {
   const row = await findOwn(db, listingId);
+  const now = new Date();
   const refusal = maySwitchListing(
     actor,
-    { listerId: row.listerId, isOpen: row.status === "active" },
+    {
+      listerId: row.listerId,
+      isOpen: row.status === "active" && stillRunning(row.expiresAt, now),
+      underReview: row.underReview,
+    },
     { open, openCount: await openCount(db, actor.userId) },
   );
   // Someone else's flat is reported as missing, so its existence is not given away.
   if (refusal?.code === "not_yours") throw GONE;
   if (refusal) refuse(refusal);
 
-  await db
-    .update(listings)
-    .set({ status: open ? "active" : "paused" })
+  const status = open ? ("active" as const) : ("paused" as const);
+  const expiresAt = open && !stillRunning(row.expiresAt, now) ? expiryFrom(now) : row.expiresAt;
+  await db.update(listings).set({ status, expiresAt }).where(eq(listings.id, listingId));
+  return toMyListing({ ...row, status, expiresAt }, now);
+}
+
+/** "Still available": give a flat a fresh thirty days on the board, and switch it on. */
+export async function renewListing(db: Db, actor: Actor, listingId: string): Promise<MyListing> {
+  const row = await findOwn(db, listingId);
+  const now = new Date();
+  const refusal = maySwitchListing(
+    actor,
+    {
+      listerId: row.listerId,
+      isOpen: row.status === "active" && stillRunning(row.expiresAt, now),
+      underReview: row.underReview,
+    },
+    { open: true, openCount: await openCount(db, actor.userId) },
+  );
+  if (refusal?.code === "not_yours") throw GONE;
+  if (refusal) refuse(refusal);
+
+  const expiresAt = expiryFrom(now);
+  await db.update(listings).set({ status: "active", expiresAt }).where(eq(listings.id, listingId));
+  return toMyListing({ ...row, status: "active", expiresAt }, now);
+}
+
+/**
+ * Report a flat. One report per person per flat; reporting again replaces the
+ * earlier one. Once enough different people have reported it, the flat comes
+ * off the board. Nothing about other people's reports is given back.
+ */
+export async function reportListing(
+  db: Db,
+  actor: Actor,
+  listingId: string,
+  report: { reason: ReportReason; note?: string },
+  context: { signInOffered: boolean },
+): Promise<void> {
+  const [listing] = await db
+    .select({ listerId: listings.listerId, isSeed: listings.isSeed })
+    .from(listings)
     .where(eq(listings.id, listingId));
-  return toMyListing({ ...row, status: open ? "active" : "paused" });
+  if (!listing) throw GONE;
+  const refusal = mayReportListing(actor, listing, context);
+  if (refusal) refuse(refusal);
+
+  await db.transaction(async (tx) => {
+    const details = { reason: report.reason, note: report.note ?? "" };
+    await tx
+      .insert(reports)
+      .values({ reporterId: actor.userId, listingId, ...details })
+      .onConflictDoUpdate({ target: [reports.reporterId, reports.listingId], set: details });
+
+    // Only reports from signed-in people count towards taking a flat down.
+    const [tally] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(reports)
+      .innerJoin(users, eq(users.id, reports.reporterId))
+      .where(
+        and(
+          eq(reports.listingId, listingId),
+          context.signInOffered ? eq(users.isAnonymous, false) : undefined,
+        ),
+      );
+    if ((tally?.count ?? 0) >= REPORTS_TO_PAUSE) {
+      await tx.update(listings).set({ underReview: true }).where(eq(listings.id, listingId));
+    }
+  });
 }
 
 /**

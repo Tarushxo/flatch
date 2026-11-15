@@ -1,6 +1,20 @@
 import { type Db, listings, localities, swipes, users } from "@repo/db";
 import type { City, FeedFilters, FeedPage, Listing } from "@repo/shared";
-import { and, asc, desc, eq, gt, inArray, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  notExists,
+  or,
+  sql,
+} from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../cursor";
 import { type PublicListingRow, type PublicPhotoRow, toListing } from "../serialize";
 
@@ -52,6 +66,16 @@ const PUBLIC_COLUMNS = {
 /** What the flat really costs each month: rent plus the recurring extras. */
 const monthlyCost = sql<number>`(${listings.rent} + ${listings.maintenance} + ${listings.utilitiesEst})`;
 
+/**
+ * A flat anyone may be shown: open, not run out of time, and not taken off
+ * the board after reports.
+ */
+export const onTheBoard = and(
+  eq(listings.status, "active"),
+  eq(listings.underReview, false),
+  or(isNull(listings.expiresAt), gt(listings.expiresAt, sql`now()`)),
+);
+
 /** Who the deck is for. A guest sees demo flats only; nobody is shown their own flat. */
 export type Viewer = { userId: string; isGuest: boolean } | null;
 
@@ -63,7 +87,7 @@ function inDeck(db: Db, filters: FeedFilters, viewer: Viewer) {
     .where(and(eq(swipes.userId, viewer?.userId ?? ""), eq(swipes.listingId, listings.id)));
 
   return and(
-    eq(listings.status, "active"),
+    onTheBoard,
     eq(localities.city, filters.city),
     filters.budgetMax === null ? undefined : lte(monthlyCost, filters.budgetMax),
     filters.localities.length === 0 ? undefined : inArray(localities.name, filters.localities),
@@ -138,6 +162,17 @@ export async function getFeedPage(
   };
 }
 
+/**
+ * One flat, as anyone with its link may see it: the public details only, and
+ * only while it is on the board. Null otherwise.
+ */
+export async function getPublicListing(db: Db, listingId: string): Promise<Listing | null> {
+  const rows = await publicListings(db)
+    .where(and(eq(listings.id, listingId), onTheBoard))
+    .limit(1);
+  return toListings(rows)[0] ?? null;
+}
+
 /** How many flats the filters leave in this person's deck. */
 export async function countFeed(
   db: Db,
@@ -157,7 +192,7 @@ export async function getLocalityNames(db: Db, city: City): Promise<string[]> {
     .selectDistinct({ name: localities.name })
     .from(localities)
     .innerJoin(listings, eq(listings.localityId, localities.id))
-    .where(and(eq(localities.city, city), eq(listings.status, "active")))
+    .where(and(eq(localities.city, city), onTheBoard))
     .orderBy(asc(localities.name));
   return rows.map((row) => row.name);
 }

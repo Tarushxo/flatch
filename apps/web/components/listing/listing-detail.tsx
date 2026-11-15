@@ -9,6 +9,7 @@ import { PHOTO_SIZES } from "@/lib/photo";
 import { AreaMap } from "./area-map";
 import { CompatRing } from "./compat-ring";
 import { FadeImage } from "./fade-image";
+import { FlatActions } from "./flat-actions";
 
 /**
  * Everything about one flat, in the order a tenant asks about it: what it
@@ -18,10 +19,19 @@ import { FadeImage } from "./fade-image";
 export function ListingDetail({
   listing,
   showGallery = false,
+  forSharing = false,
+  onReported,
 }: {
   listing: Listing;
   /** Show the photos at the top. Off where the photos are already on screen. */
   showGallery?: boolean;
+  /**
+   * True on the public page for one flat. The match score is left out there
+   * (it is personal to a tenant), and so are the share and report controls.
+   */
+  forSharing?: boolean;
+  /** Runs after the person reports this flat, e.g. to close the sheet. */
+  onReported?: () => void;
 }) {
   const { lister, compatibility } = listing;
 
@@ -45,7 +55,8 @@ export function ListingDetail({
 
       <Block title="What it costs">
         <GuestCheck
-          number={listing.id.replace(/\D/g, "").padStart(4, "0")}
+          // The last four digits in the id: a short slip number that stays the same for a flat.
+          number={listing.id.replace(/\D/g, "").slice(-4).padStart(4, "0")}
           lines={[
             { label: "Rent", amount: listing.rent },
             { label: "Maintenance", amount: listing.maintenance },
@@ -55,7 +66,7 @@ export function ListingDetail({
         />
       </Block>
 
-      {compatibility.percent > 0 ? (
+      {compatibility.percent > 0 && !forSharing ? (
         <Block title="Why this flat">
           <div className="flex items-center gap-5">
             <CompatRing percent={compatibility.percent} size="lg" />
@@ -178,6 +189,8 @@ export function ListingDetail({
           Never pay anything before you have visited.
         </p>
       </Block>
+
+      {forSharing ? null : <FlatActions listing={listing} onReported={onReported} />}
     </article>
   );
 }

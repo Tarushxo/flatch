@@ -12,7 +12,14 @@ import type { City, Listing } from "@repo/shared";
 /** The listing columns that may be shown to anyone. */
 export type PublicListingRow = Omit<
   ListingRow,
-  "societyName" | "addressText" | "locationExact" | "listerId" | "localityId" | "seedKey"
+  | "societyName"
+  | "addressText"
+  | "locationExact"
+  | "listerId"
+  | "localityId"
+  | "seedKey"
+  | "expiresAt"
+  | "underReview"
 > & {
   city: City;
   locality: string;

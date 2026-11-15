@@ -19,6 +19,10 @@ export type StoredListing = ListingDraft & {
   isOpen: boolean;
   /** Whether the lister confirmed they posted from the flat. Missing on flats saved before this existed. */
   isVerified?: boolean;
+  /** When the flat comes off the board. Missing on flats saved before this existed. */
+  expiresAt?: string | null;
+  /** Whether reports took the flat off the board. Only ever set by the server. */
+  underReview?: boolean;
   createdAt: string;
   /** The moment the bot tenants' arrival times are counted from. */
   opensAt: number;

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   checkOnSite,
+  daysLeft,
   draftAsListing,
   draftProblems,
   EMPTY_DRAFT,
+  expiryFrom,
+  hasExpired,
   LISTING_STEPS,
   type ListingDraft,
   metresApart,
@@ -128,5 +131,30 @@ describe("posted from here", () => {
     // A hundredth of a degree of latitude is about 1.1 km.
     expect(metresApart(hsr, { lat: hsr.lat + 0.01, lng: hsr.lng })).toBeGreaterThan(1090);
     expect(metresApart(hsr, { lat: hsr.lat + 0.01, lng: hsr.lng })).toBeLessThan(1130);
+  });
+});
+
+describe("how long a flat stays on the board", () => {
+  const posted = new Date("2026-11-16T10:00:00.000Z");
+  const ends = expiryFrom(posted).toISOString();
+
+  it("lasts thirty days from posting", () => {
+    expect(ends).toBe("2026-12-16T10:00:00.000Z");
+    expect(daysLeft(ends, posted)).toBe(30);
+  });
+
+  it("counts part of a day as a day, so the last day reads as 1, not 0", () => {
+    expect(daysLeft(ends, new Date("2026-12-15T22:00:00.000Z"))).toBe(1);
+    expect(hasExpired(ends, new Date("2026-12-15T22:00:00.000Z"))).toBe(false);
+  });
+
+  it("has expired at the end, and after", () => {
+    expect(hasExpired(ends, new Date(ends))).toBe(true);
+    expect(hasExpired(ends, new Date("2027-01-01T00:00:00.000Z"))).toBe(true);
+  });
+
+  it("never expires a flat with no end date, such as a demo flat", () => {
+    expect(daysLeft(null, posted)).toBeNull();
+    expect(hasExpired(null, posted)).toBe(false);
   });
 });

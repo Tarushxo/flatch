@@ -15,6 +15,13 @@
       "when": 1794759516918,
       "tag": "0001_classy_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794771240208,
+      "tag": "0002_striped_madame_web",
+      "breakpoints": true
     }
   ]
 }

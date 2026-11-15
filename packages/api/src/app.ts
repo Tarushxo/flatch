@@ -5,6 +5,7 @@ import {
   DevicePositionSchema,
   FeedFiltersSchema,
   ListingSubmissionSchema,
+  ReportSchema,
   TenantProfileSchema,
 } from "@repo/shared/schemas";
 import { Hono } from "hono";
@@ -19,6 +20,8 @@ import {
   deleteListing,
   getMyListings,
   Refused,
+  renewListing,
+  reportListing,
   setListingOpen,
 } from "./services/listings";
 import { getProfile, saveProfile } from "./services/me";
@@ -162,6 +165,27 @@ const routes = new Hono<Env>()
       const { listingId } = c.req.valid("param");
       const listing = await confirmOnSite(getDb(), viewer(c), listingId, c.req.valid("json"));
       return c.json({ listing });
+    },
+  )
+
+  .post(
+    "/listings/:listingId/renew",
+    zValidator("param", z.object({ listingId: z.uuid() }), invalid),
+    async (c) =>
+      c.json({
+        listing: await renewListing(getDb(), viewer(c), c.req.valid("param").listingId),
+      }),
+  )
+
+  .post(
+    "/listings/:listingId/report",
+    zValidator("param", z.object({ listingId: z.uuid() }), invalid),
+    zValidator("json", ReportSchema, invalid),
+    async (c) => {
+      await reportListing(getDb(), viewer(c), c.req.valid("param").listingId, c.req.valid("json"), {
+        signInOffered: googleEnabled(),
+      });
+      return c.json({ ok: true });
     },
   )
 

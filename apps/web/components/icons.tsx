@@ -9,6 +9,7 @@ import {
   Cards,
   Check,
   DotsThree,
+  Flag,
   GithubLogo,
   GoogleLogo,
   HandSwipeRight,
@@ -19,6 +20,7 @@ import {
   NavigationArrow,
   PaperPlaneRight,
   Plus,
+  ShareNetwork,
   SlidersHorizontal,
   Star,
   Trash,
@@ -49,6 +51,7 @@ export const CardsIcon = themed(Cards);
 export const CheckIcon = themed(Check);
 export const CrossIcon = themed(X);
 export const FiltersIcon = themed(SlidersHorizontal);
+export const FlagIcon = themed(Flag);
 export const GithubIcon = themed(GithubLogo);
 export const GoogleIcon = themed(GoogleLogo);
 export const HeartIcon = themed(Heart);
@@ -59,6 +62,7 @@ export const MapPinIcon = themed(MapPin);
 export const MoreIcon = themed(DotsThree);
 export const PlusIcon = themed(Plus);
 export const SendIcon = themed(PaperPlaneRight);
+export const ShareIcon = themed(ShareNetwork);
 export const StarIcon = themed(Star);
 export const SwipeIcon = themed(HandSwipeRight);
 export const TrashIcon = themed(Trash);

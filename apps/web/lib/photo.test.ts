@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { photoSrc, photoSrcSet, photoUrl } from "./photo";
+import { photoPreviewUrl, photoSrc, photoSrcSet, photoUrl } from "./photo";
 
 const unsplash = "https://images.unsplash.com/photo-123?auto=format&fit=crop";
 
@@ -61,5 +61,22 @@ describe("uploaded photos", () => {
     const candidates = photoSrcSet(uploaded, "tile").split(", ");
     expect(candidates).toHaveLength(3);
     expect(candidates[0]).toMatch(/w_320\/v1794760000.* 320w$/);
+  });
+});
+
+describe("link preview photos", () => {
+  it("crops a demo photo to the preview shape, as a JPEG every app can show", () => {
+    const url = new URL(photoPreviewUrl(unsplash));
+    expect(url.searchParams.get("w")).toBe("1200");
+    expect(url.searchParams.get("h")).toBe("630");
+    expect(url.searchParams.get("fm")).toBe("jpg");
+  });
+
+  it("crops an uploaded photo the same way", () => {
+    const uploaded =
+      "https://res.cloudinary.com/demo-cloud/image/upload/v1794760000/flatch/u/abc/photo-1.jpg";
+    expect(photoPreviewUrl(uploaded)).toContain(
+      "/upload/f_jpg,q_auto,c_fill,w_1200,h_630/v1794760000/",
+    );
   });
 });

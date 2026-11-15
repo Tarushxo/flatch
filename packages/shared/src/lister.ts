@@ -75,7 +75,57 @@ export const LISTING_LIMITS = {
   addressLineMax: 120,
   /** The most flats one person may have open to likes at once. */
   openMax: 2,
+  /** How long a flat stays on the board before its lister has to say it is still available. */
+  openDays: 30,
+  /** From how many days before the end the lister is reminded. */
+  remindDays: 7,
 } as const;
+
+/*
+ * Reports. A signed-in person can report a flat someone posted. Enough
+ * reports from different people take the flat off the board until it has been
+ * looked at.
+ */
+export const REPORT_REASONS = [
+  "not_theirs",
+  "fake",
+  "wrong_details",
+  "offensive",
+  "other",
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  not_theirs: "It is not their flat to let",
+  fake: "It does not exist",
+  wrong_details: "The details or photos are wrong",
+  offensive: "It is offensive",
+  other: "Something else",
+};
+export const REPORT_NOTE_MAX = 300;
+/** Reports from this many different people take a flat off the board. */
+export const REPORTS_TO_PAUSE = 3;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** When a flat posted (or renewed) at `from` comes off the board. */
+export function expiryFrom(from: Date): Date {
+  return new Date(from.getTime() + LISTING_LIMITS.openDays * DAY_MS);
+}
+
+/**
+ * Whole days until a flat comes off the board, counting a part of a day as a
+ * day. Zero or less means it has. Null for a flat that never expires.
+ */
+export function daysLeft(expiresAt: string | null, now: Date): number | null {
+  if (expiresAt === null) return null;
+  return Math.ceil((Date.parse(expiresAt) - now.getTime()) / DAY_MS);
+}
+
+/** Whether a flat has run out of time on the board. */
+export function hasExpired(expiresAt: string | null, now: Date): boolean {
+  const left = daysLeft(expiresAt, now);
+  return left !== null && left <= 0;
+}
 
 /** The steps of posting a flat, in order. */
 export const LISTING_STEPS = ["basics", "where", "costs", "photos", "home", "preview"] as const;

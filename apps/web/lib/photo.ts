@@ -73,3 +73,34 @@ export const PHOTO_SIZES = {
   galleryTile: "(min-width: 640px) 440px, 82vw",
   savedTile: "(min-width: 1280px) 30vw, (min-width: 640px) 46vw, 100vw",
 } as const;
+
+/** The size link previews (WhatsApp, iMessage, social sites) expect. */
+const PREVIEW = { width: 1200, height: 630 } as const;
+
+/** A photo cropped to the shape of a link preview. Unknown hosts are returned unchanged. */
+export function photoPreviewUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (parsed.hostname === "res.cloudinary.com") {
+    const at = parsed.pathname.indexOf(UPLOAD);
+    if (at === -1) return url;
+    const before = parsed.pathname.slice(0, at + UPLOAD.length);
+    const rest = parsed.pathname
+      .slice(at + UPLOAD.length)
+      .replace(/^(?:[a-z]+_[^/]+\/)*(?=v\d+\/)/, "");
+    parsed.pathname = `${before}f_jpg,q_auto,c_fill,w_${PREVIEW.width},h_${PREVIEW.height}/${rest}`;
+    return parsed.toString();
+  }
+  if (parsed.hostname !== "images.unsplash.com") return url;
+  parsed.searchParams.set("fm", "jpg");
+  parsed.searchParams.set("fit", "crop");
+  parsed.searchParams.set("w", String(PREVIEW.width));
+  parsed.searchParams.set("h", String(PREVIEW.height));
+  parsed.searchParams.set("q", "70");
+  parsed.searchParams.delete("auto");
+  return parsed.toString();
+}

@@ -1,2 +1,2 @@
 export { type AppType, app } from "./app";
-export { getFeedPage } from "./services/feed";
+export { getFeedPage, getPublicListing } from "./services/feed";

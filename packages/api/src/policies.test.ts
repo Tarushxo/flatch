@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mayManageListing, mayPostListing, maySwitchListing, mayUploadPhotos } from "./policies";
+import {
+  mayManageListing,
+  mayPostListing,
+  mayReportListing,
+  maySwitchListing,
+  mayUploadPhotos,
+} from "./policies";
 
 const member = { userId: "user-a", isGuest: false };
 const guest = { userId: "guest-a", isGuest: true };
@@ -107,4 +113,68 @@ describe("who may upload photos", () => {
     expect(mayUploadPhotos(guest, { signInOffered: true })?.code).toBe("sign_in_required");
     expect(mayUploadPhotos(guest, { signInOffered: false })).toBeNull();
   });
+});
+
+describe("a flat that was reported off the board", () => {
+  const reported = { ...mine, isOpen: false, underReview: true };
+
+  it("cannot be switched back on by its lister", () => {
+    expect(maySwitchListing(member, reported, { open: true, openCount: 0 })?.code).toBe(
+      "under_review",
+    );
+  });
+
+  it("can still be switched off", () => {
+    expect(
+      maySwitchListing(member, { ...reported, isOpen: true }, { open: false, openCount: 1 }),
+    ).toBeNull();
+  });
+});
+
+describe("who may report a flat", () => {
+  const real = { listerId: "user-b", isSeed: false };
+  const rows = [
+    {
+      who: "a signed-in person, someone else's flat",
+      actor: member,
+      listing: real,
+      signIn: true,
+      code: null,
+    },
+    {
+      who: "a guest, where sign-in is offered",
+      actor: guest,
+      listing: real,
+      signIn: true,
+      code: "sign_in_required",
+    },
+    {
+      who: "a guest, where there is no sign-in",
+      actor: guest,
+      listing: real,
+      signIn: false,
+      code: null,
+    },
+    {
+      who: "anyone, a demo flat",
+      actor: member,
+      listing: { ...real, isSeed: true },
+      signIn: true,
+      code: "demo_flat",
+    },
+    {
+      who: "a lister, their own flat",
+      actor: member,
+      listing: { ...real, listerId: "user-a" },
+      signIn: true,
+      code: "own_flat",
+    },
+  ] as const;
+
+  for (const row of rows) {
+    it(`${row.who}: ${row.code ?? "allowed"}`, () => {
+      const refusal = mayReportListing(row.actor, row.listing, { signInOffered: row.signIn });
+      expect(refusal?.code ?? null).toBe(row.code);
+    });
+  }
 });

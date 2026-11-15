@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CITIES } from "./constants";
-import { LISTING_LIMITS } from "./lister";
+import { LISTING_LIMITS, REPORT_NOTE_MAX, REPORT_REASONS } from "./lister";
 import { FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "./listing";
 import { MESSAGE_MAX_LENGTH } from "./match";
 import {
@@ -255,6 +255,10 @@ export const MyListingSchema = ListingDraftSchema.extend({
   id: z.string(),
   /** True once the lister has confirmed, by their device's location, that they posted from the flat. */
   isVerified: z.boolean(),
+  /** When the flat comes off the board unless the lister says it is still available. Null: never. */
+  expiresAt: z.iso.datetime().nullable(),
+  /** True when enough people reported the flat that it was taken off the board. */
+  underReview: z.boolean(),
   /** The VACANCY sign: true while the flat is open to likes. */
   isOpen: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -290,4 +294,10 @@ export const UploadTicketSchema = z.object({
   uploadUrl: z.url(),
   /** Sent as form fields along with the file, exactly as given. */
   fields: z.record(z.string(), z.string()),
+});
+
+/** A report about a flat, from someone who thinks something is wrong with it. */
+export const ReportSchema = z.object({
+  reason: z.enum(REPORT_REASONS),
+  note: z.string().trim().max(REPORT_NOTE_MAX).optional(),
 });

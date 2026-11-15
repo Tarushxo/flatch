@@ -2,6 +2,7 @@ import {
   cleanMessage,
   cleanProfile,
   draftProblems,
+  expiryFrom,
   GUEST_ACCOUNT,
   type Listing,
   type Match,
@@ -389,6 +390,7 @@ export const mockApi: Api = {
       id: `mine-${now.toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
       isOpen: true,
       isVerified: false,
+      expiresAt: expiryFrom(new Date(now)).toISOString(),
       createdAt: new Date(now).toISOString(),
       opensAt: now,
       closedAt: null,
@@ -414,6 +416,27 @@ export const mockApi: Api = {
   async deleteListing(listingId) {
     await delay(120);
     writeListings(readListings().filter((listing) => listing.id !== listingId));
+  },
+
+  async renewListing(listingId) {
+    await delay(120);
+    const now = Date.now();
+    const updated = updateListing(listingId, (listing) => {
+      const pausedFor = listing.isOpen ? 0 : now - (listing.closedAt ?? now);
+      return {
+        ...listing,
+        isOpen: true,
+        closedAt: null,
+        opensAt: listing.opensAt + pausedFor,
+        expiresAt: expiryFrom(new Date(now)).toISOString(),
+      };
+    });
+    return toMyListing(updated, now);
+  },
+
+  // The mock's flats are all demo flats, so there is nothing to act on.
+  async reportListing() {
+    await delay(150);
   },
 
   // The mock takes the lister's word for it: there is no map to check against.
