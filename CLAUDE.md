@@ -25,6 +25,7 @@ A swipe-based flat and flatmate finder: tenants swipe on flats, listers accept i
 - Swipe endpoints are idempotent by client-generated id.
 - Animate only `transform` and `opacity`. Every swipe action also has a button and a keyboard shortcut. Honour `prefers-reduced-motion`.
 - Use the design tokens in SPEC section 4; do not introduce new colours. Glow is for state and energy, one glowing thing per moment.
+- Show the logo only through the `Logo` component (`apps/web/components/logo.tsx`), never as hand-styled text, so the font and neon flicker stay identical on every screen.
 - Serve images through Cloudinary transformation URLs, not `next/image` optimization.
 - Everything must stay on free tiers. Do not add a paid service or a new third-party dependency without asking.
 

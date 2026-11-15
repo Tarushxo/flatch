@@ -1,9 +1,10 @@
 import { APP_NAME, formatRent, formatRupees } from "@repo/shared";
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
 import { BookmarkIcon, CrossIcon, HeartIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
+import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = { title: "Style guide" };
 
@@ -33,10 +34,8 @@ export default function StyleguidePage() {
     <main className="relative isolate mx-auto w-full max-w-4xl px-5 pt-10 pb-24 sm:px-8">
       <Ambient />
 
-      <Link href="/" className="font-medium text-like text-sm">
-        ← Back
-      </Link>
-      <h1 className="mt-6 font-display font-semibold text-4xl tracking-tight">After Hours</h1>
+      <SiteHeader />
+      <h1 className="mt-12 font-display font-semibold text-4xl tracking-tight">After Hours</h1>
       <p className="mt-3 max-w-xl text-fg-2 leading-relaxed">
         The {APP_NAME} design tokens. Neon is light, not paint: most of the interface is quiet dark
         neutrals, and glow appears only where there is energy.
@@ -79,8 +78,13 @@ export default function StyleguidePage() {
               </span>
             </p>
           </Specimen>
-          <Specimen label="Sign · Tilt Neon (logo, stamps and the match screen only)">
-            <div className="flex flex-wrap gap-x-10 gap-y-4 py-2 text-4xl">
+          <Specimen label="Logo · Yellowtail, always through the Logo component so it flickers the same everywhere">
+            <div className="py-2">
+              <Logo size="lg" />
+            </div>
+          </Specimen>
+          <Specimen label="Sign · Tilt Neon (swipe stamps and the match screen only)">
+            <div className="flex flex-wrap gap-x-10 gap-y-4 py-2 font-sign text-4xl">
               <span className="sign [--glow:var(--like)]">MOVE IN</span>
               <span className="sign [--glow:var(--pass)]">PASS</span>
               <span className="sign [--glow:var(--save)]">MAYBE</span>

@@ -1,6 +1,6 @@
 import { APP_NAME, APP_TAGLINE } from "@repo/shared";
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono, Tilt_Neon } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono, Tilt_Neon, Yellowtail } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -16,6 +16,13 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 const tiltNeon = Tilt_Neon({ subsets: ["latin"], variable: "--font-tilt-neon", display: "swap" });
+// The logo's retro diner-sign script. Swap the font here to change it everywhere.
+const logoFace = Yellowtail({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-logo-face",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -39,7 +46,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${tiltNeon.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${tiltNeon.variable} ${logoFace.variable}`}
     >
       <body className="min-h-dvh">{children}</body>
     </html>

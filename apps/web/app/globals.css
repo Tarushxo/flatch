@@ -50,6 +50,7 @@
   --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
   --font-sign: var(--font-tilt-neon), var(--font-bricolage), ui-sans-serif, sans-serif;
+  --font-logo: var(--font-logo-face), "Brush Script MT", cursive;
 
   --animate-flicker: flicker 2.2s linear 0.2s 1 both;
   --animate-drift: drift 24s ease-in-out infinite alternate;
@@ -182,9 +183,11 @@
     0 0 64px -8px color-mix(in oklab, var(--glow) 30%, transparent);
 }
 
-/* Neon-tube lettering. Reserved for the logo, swipe stamps and the match sign. */
+/*
+ * Lit neon-tube lettering. Reserved for the logo, swipe stamps and the match
+ * sign. Pair it with a typeface: `font-sign` for stamps, `font-logo` for the logo.
+ */
 @utility sign {
-  font-family: var(--font-sign);
   color: color-mix(in oklab, var(--glow) 22%, white);
   text-shadow:
     0 0 3px var(--glow),
@@ -195,7 +198,6 @@
 
 /* The same tube with the power off: dark glass with a hint of its colour. */
 @utility sign-unlit {
-  font-family: var(--font-sign);
   color: color-mix(in oklab, var(--glow) 30%, var(--surface-2));
 }
 

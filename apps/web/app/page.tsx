@@ -1,21 +1,15 @@
-import { APP_NAME } from "@repo/shared";
 import Link from "next/link";
 import { Ambient } from "@/components/ambient";
 import { ArrowRightIcon } from "@/components/icons";
-import { NeonSign } from "@/components/neon-sign";
 import { PreviewCard } from "@/components/preview-card";
+import { SiteHeader } from "@/components/site-header";
 
 export default function HomePage() {
   return (
     <main className="relative isolate mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
       <Ambient />
 
-      <header className="flex items-center justify-between">
-        <NeonSign text={APP_NAME} className="text-3xl [--glow:var(--brand-b)]" />
-        <span className="rounded-full border border-like/50 px-3 py-1 font-sign text-like text-xs tracking-[0.22em]">
-          VACANCY
-        </span>
-      </header>
+      <SiteHeader />
 
       <div className="grid flex-1 items-center gap-12 py-12 lg:grid-cols-[1.1fr_1fr] lg:gap-8 lg:py-16">
         <section className="max-w-xl">

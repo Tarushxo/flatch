@@ -205,7 +205,8 @@ Notes:
 - **Display:** Bricolage Grotesque (headings, big statements).
 - **Body:** Geist (or Inter).
 - **Numbers:** Geist Mono with tabular figures for rent and stats.
-- **Sign face:** Tilt Neon, used _only_ for the logo, the swipe stamps and the match sign.
+- **Logo face:** Yellowtail, a retro diner and motel sign script, used _only_ for the logo.
+- **Sign face:** Tilt Neon, used _only_ for the swipe stamps and the match sign.
 - Format money for India: `₹18,500`, `₹1.2L`. Locale `en-IN`.
 
 ### 4.4 Motion
@@ -213,7 +214,7 @@ Notes:
 - Springs, not durations, for anything the finger touches.
 - Shared-element transitions for card → detail and card → match.
 - Stagger list and chip entrances by 20–30 ms.
-- The logo behaves like an old motel sign (`NeonSign`): it flickers on at load, the whole sign buzzes a few times a minute, and one letter has a loose connection. Only the lit layer's opacity animates, over an always-visible unlit tube.
+- The logo is always the `Logo` component, so its typeface, colour and flicker are the same on every screen; only the size varies. It behaves like an old motel sign (`NeonSign`): it flickers on at load, the whole sign buzzes a few times a minute, and one letter has a loose connection. Only the lit layer's opacity animates, over an always-visible unlit tube.
 - Respect `prefers-reduced-motion`: remove rotation, flings, flicker and particles; keep fades.
 
 ### 4.5 Components and libraries
