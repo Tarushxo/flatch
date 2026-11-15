@@ -99,6 +99,7 @@ export function TabBarDemo() {
           >
             <TabIcon
               key={lit ? "lit" : "unlit"}
+              weight={lit ? "fill" : "regular"}
               className={`size-6 ${
                 lit ? "animate-switch-on [filter:drop-shadow(0_0_6px_var(--like))]" : ""
               }`}

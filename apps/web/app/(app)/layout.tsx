@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
 import { AppNav } from "@/components/app-shell/app-nav";
 import { Logo } from "@/components/logo";
-import { Providers } from "./providers";
+import { Providers } from "@/components/providers";
 
 /**
  * The signed-in app's frame. On a phone: logo on top, screen in the middle,

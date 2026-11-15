@@ -37,6 +37,8 @@ export const mockApi: Api = {
     for (const swipe of batch.map((item) => SwipeSchema.parse(item))) {
       if (seenClientIds.has(swipe.clientId)) continue;
       seenClientIds.add(swipe.clientId);
+      // Delete first so a changed decision moves to the end of the order.
+      swipes.delete(swipe.listingId);
       swipes.set(swipe.listingId, swipe.action);
     }
   },
@@ -44,6 +46,13 @@ export const mockApi: Api = {
   async undoSwipe(listingId) {
     await delay(150);
     swipes.delete(listingId);
+  },
+
+  async getSaved() {
+    await delay(300);
+    // A Map keeps insertion order, so reversing gives most recent first.
+    const savedIds = [...swipes].filter(([, action]) => action === "save").map(([id]) => id);
+    return savedIds.reverse().flatMap((id) => MOCK_LISTINGS.filter((listing) => listing.id === id));
   },
 
   async resetPasses() {

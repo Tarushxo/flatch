@@ -1,4 +1,4 @@
-import type { FeedPage, Swipe } from "@repo/shared";
+import type { FeedPage, Listing, Swipe } from "@repo/shared";
 import { mockApi } from "./mock";
 
 /**
@@ -13,6 +13,8 @@ export interface Api {
   sendSwipes(swipes: Swipe[]): Promise<void>;
   /** Take back a swipe so the listing can be shown again. */
   undoSwipe(listingId: string): Promise<void>;
+  /** The flats the person has saved for later, most recent first. */
+  getSaved(): Promise<Listing[]>;
   /** Forget every pass, so passed flats can come round again. */
   resetPasses(): Promise<void>;
 }

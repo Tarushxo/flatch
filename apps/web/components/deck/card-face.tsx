@@ -1,5 +1,6 @@
 import { FURNISHING_LABELS, formatRent, type Listing, ROOM_TYPE_LABELS } from "@repo/shared";
 import { CompatRing } from "@/components/listing/compat-ring";
+import { FadeImage } from "@/components/listing/fade-image";
 
 const dayMonth = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
 
@@ -25,13 +26,7 @@ export function CardFace({ listing, photoIndex }: { listing: Listing; photoIndex
       style={{ backgroundColor: photo?.dominantColor }}
     >
       {photo ? (
-        <img
-          key={photo.url}
-          src={photo.url}
-          alt={`${photo.roomTag} of ${listing.title}`}
-          draggable={false}
-          className="absolute inset-0 size-full object-cover"
-        />
+        <FadeImage key={photo.url} src={photo.url} alt={`${photo.roomTag} of ${listing.title}`} />
       ) : null}
 
       {/* Scrims so the text stays readable over any photo */}

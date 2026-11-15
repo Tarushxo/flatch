@@ -9,6 +9,7 @@ import { useDeck } from "@/lib/deck/use-deck";
 import { ActionBar } from "./action-bar";
 import { AmbientGlow } from "./ambient-glow";
 import { DeckCard, type DeckCardHandle } from "./deck-card";
+import { DeckHints } from "./deck-hints";
 import { DeckEmpty, DeckError, DeckLoading } from "./deck-states";
 
 /** Only this many cards are in the page at once. */
@@ -31,10 +32,19 @@ const SHORTCUTS = [
 export function SwipeDeck({
   onTopChange,
   onOpenDetails,
+  variant = "app",
 }: {
   onTopChange?: (listing: Listing | null) => void;
   onOpenDetails: (listing: Listing) => void;
+  /**
+   * "app" is the full deck. "teaser" is the one on the landing page: it sits
+   * inside a scrolling page, so it leaves vertical drags and the keyboard to
+   * the page and only swipes sideways.
+   */
+  variant?: "app" | "teaser";
 }) {
+  const teaser = variant === "teaser";
+  const hints = !teaser;
   const deck = useDeck();
   const returning = useDeckStore((state) => state.returning);
   const commit = useDeckStore((state) => state.commit);
@@ -43,6 +53,7 @@ export function SwipeDeck({
   const progress = useMotionValue(0);
   const topCard = useRef<DeckCardHandle>(null);
   const [glow, setGlow] = useState<string | null>(null);
+  const [burst, setBurst] = useState<{ id: number; action: DeckAction } | null>(null);
 
   const top = deck.cards[0] ?? null;
   const visible = deck.cards.slice(0, VISIBLE);
@@ -122,10 +133,11 @@ export function SwipeDeck({
     keys.current = handleKey;
   });
   useEffect(() => {
+    if (teaser) return;
     const listener = (event: KeyboardEvent) => keys.current(event);
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, []);
+  }, [teaser]);
 
   return (
     <section aria-label="Flats for you" className="relative isolate flex h-full flex-col gap-5">
@@ -136,6 +148,8 @@ export function SwipeDeck({
         {deck.isError ? <DeckError onRetry={deck.retry} /> : null}
         {deck.isExhausted ? <DeckEmpty onRevisit={deck.revisitPassed} /> : null}
 
+        {top && hints ? <DeckHints /> : null}
+
         {visible.map((listing, index) => (
           <DeckCard
             key={listing.id}
@@ -145,16 +159,31 @@ export function SwipeDeck({
             progress={progress}
             enterFrom={returning?.id === listing.id ? returning.action : undefined}
             onEntered={clearReturning}
+            onLeaving={(action) => {
+              // Likes and saves get a small celebration; a pass leaves quietly.
+              if (action !== "pass") setBurst((last) => ({ id: (last?.id ?? 0) + 1, action }));
+            }}
             onCommit={(action) => commit(listing.id, action)}
             onOpenDetails={() => onOpenDetails(listing)}
             onPhotoChange={setGlow}
+            sidewaysOnly={teaser}
           />
         ))}
       </div>
 
-      <ActionBar disabled={!top} canUndo={deck.canUndo} onAction={act} onUndo={deck.undo} />
+      <ActionBar
+        disabled={!top}
+        canUndo={deck.canUndo}
+        burst={burst}
+        onAction={act}
+        onUndo={deck.undo}
+      />
 
-      <ul className="hidden items-center justify-center gap-x-4 gap-y-1 text-fg-3 text-xs lg:flex lg:flex-wrap">
+      <ul
+        className={`hidden items-center justify-center gap-x-4 gap-y-1 text-fg-3 text-xs ${
+          teaser ? "" : "lg:flex lg:flex-wrap"
+        }`}
+      >
         {SHORTCUTS.map(([key, what]) => (
           <li key={what} className="flex items-center gap-1.5">
             <kbd className="rounded border border-hairline bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] text-fg-2">

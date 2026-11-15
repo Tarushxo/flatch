@@ -58,3 +58,38 @@ export function CoffeeCupDrawing({ className }: { className?: string }) {
     </NeonDrawing>
   );
 }
+
+/** A made bed: "nothing saved yet". */
+export function BedDrawing({ className }: { className?: string }) {
+  return (
+    <NeonDrawing label="A neon bed" className={className}>
+      <path d="M8 49V15" />
+      <path d="M8 40h44v9" />
+      <path d="M8 31h35a9 9 0 0 1 9 9" />
+      <rect x="13" y="22" width="14" height="9" rx="3.5" />
+    </NeonDrawing>
+  );
+}
+
+/** A room key: the Keys tab before any match. */
+export function KeyDrawing({ className }: { className?: string }) {
+  return (
+    <NeonDrawing label="A neon key" className={className}>
+      <circle cx="19" cy="41" r="10" />
+      <path d="M26.5 33.5 51 9" />
+      <path d="m43 17 7 7" />
+      <path d="m36 24 5 5" />
+    </NeonDrawing>
+  );
+}
+
+/** A roadside arrow sign: "wrong turn". */
+export function ArrowSignDrawing({ className }: { className?: string }) {
+  return (
+    <NeonDrawing label="A neon arrow sign" className={className}>
+      <path d="M10 10h31l10 10-10 10H10z" />
+      <path d="M28 30v24" />
+      <path d="M19 54h18" />
+    </NeonDrawing>
+  );
+}

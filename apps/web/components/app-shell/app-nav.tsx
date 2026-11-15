@@ -45,6 +45,7 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
           >
             <TabIcon
               key={lit ? "lit" : "unlit"}
+              weight={lit ? "fill" : "regular"}
               className={`size-6 shrink-0 ${
                 lit ? "animate-switch-on [filter:drop-shadow(0_0_6px_var(--like))]" : ""
               }`}

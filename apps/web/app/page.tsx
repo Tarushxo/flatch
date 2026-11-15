@@ -1,47 +1,162 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Ambient } from "@/components/ambient";
-import { ArrowRightIcon } from "@/components/icons";
-import { PreviewCard } from "@/components/preview-card";
-import { SiteHeader } from "@/components/site-header";
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  GithubIcon,
+  HeartIcon,
+  KeyIcon,
+  SwipeIcon,
+} from "@/components/icons";
+import { LandingDeck } from "@/components/landing/landing-deck";
+import { SignAssembly } from "@/components/landing/sign-assembly";
+import { CompatRing } from "@/components/listing/compat-ring";
+import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
+
+const STEPS = [
+  {
+    icon: SwipeIcon,
+    title: "Swipe",
+    body: "Flats that fit your budget, your commute and how you live, one card at a time. Right to like, left to pass.",
+  },
+  {
+    icon: HeartIcon,
+    title: "Match",
+    body: "The lister sees your profile. If they like you back, it is a match and you can chat.",
+  },
+  {
+    icon: KeyIcon,
+    title: "Move in",
+    body: "Only then is the exact address shared. Visit, meet the flatmates, pick up the key.",
+  },
+];
+
+const PRIMARY_BUTTON =
+  "rounded-full bg-gradient-to-r from-brand-a to-brand-b px-7 py-3.5 font-semibold text-white shadow-[0_8px_32px_-8px_var(--brand-b)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]";
 
 export default function HomePage() {
   return (
-    <main className="relative isolate mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
+    <div className="relative isolate overflow-x-clip">
       <Ambient />
 
-      <SiteHeader />
+      <main className="mx-auto w-full max-w-6xl px-5 pt-[max(2rem,env(safe-area-inset-top))] sm:px-8">
+        {/* Hero: the roadside sign on the left, the live deck on the right */}
+        <section className="grid items-center gap-14 pb-20 lg:min-h-[calc(100dvh-2rem)] lg:grid-cols-[1.1fr_1fr] lg:gap-8">
+          <div className="max-w-xl">
+            <SignAssembly />
+            <h1 className="text-balance font-display font-semibold text-[clamp(2.5rem,6.5vw,4.25rem)] leading-[1.02] tracking-tight">
+              Swipe right on your next flat.
+            </h1>
+            <p className="mt-6 max-w-md text-pretty text-fg-2 text-lg leading-relaxed">
+              Flats on one side, flatmates on the other. Swipe through homes that fit, and match
+              with the people who live there.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <Link href="/discover" className={PRIMARY_BUTTON}>
+                Start swiping
+              </Link>
+              <a
+                href="#how-it-works"
+                className="group inline-flex items-center gap-1.5 font-medium text-like text-sm"
+              >
+                How it works
+                <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            </div>
+          </div>
 
-      <div className="grid flex-1 items-center gap-12 py-12 lg:grid-cols-[1.1fr_1fr] lg:gap-8 lg:py-16">
-        <section className="max-w-xl">
-          <h1 className="text-balance font-display font-semibold text-[clamp(2.5rem,7vw,4.5rem)] leading-[1.02] tracking-tight">
-            Swipe right on your next flat.
-          </h1>
-          <p className="mt-6 max-w-md text-pretty text-fg-2 text-lg leading-relaxed">
-            Flats on one side, flatmates on the other. Swipe through homes that fit your budget,
-            your commute and how you live. When the lister likes you back, you match and chat.
-          </p>
-
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-            <Link
-              href="/discover"
-              className="rounded-full bg-gradient-to-r from-brand-a to-brand-b px-7 py-3.5 font-semibold text-white shadow-[0_8px_32px_-8px_var(--brand-b)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-            >
-              Start swiping
-            </Link>
-            <Link
-              href="/styleguide"
-              className="group inline-flex items-center gap-1.5 font-medium text-like text-sm"
-            >
-              See the design tokens
-              <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+          <div className="flex flex-col items-center lg:items-end">
+            <div className="flex w-full max-w-[22rem] flex-col items-center gap-4">
+              <p className="flex items-center gap-3 text-fg-2 text-sm">
+                <MarqueeBulbs total={5} />
+                This one is live. Swipe it.
+              </p>
+              <LandingDeck />
+            </div>
           </div>
         </section>
 
-        <section className="flex justify-center lg:justify-end">
-          <PreviewCard />
+        <section id="how-it-works" className="scroll-mt-10 py-20">
+          <Eyebrow>How it works</Eyebrow>
+          <h2 className="mt-3 max-w-xl text-balance font-display font-semibold text-3xl tracking-tight sm:text-4xl">
+            Three steps from the sign to the key.
+          </h2>
+          <ol className="mt-10 grid gap-4 md:grid-cols-3">
+            {STEPS.map(({ icon: StepIcon, title, body }, position) => (
+              <li key={title} className="surface rounded-3xl p-6">
+                <div className="flex items-center justify-between">
+                  <span className="font-sign text-4xl text-fg-3">{position + 1}</span>
+                  <StepIcon className="size-7 text-like" />
+                </div>
+                <h3 className="mt-6 font-display font-semibold text-xl tracking-tight">{title}</h3>
+                <p className="mt-2 text-fg-2 text-sm leading-relaxed">{body}</p>
+              </li>
+            ))}
+          </ol>
         </section>
-      </div>
-    </main>
+
+        <section className="grid items-center gap-10 py-20 lg:grid-cols-2">
+          <div>
+            <Eyebrow>The feed</Eyebrow>
+            <h2 className="mt-3 max-w-md text-balance font-display font-semibold text-3xl tracking-tight sm:text-4xl">
+              Ranked for both sides, not just by price.
+            </h2>
+            <p className="mt-5 max-w-md text-fg-2 leading-relaxed">
+              Every flat gets a score for how well you and the household would fit: budget, commute,
+              timing and how you each live. The card shows the score, and the details show the
+              reasons.
+            </p>
+          </div>
+          <div className="surface rounded-3xl p-7">
+            <p className="text-fg-3 text-xs uppercase tracking-[0.18em]">Example</p>
+            <div className="mt-5 flex items-center gap-6">
+              <CompatRing percent={92} size="lg" />
+              <ul className="space-y-2.5 text-sm">
+                {["Well within your budget", "20 min to work", "Both tidy and early risers"].map(
+                  (reason) => (
+                    <li key={reason} className="flex items-start gap-2">
+                      <CheckIcon className="mt-0.5 size-4 shrink-0 text-win" />
+                      {reason}
+                    </li>
+                  ),
+                )}
+                <li className="flex items-start gap-2 text-fg-2">
+                  <span
+                    aria-hidden="true"
+                    className="w-4 shrink-0 text-center font-semibold text-save"
+                  >
+                    !
+                  </span>
+                  No overnight guests
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-hairline border-t">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-fg-3 text-sm sm:px-8">
+          <p>A portfolio project. Every listing is demo data.</p>
+          <nav aria-label="Footer" className="flex items-center gap-6">
+            <Link href="/styleguide" className="transition-colors hover:text-fg">
+              Design tokens
+            </Link>
+            <a
+              href="https://github.com/Tarushxo/flatch"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-fg"
+            >
+              <GithubIcon className="size-4" />
+              Source
+            </a>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
+}
+
+function Eyebrow({ children }: { children: ReactNode }) {
+  return <p className="font-medium text-fg-3 text-xs uppercase tracking-[0.18em]">{children}</p>;
 }

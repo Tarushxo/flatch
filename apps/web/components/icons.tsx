@@ -1,109 +1,44 @@
-import type { SVGProps } from "react";
+import type { Icon, IconProps } from "@phosphor-icons/react";
+import {
+  ArrowCounterClockwise,
+  ArrowRight,
+  BookmarkSimple,
+  Cards,
+  Check,
+  GithubLogo,
+  HandSwipeRight,
+  Heart,
+  Info,
+  Key,
+  Trash,
+  User,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
 
 /*
- * A small hand-drawn icon set. Icons are decorative (aria-hidden); the control
- * that holds one carries the label.
+ * The app's icons, from Phosphor. Every icon is imported from this file, under
+ * our own name, so the whole set can be restyled or swapped in one place.
+ *
+ * Icons are decorative (aria-hidden); the button or link that holds one carries
+ * the label. Size them with a class such as `size-6`. Pass `weight="fill"` for
+ * the lit version of a tab icon.
  */
-type IconProps = SVGProps<SVGSVGElement>;
-
-function Icon({ children, ...props }: IconProps) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      {children}
-    </svg>
-  );
+function themed(Glyph: Icon) {
+  return function ThemedIcon(props: IconProps) {
+    return <Glyph aria-hidden="true" weight="bold" {...props} />;
+  };
 }
 
-export function HeartIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />
-    </Icon>
-  );
-}
-
-export function CrossIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M6 6l12 12M18 6 6 18" />
-    </Icon>
-  );
-}
-
-export function BookmarkIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M7 4h10v16l-5-3.5L7 20V4Z" />
-    </Icon>
-  );
-}
-
-export function CardsIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="4" y="7" width="13" height="14" rx="2.5" />
-      <path d="M8 3.5h9.5A2.5 2.5 0 0 1 20 6v11" />
-    </Icon>
-  );
-}
-
-export function KeyIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="8" cy="16" r="4" />
-      <path d="M11 13 20 4M16.5 7.5l3 3M13.5 10.5l2 2" />
-    </Icon>
-  );
-}
-
-export function UserIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
-    </Icon>
-  );
-}
-
-export function InfoIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v6M12 7.5v.01" />
-    </Icon>
-  );
-}
-
-export function UndoIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M8 5 4 9l4 4" />
-      <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
-    </Icon>
-  );
-}
-
-export function CheckIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m5 12.5 4.5 4.5L19 7.5" />
-    </Icon>
-  );
-}
-
-export function ArrowRightIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </Icon>
-  );
-}
+export const ArrowRightIcon = themed(ArrowRight);
+export const BookmarkIcon = themed(BookmarkSimple);
+export const CardsIcon = themed(Cards);
+export const CheckIcon = themed(Check);
+export const CrossIcon = themed(X);
+export const GithubIcon = themed(GithubLogo);
+export const HeartIcon = themed(Heart);
+export const InfoIcon = themed(Info);
+export const KeyIcon = themed(Key);
+export const SwipeIcon = themed(HandSwipeRight);
+export const TrashIcon = themed(Trash);
+export const UndoIcon = themed(ArrowCounterClockwise);
+export const UserIcon = themed(User);

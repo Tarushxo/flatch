@@ -29,7 +29,7 @@ export function DetailSheet({
           />
           <Drawer.Title className="sr-only">{listing?.title ?? "Flat details"}</Drawer.Title>
           <div className="overflow-y-auto overscroll-contain px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
-            {listing ? <ListingDetail listing={listing} /> : null}
+            {listing ? <ListingDetail listing={listing} showGallery /> : null}
           </div>
         </Drawer.Content>
       </Drawer.Portal>

@@ -80,6 +80,30 @@
     }
   }
 
+  /* Small helpers: an overlay fading in, and a spark flying out from a button. */
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-spark: spark 0.55s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes spark {
+    from {
+      opacity: 1;
+      transform: rotate(var(--angle)) translateY(-22px) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: rotate(var(--angle)) translateY(-56px) scale(0.2);
+    }
+  }
+
   /* A light running along a row of marquee bulbs (stagger with animation-delay). */
   @keyframes bulb-chase {
     0%,

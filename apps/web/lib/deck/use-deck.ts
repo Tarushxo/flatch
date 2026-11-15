@@ -7,6 +7,7 @@ import { api } from "@/lib/api/client";
 import { type PendingSwipe, useDeckStore } from "./store";
 
 const FEED_KEY = ["feed"] as const;
+export const SAVED_KEY = ["saved"] as const;
 /** Fetch the next page when this many cards are left. */
 const REFILL_AT = 4;
 const SEND_ATTEMPTS = 3;
@@ -47,13 +48,19 @@ export function useDeck() {
   useEffect(() => {
     if (outboxSize === 0) return;
     const batch = useDeckStore.getState().takeOutbox();
-    void sendWithRetry(batch).catch(() => {
-      useDeckStore.getState().reinstate(batch);
-      toast.error("Couldn't save that swipe", {
-        description: "The flat is back on top of the deck. Try again in a moment.",
+    void sendWithRetry(batch)
+      .then(() => {
+        if (batch.some((item) => item.swipe.action === "save")) {
+          void queryClient.invalidateQueries({ queryKey: SAVED_KEY });
+        }
+      })
+      .catch(() => {
+        useDeckStore.getState().reinstate(batch);
+        toast.error("Couldn't save that swipe", {
+          description: "The flat is back on top of the deck. Try again in a moment.",
+        });
       });
-    });
-  }, [outboxSize]);
+  }, [outboxSize, queryClient]);
 
   const undo = useCallback(() => {
     const undone = useDeckStore.getState().undo();

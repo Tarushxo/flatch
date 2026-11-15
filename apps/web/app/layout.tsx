@@ -24,6 +24,12 @@ const logoFace = Yellowtail({
   display: "swap",
 });
 
+// Where the site lives, so share images get full addresses. Vercel sets the
+// variable in production; locally it falls back to the dev server.
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
   title: {
     default: `${APP_NAME}: ${APP_TAGLINE}`,
@@ -32,6 +38,9 @@ export const metadata: Metadata = {
   description:
     "A swipe-based way to find a flat and the people in it. Swipe through flats, match with the lister, then chat.",
   applicationName: APP_NAME,
+  metadataBase: new URL(SITE_URL),
+  openGraph: { type: "website", siteName: APP_NAME, url: "/" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

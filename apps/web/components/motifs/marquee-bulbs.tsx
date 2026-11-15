@@ -26,7 +26,7 @@ export function MarqueeBulbs({
   }));
 
   return (
-    <div className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-2">
       {label ? <progress className="sr-only" aria-label={label} value={lit} max={total} /> : null}
       {bulbs.map((bulb) => (
         <span
@@ -40,6 +40,6 @@ export function MarqueeBulbs({
           style={chase ? { animationDelay: bulb.delay } : undefined}
         />
       ))}
-    </div>
+    </span>
   );
 }

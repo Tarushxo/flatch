@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { BookmarkIcon, CrossIcon, HeartIcon, UndoIcon } from "@/components/icons";
 import type { DeckAction } from "@/lib/deck/gesture";
+import { Sparks } from "./sparks";
 
 /**
  * The buttons under the deck. Every swipe has a button here, so swiping is
@@ -9,11 +10,14 @@ import type { DeckAction } from "@/lib/deck/gesture";
 export function ActionBar({
   disabled,
   canUndo,
+  burst,
   onAction,
   onUndo,
 }: {
   disabled: boolean;
   canUndo: boolean;
+  /** The most recent like or save, so its button can throw sparks. */
+  burst: { id: number; action: DeckAction } | null;
   onAction: (action: DeckAction) => void;
   onUndo: () => void;
 }) {
@@ -47,6 +51,7 @@ export function ActionBar({
         disabled={disabled}
         onClick={() => onAction("save")}
       >
+        {burst?.action === "save" ? <Sparks key={burst.id} /> : null}
         <BookmarkIcon className="size-5" />
       </RoundButton>
       <RoundButton
@@ -57,6 +62,7 @@ export function ActionBar({
         disabled={disabled}
         onClick={() => onAction("like")}
       >
+        {burst?.action === "like" ? <Sparks key={burst.id} /> : null}
         <HeartIcon className="size-7" />
       </RoundButton>
     </div>
@@ -87,7 +93,7 @@ function RoundButton({
       title={`${label} (${shortcut})`}
       disabled={disabled}
       onClick={onClick}
-      className={`hover:glow focus-visible:glow grid place-items-center rounded-full border border-hairline bg-surface-1 transition-[box-shadow,transform,opacity] duration-200 hover:border-transparent active:scale-90 disabled:pointer-events-none disabled:opacity-35 ${
+      className={`hover:glow focus-visible:glow relative grid place-items-center rounded-full border border-hairline bg-surface-1 transition-[box-shadow,transform,opacity] duration-200 hover:border-transparent active:scale-90 disabled:pointer-events-none disabled:opacity-35 ${
         size === "lg" ? "size-16" : "size-12"
       }`}
       style={{ color: colour, "--glow": colour } as CSSProperties}

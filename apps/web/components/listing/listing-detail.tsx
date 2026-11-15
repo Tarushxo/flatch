@@ -5,17 +5,27 @@ import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
 import { CompatRing } from "./compat-ring";
+import { FadeImage } from "./fade-image";
 
 /**
  * Everything about one flat, in the order a tenant asks about it: what it
  * costs, why it fits, what it comes with, the rules, and who lives there.
  * Used in the desktop side panel and the mobile bottom sheet.
  */
-export function ListingDetail({ listing }: { listing: Listing }) {
+export function ListingDetail({
+  listing,
+  showGallery = false,
+}: {
+  listing: Listing;
+  /** Show the photos at the top. Off where the photos are already on screen. */
+  showGallery?: boolean;
+}) {
   const { lister, compatibility } = listing;
 
   return (
     <article className="space-y-9">
+      {showGallery ? <Gallery listing={listing} /> : null}
+
       <header>
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-balance font-display font-semibold text-2xl leading-tight tracking-tight">
@@ -133,6 +143,38 @@ export function ListingDetail({ listing }: { listing: Listing }) {
         anything before you have visited.
       </p>
     </article>
+  );
+}
+
+const ROOM_LABELS: Record<Listing["photos"][number]["roomTag"], string> = {
+  bedroom: "Bedroom",
+  living: "Living room",
+  kitchen: "Kitchen",
+  bathroom: "Bathroom",
+  balcony: "Balcony",
+  building: "Building",
+};
+
+/** The flat's photos as a strip you swipe sideways through. */
+function Gallery({ listing }: { listing: Listing }) {
+  return (
+    <ul
+      aria-label="Photos"
+      className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-5 pb-1 [scrollbar-width:none]"
+    >
+      {listing.photos.map((photo) => (
+        <li
+          key={photo.url}
+          className="relative aspect-[4/3] w-[82%] shrink-0 snap-center overflow-hidden rounded-2xl border border-hairline"
+          style={{ backgroundColor: photo.dominantColor }}
+        >
+          <FadeImage src={photo.url} alt={`${ROOM_LABELS[photo.roomTag]} of ${listing.title}`} />
+          <span className="absolute bottom-2.5 left-2.5 rounded-full border border-hairline bg-ink/65 px-2.5 py-1 text-fg text-xs backdrop-blur-md">
+            {ROOM_LABELS[photo.roomTag]}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
