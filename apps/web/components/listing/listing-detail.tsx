@@ -4,6 +4,7 @@ import { CheckIcon, CrossIcon, MapPinIcon } from "@/components/icons";
 import { AmenityPlaques } from "@/components/motifs/amenity-plaques";
 import { GuestCheck } from "@/components/motifs/guest-check";
 import { VacancySign } from "@/components/motifs/vacancy-sign";
+import { PHOTO_SIZES } from "@/lib/photo";
 import { AreaMap } from "./area-map";
 import { CompatRing } from "./compat-ring";
 import { FadeImage } from "./fade-image";
@@ -180,14 +181,20 @@ function Gallery({ listing }: { listing: Listing }) {
       aria-label="Photos"
       className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-5 pb-1 [scrollbar-width:none]"
     >
-      {listing.photos.map((photo) => (
+      {listing.photos.map((photo, position) => (
         <li
           key={photo.url}
           className="relative aspect-[4/3] w-[82%] shrink-0 snap-center overflow-hidden rounded-2xl border border-hairline"
           style={{ backgroundColor: photo.dominantColor }}
         >
-          <FadeImage src={photo.url} alt={`${ROOM_LABELS[photo.roomTag]} of ${listing.title}`} />
-          <span className="absolute bottom-2.5 left-2.5 rounded-full border border-hairline bg-ink/65 px-2.5 py-1 text-fg text-xs backdrop-blur-md">
+          <FadeImage
+            src={photo.url}
+            alt={`${ROOM_LABELS[photo.roomTag]} of ${listing.title}`}
+            use="tile"
+            sizes={PHOTO_SIZES.galleryTile}
+            lazy={position > 0}
+          />
+          <span className="absolute bottom-2.5 left-2.5 rounded-full border border-hairline bg-ink/75 px-2.5 py-1 text-fg text-xs">
             {ROOM_LABELS[photo.roomTag]}
           </span>
         </li>

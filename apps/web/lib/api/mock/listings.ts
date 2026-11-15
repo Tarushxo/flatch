@@ -77,7 +77,7 @@ const FALLBACK_COLOR = "#3a3050";
 
 function photo(id: string, roomTag: Listing["photos"][number]["roomTag"]) {
   return {
-    url: `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=70`,
+    url: `https://images.unsplash.com/photo-${id}?auto=format&fit=crop`,
     roomTag,
     dominantColor: PHOTO_COLORS[id] ?? FALLBACK_COLOR,
   };

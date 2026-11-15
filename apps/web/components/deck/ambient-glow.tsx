@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 /**
  * The light the current photo throws on the room: a large blurred pool of the
  * photo's main colour behind the deck. When the colour changes, the new pool
- * fades in over the old one (opacity only, so it is cheap to animate).
+ * fades in over the old one (opacity only, so it is cheap to animate). The
+ * pool is a radial gradient, which a phone draws far more cheaply than a blur.
  */
 export function AmbientGlow({ colour }: { colour: string | null }) {
   const [layers, setLayers] = useState<{ id: number; colour: string }[]>([]);
@@ -29,8 +30,8 @@ export function AmbientGlow({ colour }: { colour: string | null }) {
       {layers.map((layer) => (
         <div
           key={layer.id}
-          className="absolute top-1/2 left-1/2 size-[130%] -translate-x-1/2 -translate-y-1/2 animate-glow-in rounded-full blur-[110px]"
-          style={{ backgroundColor: layer.colour }}
+          className="absolute top-1/2 left-1/2 size-[190%] -translate-x-1/2 -translate-y-1/2 animate-glow-in"
+          style={{ background: `radial-gradient(closest-side, ${layer.colour}, transparent)` }}
         />
       ))}
     </div>

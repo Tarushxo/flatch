@@ -1,9 +1,20 @@
-import { z } from "zod";
+import type { z } from "zod";
+import type {
+  CompatibilitySchema,
+  FeedFiltersSchema,
+  FeedPageSchema,
+  HouseRuleSchema,
+  ListingPhotoSchema,
+  ListingSchema,
+  SwipeSchema,
+} from "./schemas";
 
 /*
- * The contract between the API and the app for listings and the feed.
- * The mock API (M1) and the real API (M2 onwards) both return these shapes,
- * so swapping one for the other changes no component.
+ * Listings, the feed and swipes: the types, the fixed lists of choices, and
+ * the small pure functions that work on them.
+ *
+ * The types come from the Zod schemas in schemas.ts, imported as types only,
+ * so nothing here pulls the validation library into the app.
  */
 
 export const ROOM_TYPES = ["private_room", "shared_room", "whole_flat"] as const;
@@ -18,13 +29,17 @@ export const ROOM_TAGS = [
 ] as const;
 export const SWIPE_ACTIONS = ["like", "pass", "save", "superlike"] as const;
 
-export const RoomTypeSchema = z.enum(ROOM_TYPES);
-export const FurnishingSchema = z.enum(FURNISHINGS);
-export const SwipeActionSchema = z.enum(SWIPE_ACTIONS);
+export type RoomType = (typeof ROOM_TYPES)[number];
+export type Furnishing = (typeof FURNISHINGS)[number];
+export type SwipeAction = (typeof SWIPE_ACTIONS)[number];
 
-export type RoomType = z.infer<typeof RoomTypeSchema>;
-export type Furnishing = z.infer<typeof FurnishingSchema>;
-export type SwipeAction = z.infer<typeof SwipeActionSchema>;
+export type ListingPhoto = z.infer<typeof ListingPhotoSchema>;
+export type HouseRule = z.infer<typeof HouseRuleSchema>;
+export type Compatibility = z.infer<typeof CompatibilitySchema>;
+export type Listing = z.infer<typeof ListingSchema>;
+export type FeedPage = z.infer<typeof FeedPageSchema>;
+export type FeedFilters = z.infer<typeof FeedFiltersSchema>;
+export type Swipe = z.infer<typeof SwipeSchema>;
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {
   private_room: "Private room",
@@ -38,105 +53,10 @@ export const FURNISHING_LABELS: Record<Furnishing, string> = {
   unfurnished: "Unfurnished",
 };
 
-export const ListingPhotoSchema = z.object({
-  url: z.url(),
-  roomTag: z.enum(ROOM_TAGS),
-  /** The photo's main colour as a hex string; drives the ambient glow behind the deck. */
-  dominantColor: z.string().regex(/^#[0-9a-f]{6}$/i),
-});
-
-/** A rule the household has, phrased as something that is or is not okay. */
-export const HouseRuleSchema = z.object({
-  label: z.string(),
-  allowed: z.boolean(),
-});
-
-export const CompatibilitySchema = z.object({
-  /** Fit only (budget, location, timing, lifestyle). Never includes ranking extras. */
-  percent: z.number().int().min(0).max(100),
-  reasons: z.array(z.string()).max(3),
-  caution: z.string().optional(),
-});
-
-/**
- * Roughly where a flat is: a point near it, never the address. The server
- * shifts the real location before sending it (docs/SPEC.md section 10.1).
- */
-export const AreaSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-});
-
-export const ListerSummarySchema = z.object({
-  name: z.string(),
-  role: z.enum(["owner", "flatmate"]),
-  about: z.string(),
-  flatmateCount: z.number().int().min(0),
-});
-
-export const ListingSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  locality: z.string(),
-  /** Rounded to 5 minutes by the server; null when the tenant has set no commute anchor. */
-  commuteMinutes: z.number().int().nullable(),
-  /** The approximate area, for the neighbourhood map. */
-  area: AreaSchema,
-  /** Handy things close by, e.g. "Metro 600 m". */
-  nearby: z.array(z.string()),
-
-  // Money is whole rupees.
-  rent: z.number().int(),
-  maintenance: z.number().int(),
-  utilitiesEstimate: z.number().int(),
-  deposit: z.number().int(),
-
-  roomType: RoomTypeSchema,
-  bhk: z.number().int().min(1),
-  furnishing: FurnishingSchema,
-  /** ISO date, e.g. "2026-12-01". */
-  availableFrom: z.iso.date(),
-
-  photos: z.array(ListingPhotoSchema).min(1),
-  amenities: z.array(z.string()),
-  houseRules: z.array(HouseRuleSchema),
-  societyRules: z.array(z.string()),
-  expectations: z.array(z.string()),
-
-  lister: ListerSummarySchema,
-  compatibility: CompatibilitySchema,
-
-  isOpen: z.boolean(),
-  isVerified: z.boolean(),
-  /** Seed data shown with a "Demo" tag. */
-  isSeed: z.boolean(),
-  /** Set when the listing is a stretch pick, e.g. "₹1,500 over budget". */
-  stretchLabel: z.string().optional(),
-});
-
-export type ListingPhoto = z.infer<typeof ListingPhotoSchema>;
-export type HouseRule = z.infer<typeof HouseRuleSchema>;
-export type Compatibility = z.infer<typeof CompatibilitySchema>;
-export type Listing = z.infer<typeof ListingSchema>;
-
-export const FeedPageSchema = z.object({
-  items: z.array(ListingSchema),
-  /** Pass back to get the next page; null when there are no more. */
-  nextCursor: z.string().nullable(),
-});
-
-export type FeedPage = z.infer<typeof FeedPageSchema>;
-
-/** What the tenant has narrowed the deck to. Empty lists and null mean "anything". */
-export const FeedFiltersSchema = z.object({
-  /** The most the flat may cost each month, all in (rent + maintenance + utilities). */
-  budgetMax: z.number().int().positive().nullable(),
-  localities: z.array(z.string()),
-  roomTypes: z.array(RoomTypeSchema),
-});
-
-export type FeedFilters = z.infer<typeof FeedFiltersSchema>;
+/** Rent plus the recurring extras: what the flat really costs each month. */
+export function monthlyCost(listing: Pick<Listing, "rent" | "maintenance" | "utilitiesEstimate">) {
+  return listing.rent + listing.maintenance + listing.utilitiesEstimate;
+}
 
 export const NO_FILTERS: FeedFilters = { budgetMax: null, localities: [], roomTypes: [] };
 
@@ -158,18 +78,4 @@ export function matchesFilters(
   if (filters.localities.length > 0 && !filters.localities.includes(listing.locality)) return false;
   if (filters.roomTypes.length > 0 && !filters.roomTypes.includes(listing.roomType)) return false;
   return true;
-}
-
-export const SwipeSchema = z.object({
-  /** Generated by the client, so a retried request is recognised and ignored. */
-  clientId: z.uuid(),
-  listingId: z.string(),
-  action: SwipeActionSchema,
-});
-
-export type Swipe = z.infer<typeof SwipeSchema>;
-
-/** Rent plus the recurring extras: what the flat really costs each month. */
-export function monthlyCost(listing: Pick<Listing, "rent" | "maintenance" | "utilitiesEstimate">) {
-  return listing.rent + listing.maintenance + listing.utilitiesEstimate;
 }

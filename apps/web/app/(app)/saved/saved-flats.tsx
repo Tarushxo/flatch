@@ -14,6 +14,7 @@ import { BedDrawing } from "@/components/motifs/neon-drawing";
 import { SignLink } from "@/components/sign-link";
 import { api } from "@/lib/api/client";
 import { SAVED_KEY } from "@/lib/deck/use-deck";
+import { PHOTO_SIZES } from "@/lib/photo";
 
 /** The flats saved with a swipe up. From here each one can be liked or removed. */
 export function SavedFlats() {
@@ -111,7 +112,15 @@ export function SavedFlats() {
                   className="relative block aspect-[4/3] w-full text-left"
                   style={{ backgroundColor: photo?.dominantColor }}
                 >
-                  {photo ? <FadeImage src={photo.url} alt="" /> : null}
+                  {photo ? (
+                    <FadeImage
+                      src={photo.url}
+                      alt=""
+                      use="tile"
+                      sizes={PHOTO_SIZES.savedTile}
+                      lazy
+                    />
+                  ) : null}
                   <span className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink/90 to-transparent" />
                   <span className="absolute inset-x-4 bottom-3 block">
                     <span className="block font-mono font-semibold text-xl tabular-nums tracking-tight">

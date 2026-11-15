@@ -83,7 +83,7 @@ export function TabBarDemo() {
   return (
     <nav
       aria-label="Sample tab bar"
-      className="surface flex w-full max-w-80 gap-1 rounded-full p-1.5 backdrop-blur-md"
+      className="surface flex w-full max-w-80 gap-1 rounded-full p-1.5"
     >
       {TABS.map(({ id, label, icon: TabIcon }) => {
         const lit = id === active;

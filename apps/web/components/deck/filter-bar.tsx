@@ -1,10 +1,16 @@
 "use client";
 
 import { countActiveFilters, type FeedFilters, formatRupees, ROOM_TYPE_LABELS } from "@repo/shared";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { CrossIcon, FiltersIcon } from "@/components/icons";
 import { useFilterStore } from "@/lib/deck/filters";
-import { FilterSheet } from "./filter-sheet";
+
+// The filter sheet is fetched when the page goes quiet, not with the first download.
+const loadFilterSheet = () => import("./filter-sheet");
+const FilterSheet = dynamic(() => loadFilterSheet().then((module) => module.FilterSheet), {
+  ssr: false,
+});
 
 /** A short description of each active filter, for the chips beside the button. */
 function summarise(filters: FeedFilters): { key: string; label: string; without: FeedFilters }[] {
@@ -43,6 +49,12 @@ export function FilterBar() {
   const filters = useFilterStore((state) => state.filters);
   const setFilters = useFilterStore((state) => state.setFilters);
   const [open, setOpen] = useState(false);
+  const [sheetNeeded, setSheetNeeded] = useState(false);
+
+  useEffect(() => {
+    const warm = setTimeout(() => void loadFilterSheet(), 2500);
+    return () => clearTimeout(warm);
+  }, []);
 
   const active = countActiveFilters(filters);
 
@@ -50,7 +62,10 @@ export function FilterBar() {
     <div className="mx-auto flex w-full max-w-[26rem] items-center gap-2">
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setSheetNeeded(true);
+          setOpen(true);
+        }}
         className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 font-medium text-sm transition-colors ${
           active > 0
             ? "border-like/50 text-like"
@@ -83,12 +98,14 @@ export function FilterBar() {
         ))}
       </ul>
 
-      <FilterSheet
-        open={open}
-        applied={filters}
-        onApply={setFilters}
-        onClose={() => setOpen(false)}
-      />
+      {sheetNeeded ? (
+        <FilterSheet
+          open={open}
+          applied={filters}
+          onApply={setFilters}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -8,9 +8,10 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { type CSSProperties, useEffect, useLayoutEffect, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CardFace } from "@/components/deck/card-face";
 import { MOCK_LISTINGS } from "@/lib/api/mock/listings";
+import { PHOTO_SIZES } from "@/lib/photo";
 
 /*
  * A deck that swipes itself, for the landing page. It is a moving picture of
@@ -40,6 +41,26 @@ const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 export function ShowcaseDeck() {
   const [step, setStep] = useState(0);
   const stillOnly = useReducedMotion();
+  const scene = useRef<HTMLDivElement>(null);
+  const [watching, setWatching] = useState(true);
+
+  // Nobody is looking when the deck is scrolled away or the tab is hidden: rest.
+  useEffect(() => {
+    const element = scene.current;
+    if (!element) return;
+    let onScreen = true;
+    const update = () => setWatching(onScreen && !document.hidden);
+    const observer = new IntersectionObserver((entries) => {
+      onScreen = entries.some((entry) => entry.isIntersecting);
+      update();
+    });
+    observer.observe(element);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -58,7 +79,7 @@ export function ShowcaseDeck() {
   // One swipe: wait, lean with the stamp showing, hold, fly off, then hand over.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the motion values are stable
   useEffect(() => {
-    if (stillOnly) return;
+    if (stillOnly || !watching) return;
     let cancelled = false;
 
     (async () => {
@@ -88,8 +109,12 @@ export function ShowcaseDeck() {
       x.stop();
       y.stop();
       stamp.stop();
+      // If the swipe was cut short, put the card back so the next one starts clean.
+      x.set(0);
+      y.set(0);
+      stamp.set(0);
     };
-  }, [step, stillOnly]);
+  }, [step, stillOnly, watching]);
 
   const stack = Array.from({ length: VISIBLE }, (_, depth) => ({
     depth,
@@ -97,7 +122,11 @@ export function ShowcaseDeck() {
   }));
 
   return (
-    <div aria-hidden="true" className="pointer-events-none relative h-full w-full select-none">
+    <div
+      ref={scene}
+      aria-hidden="true"
+      className="pointer-events-none relative h-full w-full select-none"
+    >
       {stack.map(({ depth, listing }) =>
         listing ? (
           <motion.div
@@ -114,7 +143,12 @@ export function ShowcaseDeck() {
               className="size-full"
               style={depth === 0 ? { x, y, rotate, opacity: visible } : undefined}
             >
-              <CardFace listing={listing} photoIndex={0} />
+              <CardFace
+                listing={listing}
+                photoIndex={0}
+                sizes={PHOTO_SIZES.showcaseCard}
+                priority={depth === 0}
+              />
               {/* Cards further back are dimmer */}
               <div
                 className={`absolute inset-0 rounded-[2rem] bg-ink transition-opacity duration-300 ${
@@ -128,7 +162,7 @@ export function ShowcaseDeck() {
                 >
                   <div className="glow absolute inset-0 rounded-[2rem]" />
                   <span
-                    className={`sign absolute rounded-xl border-[3px] bg-ink/55 px-4 py-1.5 font-sign text-3xl tracking-wide backdrop-blur-sm ${move.place}`}
+                    className={`sign absolute rounded-xl border-[3px] bg-ink/75 px-4 py-1.5 font-sign text-3xl tracking-wide ${move.place}`}
                     style={{ borderColor: move.colour } as CSSProperties}
                   >
                     {move.label}

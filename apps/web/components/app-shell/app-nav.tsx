@@ -26,7 +26,7 @@ export function AppNav({ layout }: { layout: "bar" | "rail" }) {
       aria-label="Main"
       className={
         layout === "bar"
-          ? "surface mx-auto flex w-full max-w-sm gap-1 rounded-full p-1.5 backdrop-blur-md"
+          ? "surface mx-auto flex w-full max-w-sm gap-1 rounded-full p-1.5"
           : "flex flex-col gap-2"
       }
     >

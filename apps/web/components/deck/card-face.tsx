@@ -1,6 +1,7 @@
 import { FURNISHING_LABELS, formatRent, type Listing, ROOM_TYPE_LABELS } from "@repo/shared";
 import { CompatRing } from "@/components/listing/compat-ring";
 import { FadeImage } from "@/components/listing/fade-image";
+import { PHOTO_SIZES } from "@/lib/photo";
 
 const dayMonth = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
 
@@ -13,7 +14,19 @@ function availableLabel(isoDate: string): string {
  * What a flat looks like on a card: the photo, and the few facts a tenant
  * decides on. Purely visual; gestures and buttons live in DeckCard.
  */
-export function CardFace({ listing, photoIndex }: { listing: Listing; photoIndex: number }) {
+export function CardFace({
+  listing,
+  photoIndex,
+  sizes = PHOTO_SIZES.deckCard,
+  priority = false,
+}: {
+  listing: Listing;
+  photoIndex: number;
+  /** How wide the card is drawn, so the browser fetches the right photo size. */
+  sizes?: string;
+  /** True for the card on top of the deck: its photo is fetched first. */
+  priority?: boolean;
+}) {
   const photo = listing.photos[photoIndex] ?? listing.photos[0];
   const place =
     listing.commuteMinutes === null
@@ -26,7 +39,14 @@ export function CardFace({ listing, photoIndex }: { listing: Listing; photoIndex
       style={{ backgroundColor: photo?.dominantColor }}
     >
       {photo ? (
-        <FadeImage key={photo.url} src={photo.url} alt={`${photo.roomTag} of ${listing.title}`} />
+        <FadeImage
+          key={photo.url}
+          src={photo.url}
+          alt={`${photo.roomTag} of ${listing.title}`}
+          use="card"
+          sizes={sizes}
+          priority={priority}
+        />
       ) : null}
 
       {/* Scrims so the text stays readable over any photo */}
@@ -66,7 +86,7 @@ export function CardFace({ listing, photoIndex }: { listing: Listing; photoIndex
           ].map((chip) => (
             <li
               key={chip}
-              className="rounded-full border border-hairline bg-ink/55 px-2.5 py-1 text-fg text-xs backdrop-blur-md"
+              className="rounded-full border border-hairline bg-ink/75 px-2.5 py-1 text-fg text-xs"
             >
               {chip}
             </li>
@@ -86,7 +106,7 @@ const TONES = {
 function Tag({ children, tone = "plain" }: { children: string; tone?: keyof typeof TONES }) {
   return (
     <span
-      className={`rounded-full border bg-ink/60 px-2.5 py-1 font-medium text-[0.6875rem] uppercase tracking-[0.12em] backdrop-blur-md ${TONES[tone]}`}
+      className={`rounded-full border bg-ink/75 px-2.5 py-1 font-medium text-[0.6875rem] uppercase tracking-[0.12em] ${TONES[tone]}`}
     >
       {children}
     </span>

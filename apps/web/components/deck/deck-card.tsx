@@ -222,7 +222,9 @@ export function DeckCard({
     <motion.div
       ref={element}
       aria-hidden={!isTop}
-      className={`absolute inset-0 touch-none select-none will-change-transform ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+      className={`absolute inset-0 touch-none select-none ${
+        isTop ? "cursor-grab will-change-transform active:cursor-grabbing" : "pointer-events-none"
+      }`}
       style={{ x, y: shownY, rotate, scale, zIndex: 10 - index }}
       onPointerDown={() => {
         panned.current = false;
@@ -232,7 +234,7 @@ export function DeckCard({
       onPanEnd={isTop ? onPanEnd : undefined}
       onTap={isTop ? onTap : undefined}
     >
-      <CardFace listing={listing} photoIndex={photoIndex} />
+      <CardFace listing={listing} photoIndex={photoIndex} priority={isTop} />
 
       {/* Cards further back are dimmer */}
       <motion.div
@@ -251,7 +253,7 @@ export function DeckCard({
           {/* The card's edge lights up in the colour of the action */}
           <div className="glow absolute inset-0 rounded-[2rem]" />
           <span
-            className={`sign absolute rounded-xl border-[3px] bg-ink/55 px-4 py-1.5 font-sign text-4xl tracking-wide backdrop-blur-sm ${place}`}
+            className={`sign absolute rounded-xl border-[3px] bg-ink/75 px-4 py-1.5 font-sign text-4xl tracking-wide ${place}`}
             style={{ borderColor: colour }}
           >
             {label}
@@ -264,7 +266,7 @@ export function DeckCard({
           type="button"
           aria-label={`Details for ${listing.title}`}
           onClick={onOpenDetails}
-          className="absolute right-4 bottom-[5.5rem] grid size-10 place-items-center rounded-full border border-hairline bg-ink/60 text-fg backdrop-blur-md transition-colors hover:bg-ink/80"
+          className="absolute right-4 bottom-[5.5rem] grid size-10 place-items-center rounded-full border border-hairline bg-ink/75 text-fg transition-colors hover:bg-ink/90"
         >
           <InfoIcon className="size-5" />
         </button>

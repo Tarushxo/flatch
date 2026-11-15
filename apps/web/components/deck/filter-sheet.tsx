@@ -60,7 +60,7 @@ export function FilterSheet({
   return (
     <Drawer.Root open={open} onOpenChange={(next) => !next && onClose()} shouldScaleBackground>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-ink/70 backdrop-blur-sm" />
+        <Drawer.Overlay className="fixed inset-0 z-40 bg-ink/75" />
         <Drawer.Content
           aria-describedby={undefined}
           className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92dvh] max-w-xl flex-col rounded-t-[2rem] border border-hairline border-b-0 bg-surface-1 outline-none"

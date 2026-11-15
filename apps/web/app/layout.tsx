@@ -57,6 +57,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="en"
       className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${tiltNeon.variable} ${logoFace.variable}`}
     >
+      <head>
+        {/* Photos come from another server. Connecting early saves the first photo a round trip. */}
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

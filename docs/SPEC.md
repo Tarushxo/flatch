@@ -497,7 +497,7 @@ Rules: every dependency except Postgres is optional at runtime and guarded by an
 **Performance**
 
 - Swiping holds 60 fps on a mid-range Android phone.
-- Feed screen LCP under 2.5 s on a throttled 4G profile; first card image under ~120 KB.
+- Feed screen LCP under 2.5 s on a throttled 4G profile; first card image under ~120 KB. **Measured in M1: 4.8 s** (down from 5.8 s). The first photo is preloaded from the page, but the card itself is drawn by client code, so it waits for that code. Server-rendering the first card in M2 is what closes the gap.
 - Feed endpoint p95 under 300 ms warm.
 - MapLibre and the lab's charts are lazy-loaded.
 

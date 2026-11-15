@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DeckAction } from "@/lib/deck/gesture";
 import { useDeckStore } from "@/lib/deck/store";
 import { useDeck } from "@/lib/deck/use-deck";
+import { PHOTO_SIZES, photoSrcSet } from "@/lib/photo";
 import { ActionBar } from "./action-bar";
 import { AmbientGlow } from "./ambient-glow";
 import { DeckCard, type DeckCardHandle } from "./deck-card";
@@ -58,15 +59,24 @@ export function SwipeDeck({
     if (!top) progress.set(0);
   }, [top, progress]);
 
-  // Warm the cache: the first photo of the next cards and the top card's second photo.
+  // Warm the cache: the first photo of the next cards and the top card's second
+  // photo. They wait a moment and load at low priority, so they never compete
+  // with the photo the person is looking at.
   useEffect(() => {
     const urls = [
       deck.cards[0]?.photos[1]?.url,
       ...deck.cards.slice(1, 4).map((card) => card.photos[0]?.url),
     ];
-    for (const url of urls) {
-      if (url) new Image().src = url;
-    }
+    const timer = setTimeout(() => {
+      for (const url of urls) {
+        if (!url) continue;
+        const image = new Image();
+        image.fetchPriority = "low";
+        image.sizes = PHOTO_SIZES.deckCard;
+        image.srcset = photoSrcSet(url, "card");
+      }
+    }, 400);
+    return () => clearTimeout(timer);
   }, [deck.cards]);
 
   const act = (action: DeckAction) => topCard.current?.flyOut(action);

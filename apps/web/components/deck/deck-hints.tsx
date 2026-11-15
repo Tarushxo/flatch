@@ -64,7 +64,7 @@ export function DeckHints() {
   if (!show) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 animate-fade-in rounded-[2rem] bg-ink/75 backdrop-blur-[2px]">
+    <div className="pointer-events-none absolute inset-0 z-20 animate-fade-in rounded-[2rem] bg-ink/80">
       <p className="sr-only">
         Swipe right to like, left to pass, up to save and down for details. Tap the sides of a photo
         to see more photos.
