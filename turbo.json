@@ -5,7 +5,17 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"],
-      "env": ["DATABASE_URL"]
+      "env": ["DATABASE_URL"],
+      "passThroughEnv": [
+        "DATABASE_URL_UNPOOLED",
+        "BETTER_AUTH_*",
+        "GOOGLE_CLIENT_*",
+        "CLOUDINARY_*",
+        "PG*",
+        "POSTGRES_*",
+        "NEON_*",
+        "VITE_NEON_*"
+      ]
     },
     "dev": {
       "cache": false,
