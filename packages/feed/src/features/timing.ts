@@ -1,4 +1,4 @@
-import type { TenantPreferences } from "@repo/shared";
+import { homeDate, type TenantPreferences } from "@repo/shared";
 
 type MoveIn = NonNullable<TenantPreferences["moveIn"]>;
 
@@ -7,7 +7,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Whole days from today until the room is free. A room that is already free is 0. */
 export function daysUntilFree(availableFrom: string, today: Date): number {
   const free = Date.parse(`${availableFrom}T00:00:00Z`);
-  const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  // "Today" is today in India, not on the server's clock.
+  const start = Date.parse(`${homeDate(today)}T00:00:00Z`);
   return Math.max(0, Math.round((free - start) / DAY_MS));
 }
 

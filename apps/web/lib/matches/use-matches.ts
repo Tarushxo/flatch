@@ -1,7 +1,7 @@
 "use client";
 
 import type { Match, Message } from "@repo/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { api } from "@/lib/api/client";
 import { useMode } from "@/lib/profile/use-mode";
@@ -9,12 +9,13 @@ import { useMode } from "@/lib/profile/use-mode";
 export const MATCHES_KEY = ["matches"] as const;
 export const PENDING_LIKES_KEY = ["pending-likes"] as const;
 export const messagesKey = (matchId: string) => ["messages", matchId] as const;
+const sendingKey = (matchId: string) => ["send-message", matchId] as const;
 
 /*
  * There is no live connection to the server yet, so these ask again every few
- * seconds while the screen is open (the browser pauses this in a background
- * tab). A push connection can replace the timers later without touching the
- * screens.
+ * seconds while the screen is open (the query library stops asking while the
+ * tab is in the background). A push connection can replace the timers later
+ * without touching the screens.
  */
 const MATCHES_EVERY_MS = 6000;
 const MESSAGES_EVERY_MS = 3000;
@@ -57,10 +58,13 @@ export function usePendingLikes() {
 
 /** The messages in one match, kept fresh while the chat is open. */
 export function useMessages(matchId: string) {
+  // While a message is on its way, asking is put off. An answer fetched in that moment
+  // would not include it yet, and the message would vanish from the chat and come back.
+  const sending = useIsMutating({ mutationKey: sendingKey(matchId) }) > 0;
   return useQuery({
     queryKey: messagesKey(matchId),
     queryFn: () => api.getMessages(matchId),
-    refetchInterval: MESSAGES_EVERY_MS,
+    refetchInterval: sending ? false : MESSAGES_EVERY_MS,
     retry: false,
   });
 }
@@ -71,6 +75,7 @@ export function useSendMessage(matchId: string) {
   const key = messagesKey(matchId);
 
   return useMutation({
+    mutationKey: sendingKey(matchId),
     mutationFn: (body: string) => api.sendMessage(matchId, body),
     onMutate: async (body) => {
       await queryClient.cancelQueries({ queryKey: key });

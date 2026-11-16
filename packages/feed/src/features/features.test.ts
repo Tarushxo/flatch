@@ -105,3 +105,12 @@ describe("the extras", () => {
     expect(freshness(new Date("2026-10-19T00:00:00Z"), TODAY)).toBeCloseTo(0.25);
   });
 });
+
+describe("days until a room is free, counted in India's days", () => {
+  it("does not lag a day behind in the hours after midnight in India", () => {
+    // 01:30 on the 17th in India; the server's clock still says the 16th.
+    const justAfterMidnight = new Date("2026-11-16T20:00:00Z");
+    expect(daysUntilFree("2026-11-17", justAfterMidnight)).toBe(0);
+    expect(daysUntilFree("2026-11-20", justAfterMidnight)).toBe(3);
+  });
+});

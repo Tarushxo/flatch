@@ -1,12 +1,13 @@
 "use client";
 
 import type { Applicant, DevicePosition, ListingDraft, MyListing } from "@repo/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { MATCHES_KEY } from "@/lib/matches/use-matches";
 
 export const MY_LISTINGS_KEY = ["my-listings"] as const;
 export const APPLICANTS_KEY = ["applicants"] as const;
+const DECIDING_KEY = ["decide-applicant"] as const;
 
 // As with matches, these ask again every few seconds until there is a live connection.
 const EVERY_MS = 6000;
@@ -22,10 +23,13 @@ export function useMyListings() {
 
 /** Tenants waiting for an answer across every flat, oldest first. */
 export function useApplicants({ enabled = true }: { enabled?: boolean } = {}) {
+  // While an answer is on its way, asking is put off: a list fetched in that moment would
+  // still hold the tenant just answered, and they would pop back on top to be answered twice.
+  const deciding = useIsMutating({ mutationKey: DECIDING_KEY }) > 0;
   return useQuery({
     queryKey: APPLICANTS_KEY,
     queryFn: () => api.getApplicants(),
-    refetchInterval: EVERY_MS,
+    refetchInterval: deciding ? false : EVERY_MS,
     enabled,
   });
 }
@@ -91,6 +95,7 @@ export function useDeleteListing() {
 export function useDecideApplicant() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: DECIDING_KEY,
     mutationFn: ({
       applicant,
       decision,

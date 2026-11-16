@@ -2,8 +2,8 @@ import { type Db, listings, localities, swipes, users } from "@repo/db";
 import type { Listing, SwipeAction } from "@repo/shared";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Actor } from "../policies";
-import { publicListings, tenantFor, toListings } from "./feed";
-import { type LikedListing, likeListing, withdrawLike } from "./matching";
+import { onTheBoard, publicListings, tenantFor, toListings } from "./feed";
+import { likeListing, withdrawLike } from "./matching";
 
 /*
  * Swipes: one decision per person per flat. Everything here is scoped to the
@@ -31,6 +31,7 @@ export async function recordSwipes(db: Db, actor: Actor, batch: SwipeInput[]): P
       listerRole: listings.listerRole,
       listerName: users.name,
       locality: localities.name,
+      onBoard: sql<boolean>`${onTheBoard}`,
     })
     .from(listings)
     .innerJoin(localities, eq(localities.id, listings.localityId))
@@ -41,11 +42,23 @@ export async function recordSwipes(db: Db, actor: Actor, batch: SwipeInput[]): P
         batch.map((swipe) => swipe.listingId),
       ),
     );
-  const flats = new Map<string, LikedListing>(known.map((row) => [row.id, row]));
+  const flats = new Map(known.map((row) => [row.id, row]));
 
   // If one flat appears twice in a batch, the last decision wins.
   const latest = new Map<string, SwipeInput>();
-  for (const swipe of batch) if (flats.has(swipe.listingId)) latest.set(swipe.listingId, swipe);
+  for (const swipe of batch) {
+    const flat = flats.get(swipe.listingId);
+    if (!flat) continue;
+    // A guest only ever touches demo flats, by any route (the share page hands out real ids).
+    if (actor.isGuest && !flat.isSeed) continue;
+    // A like on a flat that has been switched off, has run out or was taken down after
+    // reports is dropped: a stale deck must not send its lister new interest. It is not
+    // stored either, so the flat can come round again if it reopens. Passing on such a flat,
+    // or taking it out of Saved, still works.
+    const isLike = swipe.action === "like" || swipe.action === "superlike";
+    if (isLike && !flat.onBoard) continue;
+    latest.set(swipe.listingId, swipe);
+  }
   if (latest.size === 0) return;
 
   const now = new Date();

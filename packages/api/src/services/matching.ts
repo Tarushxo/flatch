@@ -363,10 +363,17 @@ export async function decideApplicant(
   }
 
   return db.transaction(async (tx) => {
-    await tx
+    // Only a tenant who is still waiting can be answered, and the check is part of the write
+    // itself. Two taps at once, or a yes racing a no, used to both get through the check
+    // above: the second ended in an error, or in a declined tenant with an open chat.
+    const [answered] = await tx
       .update(interests)
       .set({ status: decision === "accept" ? "accepted" : "declined", decidedAt: now })
-      .where(eq(interests.id, interestId));
+      .where(and(eq(interests.id, interestId), eq(interests.status, "pending")))
+      .returning({ id: interests.id });
+    if (!answered) {
+      throw new Refused(409, "already_decided", "You have already answered this tenant.");
+    }
     if (decision === "decline") return { matchId: null };
 
     const [chat] = await tx

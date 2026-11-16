@@ -60,7 +60,7 @@ export function SavedFlats() {
     );
   }
 
-  if (saved.isError) {
+  if (saved.isError && !saved.data) {
     return (
       <ScreenMessage
         art={<BedDrawing className="[--glow:var(--pass)]" />}
@@ -130,9 +130,12 @@ export function SavedFlats() {
                     <span className="block text-fg-2 text-sm">{listing.locality}</span>
                   </span>
                 </button>
-                <div className="pointer-events-none absolute top-3 right-3">
-                  <CompatRing percent={listing.compatibility.percent} />
-                </div>
+                {/* No score (nothing known about what the person wants) means no ring. */}
+                {listing.compatibility.percent > 0 ? (
+                  <div className="pointer-events-none absolute top-3 right-3">
+                    <CompatRing percent={listing.compatibility.percent} />
+                  </div>
+                ) : null}
               </div>
               <div className="flex gap-2 p-3">
                 <button

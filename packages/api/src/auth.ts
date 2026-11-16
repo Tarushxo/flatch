@@ -46,14 +46,25 @@ function siteUrl(): string {
 
 /**
  * The hosts this site may be reached at. Sign-in works out its own address
- * from the request, so the production address, preview deployments and
- * localhost all work without a setting each. A request is only ever compared
- * with the host it arrived at, so this does not let another site in.
+ * from the request, so the production address, this deployment's own
+ * addresses and localhost all work without a setting each.
+ *
+ * Every host here is also trusted by the sign-in library as somewhere a
+ * request may come from and be sent back to after signing in. So the list
+ * names this deployment's addresses exactly. It used to allow any
+ * "*.vercel.app", which is every site anyone hosts there for free.
  */
 function ownHosts(): string[] {
-  const hosts = ["localhost:3000", new URL(siteUrl()).host];
-  if (process.env.VERCEL) hosts.push("*.vercel.app");
-  return [...new Set(hosts)];
+  const hosts = [
+    "localhost:3000",
+    new URL(siteUrl()).host,
+    // Set by Vercel: the project's production address, and the addresses of this one
+    // deployment and of its branch.
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
+  ];
+  return [...new Set(hosts.filter((host): host is string => Boolean(host)))];
 }
 
 function createAuth() {

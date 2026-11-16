@@ -19,7 +19,7 @@ export function useProfile() {
 }
 
 /**
- * Save the profile. Saved preferences become the deck's filters straight away,
+ * Save the profile. Changed preferences become the deck's filters straight away,
  * so the deck is rebuilt for the new city, budget, areas and room types. The
  * order of the deck and every match score also come from the preferences, so
  * when they change the deck is dealt again, even if the filters are the same.
@@ -31,8 +31,10 @@ export function useSaveProfile() {
     onSuccess: (saved) => {
       const before = queryClient.getQueryData<TenantProfile>(PROFILE_KEY);
       queryClient.setQueryData(PROFILE_KEY, saved);
-      useFilterStore.getState().start(preferencesToFilters(saved.preferences));
+      // A change of name or mode leaves the deck alone. It used to reset the filters every
+      // time, which dropped any the person had set on the deck while keeping its old cards.
       if (JSON.stringify(before?.preferences) === JSON.stringify(saved.preferences)) return;
+      useFilterStore.getState().start(preferencesToFilters(saved.preferences));
       useDeckStore.getState().clearCards();
       void queryClient.resetQueries({ queryKey: FEED_KEY });
       void queryClient.invalidateQueries({ queryKey: SAVED_KEY });

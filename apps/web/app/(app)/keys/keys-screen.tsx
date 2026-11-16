@@ -34,7 +34,8 @@ export function KeysScreen() {
     );
   }
 
-  if (matches.isError || pending.isError) {
+  // With something already on screen, a failed refresh is ignored: the next one will do.
+  if ((matches.isError && !matches.data) || (pending.isError && !pending.data)) {
     return (
       <ScreenMessage
         art={<KeyDrawing className="[--glow:var(--pass)]" />}

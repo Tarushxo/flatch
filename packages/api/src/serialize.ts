@@ -1,5 +1,5 @@
 import type { ListingPhotoRow, ListingRow } from "@repo/db";
-import type { City, Compatibility, Listing } from "@repo/shared";
+import { type City, type Compatibility, homeDatePlus, type Listing } from "@repo/shared";
 
 /*
  * Turns database rows into what the app is allowed to see.
@@ -29,18 +29,14 @@ export type PublicListingRow = Omit<
 
 export type PublicPhotoRow = Pick<ListingPhotoRow, "url" | "roomTag" | "dominantColor">;
 
-function inDays(days: number, today: Date): string {
-  const date = new Date(today);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 /** The date a flat is free from. A seed flat's date is counted from today, so the demo never looks abandoned. */
 export function freeFrom(
   row: Pick<PublicListingRow, "availableFrom" | "availableInDays">,
   today: Date,
 ): string {
-  return row.availableInDays === null ? row.availableFrom : inDays(row.availableInDays, today);
+  return row.availableInDays === null
+    ? row.availableFrom
+    : homeDatePlus(today, row.availableInDays);
 }
 
 export function toListing(

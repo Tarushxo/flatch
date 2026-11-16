@@ -25,8 +25,8 @@ import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/http";
 import {
   MATCHES_KEY,
+  useAllMatches,
   useMarkRead,
-  useMatches,
   useMessages,
   useSendMessage,
 } from "@/lib/matches/use-matches";
@@ -50,7 +50,9 @@ const TYPING_FOR_MS = 7000;
  * lister sees a reminder of who they gave the key to.
  */
 export function ChatScreen({ matchId }: { matchId: string }) {
-  const matches = useMatches();
+  // Every match, whichever side of the app is in use: the match moment can lead here for a
+  // tenant-side match while the person is looking at their lister side.
+  const matches = useAllMatches();
   const messages = useMessages(matchId);
   const send = useSendMessage(matchId);
   const { mutate: markRead } = useMarkRead(matchId);
@@ -111,7 +113,10 @@ export function ChatScreen({ matchId }: { matchId: string }) {
     );
   }
 
-  if (!match || messages.isError) {
+  // The chat is gone only if the server says so, or nothing could be loaded at all. One
+  // failed request on a weak connection must not swap an open chat for an error screen.
+  const gone = messages.error instanceof ApiError && messages.error.status === 404;
+  if (!match || gone || (messages.isError && !messages.data)) {
     return (
       <ScreenMessage
         art={<KeyDrawing className="[--glow:var(--pass)]" />}

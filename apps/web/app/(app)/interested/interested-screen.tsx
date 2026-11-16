@@ -107,7 +107,8 @@ export function InterestedScreen() {
     );
   }
 
-  if (listings.isError || applicants.isError) {
+  // With something already on screen, a failed refresh is ignored: the next one will do.
+  if ((listings.isError && !listings.data) || (applicants.isError && !applicants.data)) {
     return (
       <ScreenMessage
         art={<BellDrawing className="[--glow:var(--pass)]" />}

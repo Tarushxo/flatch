@@ -15,6 +15,19 @@ const REFILL_AT = 4;
 const SEND_ATTEMPTS = 3;
 
 /**
+ * Everything sent to the server about swipes so far, as one chain. Each batch,
+ * and each undo, waits for the one before it. Without this an undo could
+ * overtake the swipe it was undoing: the server would delete nothing, then
+ * store the like, and a flat the person had taken back could still match.
+ */
+let sent: Promise<unknown> = Promise.resolve();
+function inTurn<T>(work: () => Promise<T>): Promise<T> {
+  const next = sent.catch(() => {}).then(work);
+  sent = next;
+  return next;
+}
+
+/**
  * Everything the deck needs: the cards, loading state, and the actions that
  * talk to the server. Swipes are optimistic: the card leaves at once and the
  * swipe is sent in the background.
@@ -70,7 +83,7 @@ export function useDeck() {
   useEffect(() => {
     if (outboxSize === 0) return;
     const batch = useDeckStore.getState().takeOutbox();
-    void sendWithRetry(batch)
+    void inTurn(() => sendWithRetry(batch))
       .then(() => {
         if (batch.some((item) => item.swipe.action === "save")) {
           void queryClient.invalidateQueries({ queryKey: SAVED_KEY });
@@ -86,7 +99,9 @@ export function useDeck() {
 
   const undo = useCallback(() => {
     const undone = useDeckStore.getState().undo();
-    if (undone?.alreadySent) void api.undoSwipe(undone.listingId).catch(() => {});
+    if (undone?.alreadySent) {
+      void inTurn(() => api.undoSwipe(undone.listingId)).catch(() => {});
+    }
   }, []);
 
   /** Bring passed flats back round and start the deck again. */

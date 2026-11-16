@@ -48,7 +48,8 @@ export function ListingsScreen() {
     );
   }
 
-  if (listings.isError) {
+  // With the flats already on screen, a failed refresh is ignored: the next one will do.
+  if (listings.isError && !listings.data) {
     return (
       <ScreenMessage
         art={<SignboardDrawing className="[--glow:var(--pass)]" />}

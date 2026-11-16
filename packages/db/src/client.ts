@@ -8,7 +8,19 @@ import * as schema from "./schema";
  */
 
 export function createDb(connectionString: string) {
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({
+    connectionString,
+    // A handful is plenty for one server instance, and the free database allows few.
+    max: 5,
+    // Never wait for ever on a connection that will not open (the database waking, or a
+    // bad network path): fail in a few seconds, with an error the request can report.
+    connectionTimeoutMillis: 8_000,
+  });
+  // A connection that drops while idle reports here. With nobody listening, that is an
+  // unhandled error, which can take the whole server instance down.
+  pool.on("error", (error: Error) => {
+    console.error("A database connection was lost while idle", error.message);
+  });
   return Object.assign(drizzle(pool, { schema }), { close: () => pool.end() });
 }
 
