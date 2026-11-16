@@ -2,7 +2,7 @@
 
 import type { Listing } from "@repo/shared";
 import { useMotionValue } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { DeckAction } from "@/lib/deck/gesture";
 import { useDeckStore } from "@/lib/deck/store";
 import { useDeck } from "@/lib/deck/use-deck";
@@ -30,7 +30,7 @@ const SHORTCUTS = [
  * shortcuts. `onTopChange` reports which flat is on top (for the desktop side
  * panel) and `onOpenDetails` is called when the person asks for details.
  */
-export function SwipeDeck({
+export const SwipeDeck = memo(function SwipeDeck({
   onTopChange,
   onOpenDetails,
 }: {
@@ -46,9 +46,16 @@ export function SwipeDeck({
   const topCard = useRef<DeckCardHandle>(null);
   const [glow, setGlow] = useState<string | null>(null);
   const [burst, setBurst] = useState<{ id: number; action: DeckAction } | null>(null);
+  // Cards that have been swiped and are still flying off. They are out of the deck already
+  // (the swipe is saved and the next card is live); they stay on screen only to finish leaving.
+  const [exiting, setExiting] = useState<Listing[]>([]);
+  // How far the card in front had been dragged when it was let go, for the cards behind it.
+  const carry = useRef(0);
 
   const top = deck.cards[0] ?? null;
   const visible = deck.cards.slice(0, VISIBLE);
+  // A card that is back in the deck (its swipe could not be saved) is drawn once, as a deck card.
+  const leavingNow = exiting.filter((listing) => !visible.some((card) => card.id === listing.id));
 
   useEffect(() => {
     onTopChange?.(top);
@@ -83,6 +90,24 @@ export function SwipeDeck({
   const openDetails = () => {
     if (top) onOpenDetails(top);
   };
+  // Undo waits for a card that is still flying off: it cannot fly out and come back at once.
+  const undo = () => {
+    if (exiting.length === 0) deck.undo();
+  };
+
+  const onLeaving = useCallback(
+    (listing: Listing, action: DeckAction) => {
+      carry.current = progress.get();
+      // Likes and saves get a small celebration; a pass leaves quietly.
+      if (action !== "pass") setBurst((last) => ({ id: (last?.id ?? 0) + 1, action }));
+      setExiting((list) => [...list, listing]);
+      commit(listing.id, action);
+    },
+    [commit, progress],
+  );
+  const onGone = useCallback((listingId: string) => {
+    setExiting((list) => list.filter((listing) => listing.id !== listingId));
+  }, []);
 
   // Keyboard shortcuts. The handler lives in a ref so the listener is attached only once
   // but always sees the current deck.
@@ -118,7 +143,7 @@ export function SwipeDeck({
         break;
       case "z":
       case "Z":
-        deck.undo();
+        undo();
         break;
       case "a":
       case "A":
@@ -163,21 +188,23 @@ export function SwipeDeck({
 
         {top ? <DeckHints /> : null}
 
-        {visible.map((listing, index) => (
+        {[
+          ...leavingNow.map((listing) => ({ listing, index: 0, exiting: true })),
+          ...visible.map((listing, index) => ({ listing, index, exiting: false })),
+        ].map(({ listing, index, exiting: isExiting }) => (
           <DeckCard
             key={listing.id}
-            ref={index === 0 ? topCard : undefined}
+            ref={index === 0 && !isExiting ? topCard : undefined}
             listing={listing}
             index={index}
+            exiting={isExiting}
             progress={progress}
+            carry={carry}
             enterFrom={returning?.id === listing.id ? returning.action : undefined}
             onEntered={clearReturning}
-            onLeaving={(action) => {
-              // Likes and saves get a small celebration; a pass leaves quietly.
-              if (action !== "pass") setBurst((last) => ({ id: (last?.id ?? 0) + 1, action }));
-            }}
-            onCommit={(action) => commit(listing.id, action)}
-            onOpenDetails={() => onOpenDetails(listing)}
+            onLeaving={onLeaving}
+            onGone={onGone}
+            onOpenDetails={onOpenDetails}
             onPhotoChange={setGlow}
           />
         ))}
@@ -188,7 +215,7 @@ export function SwipeDeck({
         canUndo={deck.canUndo}
         burst={burst}
         onAction={act}
-        onUndo={deck.undo}
+        onUndo={undo}
       />
 
       <ul className="hidden items-center justify-center gap-x-4 gap-y-1 text-fg-3 text-xs lg:flex lg:flex-wrap">
@@ -203,4 +230,4 @@ export function SwipeDeck({
       </ul>
     </section>
   );
-}
+});

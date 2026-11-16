@@ -67,7 +67,8 @@ function createAuth() {
     advanced: { database: { generateId: "uuid" } },
     session: {
       // The session is also kept, signed, in a cookie for a few minutes, so most
-      // requests are recognised without a trip to the database.
+      // requests are recognised without a trip to the database. The cookie is renewed by
+      // the API's own answers (see the session check in app.ts).
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
     // The sign-in record Google issues is stored scrambled, not as plain text.

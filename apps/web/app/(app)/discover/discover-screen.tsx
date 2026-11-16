@@ -2,7 +2,7 @@
 
 import type { FeedFilters, Listing } from "@repo/shared";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type WheelEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type WheelEvent } from "react";
 import { FilterBar } from "@/components/deck/filter-bar";
 import { FirstLikePrompt } from "@/components/deck/first-like-prompt";
 import { SwipeDeck } from "@/components/deck/swipe-deck";
@@ -68,8 +68,9 @@ export function DiscoverScreen() {
   // On a wide screen the details are already showing beside the deck, so
   // "details" brings that panel to the top and lights its edge for a moment:
   // without that, a pull down on the card appeared to do nothing at all. On a
-  // narrow one it opens the sheet.
-  function openDetails(listing: Listing) {
+  // narrow one it opens the sheet. (Kept the same function from one draw to the next, so
+  // the deck is not redrawn whenever this screen is.)
+  const openDetails = useCallback((listing: Listing) => {
     if (window.matchMedia(WIDE_SCREEN).matches) {
       // Focus first, and without scrolling: a focus that scrolls cancels the smooth scroll.
       panel.current?.focus({ preventScroll: true });
@@ -79,7 +80,7 @@ export function DiscoverScreen() {
       setSheetNeeded(true);
       setSheet(listing);
     }
-  }
+  }, []);
 
   // A mouse wheel or trackpad has no finger to pull the card down with, so
   // scrolling over the deck stands in for it. Beside a wide deck it scrolls the

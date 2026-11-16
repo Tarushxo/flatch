@@ -9,9 +9,19 @@ import {
   type PanInfo,
   useMotionValue,
   useMotionValueEvent,
+  useReducedMotion,
   useTransform,
 } from "motion/react";
-import { type Ref, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import {
+  memo,
+  type Ref,
+  type RefObject,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { InfoIcon } from "@/components/icons";
 import {
   type DeckAction,
@@ -33,6 +43,14 @@ export type DeckCardHandle = {
 
 const SPRING_BACK = { type: "spring", stiffness: 300, damping: 25 } as const;
 const STILL = { x: 0, y: 0 };
+
+/** How long the cards behind take to step forward once the one in front has begun to leave. */
+const STEP_FORWARD = { duration: 0.22, ease: "easeOut" } as const;
+/**
+ * A stamp is not drawn until it is at least this lit. A card settling back wobbles a hair
+ * past centre, and without this each wobble built and threw away a whole glowing layer.
+ */
+const STAMP_FROM = 0.04;
 
 /** How much smaller and lower each card sits behind the one in front. */
 const STACK = { scaleStep: 0.06, offsetY: 12, maxShade: 0.45 };
@@ -66,14 +84,24 @@ function viewport() {
  *
  * `progress` is shared by the whole deck: the top card writes how close its
  * drag is to committing (0 to 1) and the cards behind read it.
+ *
+ * A card that has been swiped is `exiting`: it is no longer part of the deck
+ * and only finishes flying off, above the others. The card behind it is the
+ * top card from the moment the swipe is let go, so it can be grabbed, or sent
+ * off with a button, without waiting for the first one to clear the screen.
+ *
+ * The callbacks are given the listing, so the deck can pass the same functions
+ * to every card and a card is not redrawn just because the deck was.
  */
-export function DeckCard({
+export const DeckCard = memo(function DeckCard({
   listing,
   index,
+  exiting = false,
   progress,
+  carry,
   enterFrom,
   onLeaving,
-  onCommit,
+  onGone,
   onEntered,
   onOpenDetails,
   onPhotoChange,
@@ -81,25 +109,33 @@ export function DeckCard({
 }: {
   listing: Listing;
   index: number;
+  /** True once the card has been swiped and is only finishing its flight. */
+  exiting?: boolean;
   progress: MotionValue<number>;
+  /** How far the card in front had been dragged (0 to 1) at the moment it began to leave. */
+  carry: RefObject<number>;
   /** Set when the card is coming back from an undo: the action it originally left with. */
   enterFrom?: DeckAction;
-  /** Called the moment the card starts to leave, before it has gone. */
-  onLeaving?: (action: DeckAction) => void;
+  /** Called the moment the card starts to leave. From here on it is no longer in the deck. */
+  onLeaving: (listing: Listing, action: DeckAction) => void;
   /** Called once the card is off-screen. */
-  onCommit: (action: DeckAction) => void;
+  onGone: (listingId: string) => void;
   onEntered?: () => void;
-  onOpenDetails: () => void;
+  onOpenDetails: (listing: Listing) => void;
   onPhotoChange?: (dominantColor: string) => void;
   ref?: Ref<DeckCardHandle>;
 }) {
-  const isTop = index === 0;
+  const isTop = index === 0 && !exiting;
+  const still = useReducedMotion();
   const element = useRef<HTMLDivElement>(null);
   const size = useRef({ width: 380, height: 580 });
   const grabbedBottomHalf = useRef(false);
   const flying = useRef(false);
+  // Set the instant the card is let go, ahead of the redraw that marks it `exiting`.
+  const leaving = useRef(false);
   const panned = useRef(false);
   const indexRef = useRef(index);
+  const lastIndex = useRef(index);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   // Where the finger has dragged the card. A returning card starts off-screen.
@@ -135,13 +171,15 @@ export function DeckCard({
     const strengths = stampOpacity(offset, size.current);
     let strongest: StampAction | null = null;
     for (const { action } of STAMPS) {
-      if (strengths[action] > (strongest ? strengths[strongest] : 0)) strongest = action;
+      if (strengths[action] > (strongest ? strengths[strongest] : STAMP_FROM)) strongest = action;
     }
     // State changes only when the stamp in play changes, not on every frame.
     if (strongest !== showingRef.current) {
       showingRef.current = strongest;
       setShowing(strongest);
     }
+    // A card on its way out no longer speaks for the deck: the one behind it is the top card.
+    if (leaving.current) return;
     const next = dragProgress(offset, size.current);
     if (next >= 1 && progress.get() < 1 && !flying.current) buzz(10);
     progress.set(next);
@@ -152,8 +190,18 @@ export function DeckCard({
   // Runs before paint whenever the deck reorders, so nothing visibly jumps.
   // biome-ignore lint/correctness/useExhaustiveDependencies: report reads only refs and motion values
   useLayoutEffect(() => {
+    const steppedForward = index < lastIndex.current;
+    lastIndex.current = index;
     indexRef.current = index;
-    stackIndex.set(index);
+    stackIndex.stop();
+    if (steppedForward && !still) {
+      // The card in front has only just begun to leave. Start from where its drag had already
+      // brought this one, and finish the step forward while it flies.
+      stackIndex.set(Math.max(index, stackIndex.get() - carry.current));
+      animate(stackIndex, index, STEP_FORWARD);
+    } else {
+      stackIndex.set(index);
+    }
     measure();
     report();
   }, [index, stackIndex]);
@@ -162,6 +210,12 @@ export function DeckCard({
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs once, when the card mounts
   useEffect(() => {
     if (!enterFrom) return;
+    if (still) {
+      x.set(0);
+      y.set(0);
+      onEntered?.();
+      return;
+    }
     flying.current = true;
     Promise.all([animate(x, 0, SPRING_BACK), animate(y, 0, SPRING_BACK)]).then(() => {
       flying.current = false;
@@ -184,12 +238,20 @@ export function DeckCard({
   function flyOut(action: DeckAction, offset = STILL, velocity = STILL) {
     if (flying.current) return;
     flying.current = true;
-    onLeaving?.(action);
+    leaving.current = true;
+    // The swipe counts from this moment. The deck moves on at once; the flight is only for show.
+    onLeaving(listing, action);
     const target = flyOutTarget(action, offset, velocity, viewport());
+    // With motion turned down the card simply goes.
+    if (still) {
+      x.set(target.x);
+      onGone(listing.id);
+      return;
+    }
     const options = { duration: target.duration, ease: "easeOut" } as const;
     // followY shortens upward travel, so aim further to clear the screen.
     Promise.all([animate(x, target.x, options), animate(y, target.y * 1.2, options)]).then(() =>
-      onCommit(action),
+      onGone(listing.id),
     );
   }
 
@@ -220,9 +282,14 @@ export function DeckCard({
       return;
     }
     // The card stays: it settles back, and a pull down opens the details.
-    animate(x, 0, SPRING_BACK);
-    animate(y, 0, SPRING_BACK);
-    if (gesture === "details") onOpenDetails();
+    if (still) {
+      x.set(0);
+      y.set(0);
+    } else {
+      animate(x, 0, SPRING_BACK);
+      animate(y, 0, SPRING_BACK);
+    }
+    if (gesture === "details") onOpenDetails(listing);
   }
 
   /** A tap on the left or right third of the photo flips through the photos. */
@@ -232,7 +299,7 @@ export function DeckCard({
     if (!rect || !("clientX" in event)) return;
     const along = (event.clientX - rect.left) / rect.width;
     const down = (event.clientY - rect.top) / rect.height;
-    if (down > 0.7) onOpenDetails();
+    if (down > 0.7) onOpenDetails(listing);
     else if (along < 1 / 3) showPhoto(-1);
     else if (along > 2 / 3) showPhoto(1);
   }
@@ -249,7 +316,7 @@ export function DeckCard({
       className={`absolute inset-0 touch-none select-none will-change-transform ${
         isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"
       }`}
-      style={{ x, y: shownY, rotate, scale, zIndex: 10 - index }}
+      style={{ x, y: shownY, rotate, scale, zIndex: exiting ? 11 : 10 - index }}
       onPointerDown={() => {
         panned.current = false;
       }}
@@ -262,18 +329,19 @@ export function DeckCard({
         listing={listing}
         photoIndex={photoIndex}
         priority={isTop}
-        // A flat with no score yet (one a real person posted, until M5) shows no ring.
+        // With nothing known about what the person wants there is no score, and no ring.
         showMatch={listing.compatibility.percent > 0}
       />
 
-      {/* Cards further back are dimmer */}
+      {/* Cards further back are dimmer. Its own layer: it fades on every frame of a drag, and
+          otherwise the whole card under it (photo, gradients, text) is redrawn each time. */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[2rem] bg-ink"
+        className="pointer-events-none absolute inset-0 rounded-[2rem] bg-ink will-change-[opacity]"
         style={{ opacity: shade }}
       />
 
-      {isTop && inPlay ? (
+      {(isTop || exiting) && inPlay ? (
         <motion.div
           key={inPlay.action}
           aria-hidden="true"
@@ -295,7 +363,7 @@ export function DeckCard({
         <button
           type="button"
           aria-label={`Details for ${listing.title}`}
-          onClick={onOpenDetails}
+          onClick={() => onOpenDetails(listing)}
           className="absolute right-4 bottom-[5.5rem] grid size-10 place-items-center rounded-full border border-hairline bg-ink/75 text-fg transition-colors hover:bg-ink/90"
         >
           <InfoIcon className="size-5" />
@@ -303,7 +371,7 @@ export function DeckCard({
       ) : null}
     </motion.div>
   );
-}
+});
 
 function startOffset(enterFrom: DeckAction | undefined) {
   if (!enterFrom || typeof window === "undefined") return STILL;

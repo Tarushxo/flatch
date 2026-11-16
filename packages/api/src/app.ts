@@ -342,7 +342,17 @@ const routes = new Hono<Env>()
 /** Routes that need to know who is asking. */
 const signedIn = new Hono<Env>()
   .use(async (c, next) => {
-    const session = await getAuth().api.getSession({ headers: c.req.raw.headers });
+    // The sign-in library answers with the session and with cookies to set: a fresh short-lived
+    // copy of the session once the last one has run out, and the session cookie itself, renewed,
+    // when it is a day or more old. Those cookies have to travel back on our answer. When they
+    // were dropped, every request after the first five minutes looked the session up in the
+    // database again, and everyone was signed out a week after signing in however often they
+    // came back, which for a guest means losing everything.
+    const { response: session, headers: fromAuth } = await getAuth().api.getSession({
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
+    for (const cookie of fromAuth.getSetCookie()) c.header("set-cookie", cookie, { append: true });
     if (!session) {
       return c.json(
         problem("signed_out", "Your session has ended. Reload to start a new one."),

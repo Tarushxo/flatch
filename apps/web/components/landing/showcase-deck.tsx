@@ -201,7 +201,7 @@ export function ShowcaseDeck({
               />
               {depth === 0 ? (
                 <motion.div
-                  className="absolute inset-0"
+                  className="absolute inset-0 will-change-[opacity]"
                   style={{ opacity: stamp, "--glow": move.colour } as MotionStyle}
                 >
                   <div className="glow absolute inset-0 rounded-[2rem]" />
