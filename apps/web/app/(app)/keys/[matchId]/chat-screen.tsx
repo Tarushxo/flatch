@@ -110,7 +110,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
       <ScreenMessage
         art={<KeyDrawing className="[--glow:var(--pass)]" />}
         title="This key isn't on the rack"
-        body="The match may have ended, or the page was reloaded. In this demo, matches last until you reload."
+        body="The match may have ended, or the flat may have been taken down."
       >
         <SignLink href="/keys" size="sm">
           Back to your keys

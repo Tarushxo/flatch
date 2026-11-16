@@ -95,6 +95,13 @@ export function SwipeDeck({
     if (document.querySelector("[role=dialog]")) return;
     // Leave Space and Enter alone when a button or link has focus.
     const onControl = target?.closest("button, a, [role=dialog]");
+    // On a wide screen "details" puts the keyboard in the panel beside the deck. There the
+    // up and down arrows and Space scroll what is being read, as they would anywhere, and
+    // Escape hands the keyboard back to the deck.
+    if (target?.closest("[data-reading]")) {
+      if (event.key === "Escape") (document.activeElement as HTMLElement | null)?.blur();
+      if (["ArrowDown", "ArrowUp", " ", "Escape"].includes(event.key)) return;
+    }
 
     switch (event.key) {
       case "ArrowLeft":

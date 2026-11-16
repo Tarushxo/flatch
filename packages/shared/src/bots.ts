@@ -31,10 +31,13 @@ export const HELLO_DELAY_MS = 2500;
  */
 export const ARRIVALS_MS = [8000, 60000] as const;
 
+/** One more than the largest number `botSeed` can give. */
+const SEED_RANGE = 9973;
+
 /** A small, stable number from an id, so each flat always meets the same behaviour. */
 export function botSeed(id: string): number {
   let hash = 0;
-  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) % 9973;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) % SEED_RANGE;
   return hash;
 }
 
@@ -48,7 +51,10 @@ export function botAccepts(listingId: string): boolean {
 
 /** How long after a like this bot lister says yes, in milliseconds. */
 export function botAcceptDelay(listingId: string): number {
-  return ACCEPT_DELAY.min + (botSeed(listingId) % (ACCEPT_DELAY.max - ACCEPT_DELAY.min));
+  // The seed is spread over the whole window. Taking its remainder did nothing, because the
+  // seed is always smaller than the window is wide, so no answer ever came later than 25 s.
+  const share = botSeed(listingId) / SEED_RANGE;
+  return ACCEPT_DELAY.min + Math.floor(share * (ACCEPT_DELAY.max - ACCEPT_DELAY.min));
 }
 
 /** A bot lister's first message, sent shortly after they accept. */

@@ -14,10 +14,11 @@ export default function PrivacyPage() {
     <LegalPage title="Privacy" updated="16 November 2026">
       <LegalSection title="The short version">
         <p>
-          {APP_NAME} is a personal portfolio project, not a business. Every flat and every lister in
-          it is demo data. It stores only what it needs to work, shows no adverts, uses no tracking
-          or analytics, and never sells or shares your details. You can delete everything it holds
-          about you from the Profile tab at any time.
+          {APP_NAME} is a personal portfolio project, not a business. Most of the flats and listers
+          in it are sample data, marked Demo; a flat without that mark was posted by a real person.
+          It stores only what it needs to work, shows no adverts, uses no tracking or analytics, and
+          never sells or shares your details. You can delete everything it holds about you from the
+          Profile tab at any time.
         </p>
       </LegalSection>
 
@@ -38,7 +39,10 @@ export default function PrivacyPage() {
             and lifestyle.
           </li>
           <li>
-            <strong>What you do:</strong> which flats you liked, passed or saved.
+            <strong>What you do:</strong> which flats you liked, passed or saved, the matches that
+            come of it, and the messages you send in a chat. A like on a real person's flat is
+            passed on to that person with your profile; messages are seen only by the two people in
+            the chat.
           </li>
           <li>
             <strong>If you post a flat:</strong> what you enter about it, including the building and
@@ -56,22 +60,19 @@ export default function PrivacyPage() {
             used for signing in only.
           </li>
         </ul>
-        <p>
-          Some demo features (chats, matches and flats you post) are kept only in your own browser's
-          storage for now and never reach the server.
-        </p>
       </LegalSection>
 
       <LegalSection title="Why it is stored">
         <p>
-          To show you flats that fit, to keep a flat you swiped on from coming back, and to keep
-          your profile from one visit to the next. Nothing else.
+          To show you flats that fit, to keep a flat you swiped on from coming back, to pass a like
+          on to the flat's lister, to carry a chat between two people who matched, and to keep your
+          profile from one visit to the next. Nothing else.
         </p>
       </LegalSection>
 
       <LegalSection title="Where it lives">
         <ul>
-          <li>The site runs on Vercel and its database is hosted by Neon, in the United States.</li>
+          <li>The site runs on Vercel and its database is hosted by Neon, both in Singapore.</li>
           <li>Photos you upload are stored by Cloudinary.</li>
           <li>
             Demo photos load from Unsplash and maps from OpenFreeMap. Like any website you visit,
@@ -84,9 +85,10 @@ export default function PrivacyPage() {
       <LegalSection title="Deleting your data">
         <p>
           Open the Profile tab. As a guest, <strong>Check out</strong> deletes your guest account
-          with your profile and swipes. Signed in, <strong>Delete my account</strong> does the same
-          for your account, and <strong>Sign out</strong> just signs this browser out. Deletion is
-          immediate and cannot be undone.
+          with your profile, swipes, matches and messages. Signed in,{" "}
+          <strong>Delete my account</strong> does the same for your account, and{" "}
+          <strong>Sign out</strong> just signs this browser out. Deletion is immediate and cannot be
+          undone.
         </p>
       </LegalSection>
 

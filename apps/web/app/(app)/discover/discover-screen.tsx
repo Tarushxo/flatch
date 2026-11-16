@@ -124,6 +124,8 @@ export function DiscoverScreen() {
           ref={panel}
           tabIndex={-1}
           aria-label="Details of the flat on top"
+          // Tells the deck's keyboard shortcuts that, in here, the scrolling keys are for reading.
+          data-reading=""
           className="h-full overflow-y-auto border-hairline border-l px-7 py-8 outline-none"
         >
           {!wide ? null : top ? (
