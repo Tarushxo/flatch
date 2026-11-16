@@ -16,11 +16,19 @@ const SIZES = {
  * Every screen that shows the logo uses this component, so the typeface,
  * colour and flicker are identical everywhere. Only the size varies.
  */
-export function Logo({ size = "md" }: { size?: keyof typeof SIZES }) {
+export function Logo({
+  size = "md",
+  lit = true,
+}: {
+  size?: keyof typeof SIZES;
+  /** False shows the sign switched off. */
+  lit?: boolean;
+}) {
   return (
     <NeonSign
       text={APP_NAME}
       font="logo"
+      lit={lit}
       className={`px-1 leading-[1.2] [--glow:var(--brand-b)] ${SIZES[size]}`}
     />
   );

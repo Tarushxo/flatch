@@ -80,6 +80,59 @@
     }
   }
 
+  /* The landing page's roadside scene (components/landing/roadside-hero.tsx). */
+  --animate-drop-in: drop-in 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+  --animate-twinkle: twinkle 3.6s ease-in-out infinite;
+  --animate-headlights: headlights 11s linear infinite;
+
+  /* A plaque dropping onto its chain and settling. */
+  @keyframes drop-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-1.25rem) rotate(-7deg);
+    }
+    55% {
+      opacity: 1;
+      transform: translateY(0) rotate(4deg);
+    }
+    78% {
+      transform: rotate(-2deg);
+    }
+    100% {
+      opacity: 1;
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* A car's headlights crossing the horizon, then a long wait for the next car. */
+  @keyframes headlights {
+    0%,
+    62% {
+      opacity: 0;
+      transform: translateX(-10vw);
+    }
+    68% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(110vw);
+    }
+  }
+
   /* Small helpers: an overlay fading in, and a spark flying out from a button. */
   --animate-fade-in: fade-in 0.35s ease-out both;
   /* The details panel's edge lighting up when details are asked for on a wide screen. */

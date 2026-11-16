@@ -23,12 +23,15 @@ export function NeonSign({
   text,
   font = "sign",
   faultyLetter = 2,
+  lit = true,
   className = "",
 }: {
   text: string;
   font?: keyof typeof FONTS;
   /** Position of the letter with the loose connection. Pass -1 for none. */
   faultyLetter?: number;
+  /** False shows the sign switched off: only the dark glass tube. Switching it on flickers. */
+  lit?: boolean;
   className?: string;
 }) {
   const letters = Array.from(text, (char, position) => ({ char, id: `${position}-${char}` }));
@@ -40,7 +43,10 @@ export function NeonSign({
         {text}
       </span>
       {/* Letters stay inline (not inline-block) so a script font keeps its joins. */}
-      <span aria-hidden="true" className="sign absolute inset-0 animate-neon">
+      <span
+        aria-hidden="true"
+        className={`sign absolute inset-0 transition-opacity duration-150 ${lit ? "animate-neon" : "opacity-0"}`}
+      >
         {letters.map((letter, position) => (
           <span
             key={letter.id}
