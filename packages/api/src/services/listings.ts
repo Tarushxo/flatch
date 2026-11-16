@@ -36,6 +36,7 @@ import {
 } from "../policies";
 import { Refused } from "../refused";
 import { inviteBotTenants, stopBotArrivals } from "./matching";
+import { spend } from "./usage";
 
 /*
  * A person's own flats: posting one, switching its sign, taking it down.
@@ -225,6 +226,9 @@ export async function createListing(
     throw new Refused(400, "unknown_photo", "Use photos you uploaded here, or the ones offered.");
   }
 
+  // Everything about the flat checks out, so it counts towards today's posts.
+  await spend(db, actor.userId, "listing");
+
   const id = crypto.randomUUID();
   const centre = { lat: locality.centroid.y, lng: locality.centroid.x };
   const onSite = draft.postedFrom ? checkOnSite(centre, draft.postedFrom).ok : false;
@@ -260,7 +264,7 @@ export async function createListing(
       expectations: only(EXPECTATION_OPTIONS, draft.expectations),
       listerRole: "flatmate",
       flatmateCount: 1,
-      // A fixed place in the deck's order until the ranking engine scores flats per tenant (M5).
+      // No longer read: the ranking engine scores each flat for each tenant.
       qualityScore: 70,
       isSeed: false,
       isVerified: onSite,
@@ -415,6 +419,29 @@ export async function confirmOnSite(
     })
     .where(eq(listings.id, listingId));
   return toMyListing({ ...row, isVerified: true });
+}
+
+/**
+ * Remove from the image store every photo this person uploaded for their flats.
+ * Called just before their account is deleted: the flats go with the account,
+ * and without this their photos would stay reachable at their addresses.
+ */
+export async function destroyUploadsOf(
+  db: Db,
+  userId: string,
+  storage: CloudinaryConfig,
+): Promise<number> {
+  const rows = await db
+    .select({ url: listingPhotos.url })
+    .from(listingPhotos)
+    .innerJoin(listings, eq(listings.id, listingPhotos.listingId))
+    .where(eq(listings.listerId, userId));
+  const uploads = rows.flatMap((row) => {
+    const publicId = ownedPublicId(row.url, storage, userId);
+    return publicId ? [publicId] : [];
+  });
+  await destroyPhotos(storage, uploads);
+  return uploads.length;
 }
 
 /** Take a flat down for good, with its photos and the swipes on it. */

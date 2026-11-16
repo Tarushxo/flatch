@@ -6,6 +6,7 @@ import {
   hasCheckedIn,
   MESSAGE_MAX_LENGTH,
   preferencesToFilters,
+  REQUEST_MAX_BYTES,
   ROOM_TYPES,
   SWIPE_ACTIONS,
 } from "@repo/shared";
@@ -44,6 +45,7 @@ import {
 } from "./services/matching";
 import { getProfile, saveProfile } from "./services/me";
 import { getSaved, recordSwipes, resetPasses, undoSwipe } from "./services/swipes";
+import { spend } from "./services/usage";
 
 /*
  * The HTTP API, mounted by the web app at /api (see apps/web/app/api). Routes
@@ -316,6 +318,8 @@ const routes = new Hono<Env>()
     if (!storage) throw new Refused(409, "no_uploads", "Photo uploads are not set up here.");
     const refusal = mayUploadPhotos(viewer(c), { signInOffered: googleEnabled() });
     if (refusal) throw new Refused(403, refusal.code, refusal.message);
+    // Each ticket lets one photo into the image store, so tickets are what is counted.
+    await spend(getDb(), c.get("userId"), "upload");
     return c.json({ ticket: uploadTicket(storage, c.get("userId")) });
   })
 
@@ -392,6 +396,15 @@ export const app = new Hono<Env>()
   .use("/v1/*", async (c, next) => {
     // Personal answers must never be kept by a shared cache.
     c.header("cache-control", "private, no-store");
+    await next();
+  })
+  // Nothing the app sends is anywhere near this size; anything that says it is bigger is not
+  // read at all. (Hono's own body-limit helper is not used: it rebuilds the request, which
+  // fails inside Next for a request with no body, such as an undo or an unmatch.)
+  .use("/v1/*", async (c, next) => {
+    if (Number(c.req.header("content-length") ?? 0) > REQUEST_MAX_BYTES) {
+      return c.json(problem("too_large", "That request is too large."), 413);
+    }
     await next();
   })
   .route("/v1", signedIn)

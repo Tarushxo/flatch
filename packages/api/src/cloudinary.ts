@@ -87,16 +87,29 @@ export function ownedPublicId(
 export async function destroyPhotos(config: CloudinaryConfig, publicIds: string[]): Promise<void> {
   await Promise.all(
     publicIds.map(async (publicId) => {
-      const params = { public_id: publicId, timestamp: String(Math.floor(Date.now() / 1000)) };
+      const params = {
+        // Without this the photo is deleted but copies already handed out by the image
+        // store's delivery network keep being served, for up to a month.
+        invalidate: "true",
+        public_id: publicId,
+        timestamp: String(Math.floor(Date.now() / 1000)),
+      };
       try {
-        await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/destroy`, {
-          method: "POST",
-          body: new URLSearchParams({
-            ...params,
-            api_key: config.apiKey,
-            signature: signParams(params, config.apiSecret),
-          }),
-        });
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${config.cloudName}/image/destroy`,
+          {
+            method: "POST",
+            body: new URLSearchParams({
+              ...params,
+              api_key: config.apiKey,
+              signature: signParams(params, config.apiSecret),
+            }),
+          },
+        );
+        // A refusal used to pass silently, leaving the photo where it was.
+        if (!response.ok) {
+          console.error(`The image store refused to remove a photo (${response.status})`);
+        }
       } catch (error) {
         console.error("Could not remove a photo from storage", error);
       }

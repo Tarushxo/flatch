@@ -15,6 +15,7 @@ import {
   botAcceptDelay,
   botAccepts,
   botTenantsFor,
+  CHAT_LIMITS,
   cleanMessage,
   DEFAULT_PREFERENCES,
   HELLO_DELAY_MS,
@@ -34,6 +35,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { type Actor, mayDecideInterest, mayLikeListing, mayUseChat } from "../policies";
 import { Refused } from "../refused";
 import { publicListings, scoredFlat, toListings } from "./feed";
+import { spend } from "./usage";
 
 /*
  * Likes, matches and chat.
@@ -527,7 +529,8 @@ type StoredMessage = { id: string; senderId: string; body: string; sentAt: strin
 /** The messages in one match that have arrived by now, oldest first. */
 export async function getMessages(db: Db, actor: Actor, matchId: string): Promise<Message[]> {
   // The chat and its messages come back together: this is asked for every few seconds
-  // while a chat is open, so it is kept to one trip to the database.
+  // while a chat is open, so it is kept to one trip to the database, and to the latest
+  // messages only: a very long chat is not sent whole every three seconds.
   const [chat] = await db
     .select({
       tenantId: conversations.tenantId,
@@ -539,8 +542,12 @@ export async function getMessages(db: Db, actor: Actor, matchId: string): Promis
           json_build_object('id', m.id, 'senderId', m.sender_id, 'body', m.body, 'sentAt', m.visible_at)
           order by m.visible_at
         )
-        from messages m
-        where m.conversation_id = ${matchId} and m.visible_at <= now()
+        from (
+          select * from messages
+          where conversation_id = ${matchId} and visible_at <= now()
+          order by visible_at desc
+          limit ${CHAT_LIMITS.shown}
+        ) m
       ), '[]'::json)`,
     })
     .from(conversations)
@@ -567,7 +574,8 @@ export async function sendMessage(
   if (!body) throw new Refused(400, "empty_message", "A message needs some text.");
 
   // One look-up for everything needed: who is in the chat, whether the other person is a
-  // bot, and how many messages this person has sent so far (a bot's reply depends on it).
+  // bot, how many messages this person has sent so far (a bot's reply depends on it), and
+  // how many the chat holds in all.
   const [chat] = await db
     .select({
       tenantId: conversations.tenantId,
@@ -583,10 +591,23 @@ export async function sendMessage(
         select count(*)::int from messages m
         where m.conversation_id = ${matchId} and m.sender_id = ${actor.userId}
       )`,
+      inChat: sql<number>`(
+        select count(*)::int from messages m where m.conversation_id = ${matchId}
+      )`,
     })
     .from(conversations)
     .where(eq(conversations.id, matchId));
   if (!chat || mayUseChat(actor, chat) || new Date(chat.matchedAt) > new Date()) throw GONE;
+
+  // Two ceilings, so that neither one chat nor one person can fill the database.
+  if (chat.inChat >= CHAT_LIMITS.perChat) {
+    throw new Refused(
+      409,
+      "chat_full",
+      "This chat has reached its limit. Swap numbers and carry on there.",
+    );
+  }
+  await spend(db, actor.userId, "message");
 
   const asTenant = chat.tenantId === actor.userId;
   const now = new Date();

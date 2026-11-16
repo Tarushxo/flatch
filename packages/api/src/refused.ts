@@ -5,7 +5,7 @@
  */
 export class Refused extends Error {
   constructor(
-    readonly status: 400 | 403 | 404 | 409,
+    readonly status: 400 | 403 | 404 | 409 | 429,
     readonly code: string,
     message: string,
   ) {

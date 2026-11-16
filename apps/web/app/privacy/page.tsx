@@ -86,9 +86,9 @@ export default function PrivacyPage() {
         <p>
           Open the Profile tab. As a guest, <strong>Check out</strong> deletes your guest account
           with your profile, swipes, matches and messages. Signed in,{" "}
-          <strong>Delete my account</strong> does the same for your account, and{" "}
-          <strong>Sign out</strong> just signs this browser out. Deletion is immediate and cannot be
-          undone.
+          <strong>Delete my account</strong> does the same for your account, along with any flats
+          you posted and the photos you uploaded for them, and <strong>Sign out</strong> just signs
+          this browser out. Deletion is immediate and cannot be undone.
         </p>
       </LegalSection>
 

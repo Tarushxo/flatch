@@ -3,6 +3,8 @@ import { accounts, getDb, sessions, users, verifications } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { anonymous } from "better-auth/plugins";
+import { cloudinaryConfig } from "./cloudinary";
+import { destroyUploadsOf } from "./services/listings";
 import { moveGuestData } from "./services/me";
 
 /*
@@ -87,6 +89,21 @@ function createAuth() {
       : {},
     databaseHooks: {
       user: {
+        delete: {
+          // Whichever way an account is deleted (a guest checking out, or a signed-in person
+          // deleting their account), the photos they uploaded are removed from the image store
+          // first. Their flats go with the account; the photos live elsewhere and would stay.
+          before: async (user) => {
+            const storage = cloudinaryConfig();
+            if (!storage) return;
+            try {
+              await destroyUploadsOf(db, user.id, storage);
+            } catch (error) {
+              // Never stand in the way of someone deleting their account.
+              console.error("Could not remove an account's photos from storage", error);
+            }
+          },
+        },
         create: {
           // A guest has no name until they give one. (The library would call them "Anonymous".)
           before: async (user) => ({

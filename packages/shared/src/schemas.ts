@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CITIES } from "./constants";
+import { AREA_NAME_MAX, AREAS_MAX, TAGS_MAX } from "./limits";
 import { LISTING_LIMITS, REPORT_NOTE_MAX, REPORT_REASONS } from "./lister";
 import { FURNISHINGS, ROOM_TAGS, ROOM_TYPES, SWIPE_ACTIONS } from "./listing";
 import { MESSAGE_MAX_LENGTH } from "./match";
@@ -119,8 +120,8 @@ export const FeedFiltersSchema = z.object({
   city: CitySchema,
   /** The most the flat may cost each month, all in (rent + maintenance + utilities). */
   budgetMax: z.number().int().positive().nullable(),
-  localities: z.array(z.string()),
-  roomTypes: z.array(RoomTypeSchema),
+  localities: z.array(z.string().max(AREA_NAME_MAX)).max(AREAS_MAX),
+  roomTypes: z.array(RoomTypeSchema).max(ROOM_TYPES.length),
 });
 
 export const SwipeSchema = z.object({
@@ -183,10 +184,10 @@ export const TenantPreferencesSchema = z.object({
   city: CitySchema,
   /** The most they will pay each month, all in. Null means no limit. */
   budgetMax: z.number().int().positive().nullable(),
-  localities: z.array(z.string()),
+  localities: z.array(z.string().max(AREA_NAME_MAX)).max(AREAS_MAX),
   moveIn: z.enum(MOVE_IN).nullable(),
   stay: z.enum(STAY).nullable(),
-  roomTypes: z.array(RoomTypeSchema),
+  roomTypes: z.array(RoomTypeSchema).max(ROOM_TYPES.length),
   lifestyle: LifestyleSchema,
   /** Lifestyle questions where a mismatch rules a flat out. */
   dealbreakers: z.array(z.enum(LIFESTYLE_KEYS)),
@@ -247,10 +248,11 @@ export const ListingDraftSchema = z.object({
   utilitiesEstimate: z.number().int().min(0),
   depositMonths: z.number().int().min(0).max(LISTING_LIMITS.depositMonthsMax),
   photos: z.array(ListingPhotoSchema).min(LISTING_LIMITS.photosMin).max(LISTING_LIMITS.photosMax),
-  amenities: z.array(z.string()),
-  houseRules: z.array(HouseRuleSchema),
-  societyRules: z.array(z.string()),
-  expectations: z.array(z.string()),
+  // The server keeps only the tags it knows, so these caps are just against oversized requests.
+  amenities: z.array(z.string().max(AREA_NAME_MAX)).max(TAGS_MAX),
+  houseRules: z.array(HouseRuleSchema).max(TAGS_MAX),
+  societyRules: z.array(z.string().max(AREA_NAME_MAX)).max(TAGS_MAX),
+  expectations: z.array(z.string().max(AREA_NAME_MAX)).max(TAGS_MAX),
 });
 
 /** A flat the person has posted, with its status and how it is doing. */

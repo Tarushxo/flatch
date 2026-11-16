@@ -22,6 +22,7 @@ import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { KeyDrawing } from "@/components/motifs/neon-drawing";
 import { SignLink } from "@/components/sign-link";
 import { api } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/http";
 import {
   MATCHES_KEY,
   useMarkRead,
@@ -86,10 +87,15 @@ export function ChatScreen({ matchId }: { matchId: string }) {
     setDraft("");
     setTyping(true);
     send.mutate(body, {
-      onError: () => {
+      onError: (error) => {
         setTyping(false);
         setDraft(body);
-        toast.error("That message didn't send. It is back in the box to try again.");
+        // A limit (a very long chat, or a great many messages in a day) explains itself.
+        toast.error(
+          error instanceof ApiError && (error.status === 429 || error.code === "chat_full")
+            ? error.message
+            : "That message didn't send. It is back in the box to try again.",
+        );
       },
     });
   }

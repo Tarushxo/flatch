@@ -16,6 +16,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   text,
   timestamp,
@@ -369,6 +370,25 @@ export const messages = pgTable(
     createdAt,
   },
   (table) => [index("messages_conversation").on(table.conversationId, table.visibleAt)],
+);
+
+/**
+ * How many times a person has done a limited thing today (sent a message,
+ * uploaded a photo, posted a flat). One row per person, kind and UTC day; the
+ * API adds one each time and refuses past the day's limit. Old days are of no
+ * further use and can be cleared at any time.
+ */
+export const dailyUsage = pgTable(
+  "daily_usage",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    day: date("day").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.kind, table.day] })],
 );
 
 export type ListingRow = typeof listings.$inferSelect;
