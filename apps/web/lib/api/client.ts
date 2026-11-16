@@ -107,7 +107,7 @@ export interface Api {
     applicantId: string,
     decision: "accept" | "decline",
   ): Promise<{ matchId: string | null }>;
-  /** Photos to choose from when posting a flat, until uploads arrive with the backend. */
+  /** Sample photos to choose from when posting a flat, for anyone who cannot upload their own. */
   getSamplePhotos(): Promise<ListingPhoto[]>;
 }
 

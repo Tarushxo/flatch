@@ -20,6 +20,11 @@ export type PublicListingRow = Omit<
   | "seedKey"
   | "expiresAt"
   | "underReview"
+  // Left over from before flats were scored for each person; no longer read.
+  | "qualityScore"
+  | "seedCompat"
+  | "seedCommuteMinutes"
+  | "seedStretchLabel"
 > & {
   city: City;
   locality: string;

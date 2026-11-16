@@ -35,10 +35,6 @@ export const CardFace = memo(function CardFace({
   showMatch?: boolean;
 }) {
   const photo = listing.photos[photoIndex] ?? listing.photos[0];
-  const place =
-    listing.commuteMinutes === null
-      ? listing.locality
-      : `${listing.locality} · ${listing.commuteMinutes} min to work`;
 
   return (
     <div
@@ -84,7 +80,7 @@ export const CardFace = memo(function CardFace({
           {formatRent(listing.rent)}
         </p>
         <p className="mt-2 line-clamp-1 font-medium text-fg">{listing.title}</p>
-        <p className="mt-0.5 text-fg-2 text-sm">{place}</p>
+        <p className="mt-0.5 text-fg-2 text-sm">{listing.locality}</p>
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {[
             ROOM_TYPE_LABELS[listing.roomType],

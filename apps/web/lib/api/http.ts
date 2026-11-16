@@ -13,13 +13,6 @@ import type {
   UploadTicket,
 } from "@repo/shared";
 import { hc } from "hono/client";
-import {
-  authClient,
-  ensureSession,
-  entryState,
-  forgetSession,
-  startGuestSession,
-} from "@/lib/auth/client";
 import { preparePhoto, sendPhoto } from "@/lib/photo-upload";
 import { dropEarly, sameFilters, takeEarly } from "@/lib/start/early";
 import type { Api } from "./client";
@@ -31,6 +24,15 @@ import type { Api } from "./client";
  */
 
 const v1 = hc<AppType>("/").api.v1;
+
+/**
+ * The sign-in library, fetched when it is first needed. Almost every visit
+ * already has a session and never touches it: only signing in, signing out,
+ * leaving for good, and the rare request the server turns away for want of a
+ * session do. Kept out of the app's first download, it is that much less code
+ * between a phone and the first card.
+ */
+const signIn = () => import("@/lib/auth/client");
 
 /** Thrown when the server answers with a failure. */
 export class ApiError extends Error {
@@ -67,6 +69,7 @@ async function failure(response: Response): Promise<ApiError> {
 async function answer<T>(request: () => Promise<Response>): Promise<T> {
   let response = await request();
   if (response.status === 401) {
+    const { forgetSession, ensureSession } = await signIn();
     forgetSession();
     await ensureSession();
     response = await request();
@@ -147,6 +150,7 @@ export const httpApi: Api = {
    */
   resetProfile: async () => {
     dropEarly();
+    const { authClient, forgetSession } = await signIn();
     const session = await authClient.getSession();
     const guest = Boolean(
       (session.data?.user as { isAnonymous?: boolean } | undefined)?.isAnonymous,
@@ -251,17 +255,19 @@ export const httpApi: Api = {
     await answer(() => v1.listings[":listingId"].$delete({ param: { listingId } }));
   },
 
-  getEntry: () => entryState(),
+  getEntry: async () => (await signIn()).entryState(),
 
-  continueAsGuest: () => startGuestSession(),
+  continueAsGuest: async () => (await signIn()).startGuestSession(),
 
   /** Hand over to Google. The page leaves, and comes back signed in. */
   signInWithGoogle: async (next = "/profile") => {
+    const { authClient } = await signIn();
     const started = await authClient.signIn.social({ provider: "google", callbackURL: next });
     if (started.error) throw new Error(started.error.message ?? "Could not start sign-in.");
   },
 
   signOut: async () => {
+    const { authClient, forgetSession } = await signIn();
     await authClient.signOut();
     forgetSession();
     forgetBrowserCopies();

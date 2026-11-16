@@ -29,6 +29,7 @@ import { api } from "@/lib/api/client";
 import { BUDGET } from "@/lib/deck/filters";
 import { useSwitchMode } from "@/lib/profile/use-mode";
 import { useProfile, useSaveProfile } from "@/lib/profile/use-profile";
+import { useSettled } from "@/lib/use-settled";
 
 const STEPS = ["city", "budget", "areas", "timing", "room", "lifestyle"] as const;
 
@@ -401,7 +402,8 @@ function LifestyleStep({ draft, set }: StepProps) {
 
 /** How many flats the answers so far leave. The first sign that the answers do something. */
 function FlatCount({ draft }: { draft: TenantPreferences }) {
-  const filters = preferencesToFilters(draft);
+  // Asked once the answers have stopped moving, not for every step of the budget slider.
+  const filters = useSettled(preferencesToFilters(draft));
   const count = useQuery({
     queryKey: ["feed-count", filters],
     queryFn: () => api.countFeed(filters),

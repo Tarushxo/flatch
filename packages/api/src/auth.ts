@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { anonymous } from "better-auth/plugins";
 import { cloudinaryConfig } from "./cloudinary";
 import { destroyUploadsOf } from "./services/listings";
-import { moveGuestData } from "./services/me";
+import { moveGuestData, purgeLapsedGuests } from "./services/me";
 
 /*
  * Sign-in, handled by Better Auth. Everyone gets an account the moment they
@@ -120,6 +120,16 @@ function createAuth() {
           before: async (user) => ({
             data: (user as { isAnonymous?: boolean }).isAnonymous ? { ...user, name: "" } : user,
           }),
+          // Each new guest clears away a few old ones that nobody can come back to.
+          after: async (user) => {
+            if (!(user as { isAnonymous?: boolean }).isAnonymous) return;
+            try {
+              await purgeLapsedGuests(db);
+            } catch (error) {
+              // Housekeeping must never stand in the way of someone getting in.
+              console.error("Could not clear lapsed guest accounts", error);
+            }
+          },
         },
       },
     },

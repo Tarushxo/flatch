@@ -3,8 +3,8 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import * as schema from "./schema";
 
 /*
- * The connection to Postgres (Neon). A pool, because later milestones need
- * real transactions (like -> interest, accept -> conversation).
+ * The connection to Postgres (Neon). A pool, because several writes are real
+ * transactions (a swipe with its like, an answer with the chat it opens).
  */
 
 export function createDb(connectionString: string) {

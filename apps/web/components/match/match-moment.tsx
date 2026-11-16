@@ -9,8 +9,7 @@ import { buzz } from "@/lib/haptics";
 
 /**
  * The match moment: the screen dims, a neon "YOU'RE IN" sign flickers on, the
- * room key swings onto its hook, and the marquee lights chase. This is the one
- * place chasing lights are used.
+ * room key swings onto its hook, and the marquee lights chase.
  *
  * It can appear over any screen in the app. Escape, "Keep swiping" and "Say
  * hi" all close it.

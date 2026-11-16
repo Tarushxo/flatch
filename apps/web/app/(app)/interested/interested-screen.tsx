@@ -269,7 +269,7 @@ function ApplicantCard({
             </h2>
             <p className="text-fg-2 text-sm">{tenantLine(applicant)}</p>
           </div>
-          {/* A real tenant has no match score until the ranking engine exists (M5). */}
+          {/* A tenant who has said nothing about what they want has no score, and no ring. */}
           {compatibility.percent > 0 ? (
             <CompatRing percent={compatibility.percent} size="lg" />
           ) : null}

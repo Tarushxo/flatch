@@ -13,6 +13,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Drawer } from "vaul";
 import { api } from "@/lib/api/client";
 import { BUDGET } from "@/lib/deck/filters";
+import { useSettled } from "@/lib/use-settled";
 
 function toggle<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((other) => other !== item) : [...list, item];
@@ -47,9 +48,12 @@ export function FilterSheet({
     enabled: open,
   });
 
+  // Asked once the choices have stopped moving: a slider dragged across its range used to
+  // send a request for every step.
+  const asked = useSettled(draft);
   const count = useQuery({
-    queryKey: ["feed-count", draft],
-    queryFn: () => api.countFeed(draft),
+    queryKey: ["feed-count", asked],
+    queryFn: () => api.countFeed(asked),
     placeholderData: keepPreviousData,
     enabled: open,
   });

@@ -53,10 +53,6 @@ const PUBLIC_COLUMNS = {
   expectations: listings.expectations,
   listerRole: listings.listerRole,
   flatmateCount: listings.flatmateCount,
-  qualityScore: listings.qualityScore,
-  seedCompat: listings.seedCompat,
-  seedCommuteMinutes: listings.seedCommuteMinutes,
-  seedStretchLabel: listings.seedStretchLabel,
   isSeed: listings.isSeed,
   isVerified: listings.isVerified,
   publishedAt: listings.publishedAt,
@@ -105,8 +101,7 @@ function inDeck(db: Db, filters: FeedFilters, viewer: Viewer) {
 
 /**
  * A listing's photos, in order, fetched as part of the same query as the
- * listing. One trip to the database instead of two matters when the database
- * is an ocean away.
+ * listing: one trip to the database instead of two.
  */
 const photosInOrder = sql<PublicPhotoRow[]>`coalesce((
   select json_agg(

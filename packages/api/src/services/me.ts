@@ -118,3 +118,33 @@ export async function moveGuestData(db: Db, guestId: string, accountId: string):
     `);
   });
 }
+
+/** How many lapsed guest accounts are cleared in one go. Small, so it never slows a sign-in. */
+const PURGE_BATCH = 25;
+
+/**
+ * Clear away guest accounts nobody can come back to. A guest is known only by
+ * the session cookie in one browser; once that session has run out (a week
+ * after it was last used) the account and everything in it can never be
+ * reached again, by anyone. Rather than keep it for ever, a few such accounts
+ * are deleted each time a new guest arrives, so the cleaning keeps pace with
+ * the mess without a scheduled job.
+ *
+ * A guest who has posted a flat (possible only where signing in is not on
+ * offer) is left alone: their photos are in the image store, and removing
+ * those takes the proper account-deletion path.
+ */
+export async function purgeLapsedGuests(db: Db): Promise<number> {
+  const gone = await db.execute(sql`
+    delete from users where id in (
+      select u.id from users u
+      where u.is_guest = true and u.is_seed = false
+        and u.created_at < now() - interval '1 day'
+        and not exists (select 1 from sessions s where s.user_id = u.id and s.expires_at > now())
+        and not exists (select 1 from listings l where l.lister_id = u.id)
+      limit ${PURGE_BATCH}
+    )
+    returning id
+  `);
+  return gone.rows.length;
+}

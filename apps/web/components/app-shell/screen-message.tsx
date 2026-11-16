@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /**
- * A full-screen message with a neon drawing: used for screens a later
- * milestone builds, and for empty states.
+ * A full-screen message with a neon drawing: used for empty states and for
+ * screens that could not load.
  */
 export function ScreenMessage({
   art,

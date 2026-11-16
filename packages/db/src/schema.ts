@@ -26,7 +26,8 @@ import {
 
 /*
  * The database tables: flats and swipes (M2), accounts and profiles (M3),
- * likes, matches and chat (M4). Impressions arrive with the feed engine (M5). The full plan is in docs/SPEC.md section 6.
+ * likes, matches and chat (M4), daily usage counts. Impressions are not built
+ * yet. The full plan is in docs/SPEC.md section 6.
  *
  * Money is whole rupees. Times are UTC. Points are PostGIS geometry holding
  * longitude and latitude, read and written as { x: lng, y: lat }.
@@ -131,7 +132,7 @@ export const verifications = pgTable(
 /**
  * What a person told the app about themselves and what they are looking for.
  * The name lives on the user. Preferences are kept whole, as the app sends
- * them; the ranking engine (M5) will pull out the columns it needs to query.
+ * them, and the ranking engine reads them as they are.
  */
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id")
@@ -198,10 +199,10 @@ export const listings = pgTable(
     listerRole: listerRoleEnum("lister_role").notNull().default("flatmate"),
     flatmateCount: integer("flatmate_count").notNull().default(0),
 
-    /** Orders the feed until the ranking engine (M5) scores each flat per tenant. */
+    // The next four are no longer read: the ranking engine scores each flat for each person.
+    // They stay until a later migration removes them (a column is never dropped in the same
+    // step as the code that stops using it).
     qualityScore: real("quality_score").notNull().default(0),
-    // Hand-written for seed flats, and shown as they are until the ranking engine (M5)
-    // works these out for each tenant: the match score, the commute and the stretch label.
     seedCompat: jsonb("seed_compat").$type<Compatibility>(),
     seedCommuteMinutes: integer("seed_commute_minutes"),
     seedStretchLabel: text("seed_stretch_label"),
@@ -227,6 +228,8 @@ export const listings = pgTable(
       .where(sql`${table.status} = 'active'`),
     index("listings_locality").on(table.localityId),
     index("listings_feed_order").on(table.qualityScore.desc(), table.id),
+    // A lister's own flats: "Your flats", the open-flat limit, and the Interested queue.
+    index("listings_lister").on(table.listerId),
   ],
 );
 
@@ -237,7 +240,7 @@ export const listingPhotos = pgTable(
     listingId: uuid("listing_id")
       .notNull()
       .references(() => listings.id, { onDelete: "cascade" }),
-    /** Where the photo is served from. An image-host id replaces this when uploads arrive (M3). */
+    /** Where the photo is served from: a sample photo's address, or the lister's upload. */
     url: text("url").notNull(),
     roomTag: roomTagEnum("room_tag").notNull(),
     dominantColor: text("dominant_color").notNull(),
@@ -266,6 +269,8 @@ export const swipes = pgTable(
     // One decision per person per flat: a swiped flat never comes back.
     uniqueIndex("swipes_user_listing").on(table.userId, table.listingId),
     index("swipes_user_action").on(table.userId, table.action, table.updatedAt.desc()),
+    // Taking a flat down removes the swipes on it; without this that scans every swipe.
+    index("swipes_listing").on(table.listingId),
   ],
 );
 
@@ -284,7 +289,11 @@ export const reports = pgTable(
     note: text("note").notNull().default(""),
     createdAt,
   },
-  (table) => [uniqueIndex("reports_reporter_listing").on(table.reporterId, table.listingId)],
+  (table) => [
+    uniqueIndex("reports_reporter_listing").on(table.reporterId, table.listingId),
+    // Counting the reports on a flat, and removing them with it.
+    index("reports_listing").on(table.listingId),
+  ],
 );
 
 /**
@@ -307,7 +316,7 @@ export const interests = pgTable(
       .notNull()
       .default("pending"),
     note: text("note").notNull().default(""),
-    /** The match score shown to the lister. Hand-written for bots; worked out by the ranking engine from M5. */
+    /** The match score shown to the lister, hand-written, for a bot tenant. A real tenant's is worked out when asked for. */
     compatSnapshot: jsonb("compat_snapshot").$type<Compatibility>(),
     visibleAt: timestamp("visible_at", { withTimezone: true }).notNull().defaultNow(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
@@ -351,6 +360,8 @@ export const conversations = pgTable(
   (table) => [
     index("conversations_tenant").on(table.tenantId),
     index("conversations_lister").on(table.listerId),
+    // The count of keys on each of a lister's flats, asked for every few seconds.
+    index("conversations_listing").on(table.listingId),
   ],
 );
 
@@ -369,7 +380,11 @@ export const messages = pgTable(
     visibleAt: timestamp("visible_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt,
   },
-  (table) => [index("messages_conversation").on(table.conversationId, table.visibleAt)],
+  (table) => [
+    index("messages_conversation").on(table.conversationId, table.visibleAt),
+    // Deleting an account removes the messages it sent.
+    index("messages_sender").on(table.senderId),
+  ],
 );
 
 /**

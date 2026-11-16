@@ -16,9 +16,7 @@ import { SignLink } from "@/components/sign-link";
 
 // The six flats the landing page's self-swiping deck shows. Chosen here, on the server,
 // so the browser is sent six flats and not the whole demo data set.
-// Their hand-written "min to work" lines are left off, as they are in the app: there is no
-// work address to measure from yet.
-const SHOWCASE = SEED_FLATS.slice(0, 6).map((flat) => ({ ...flat, commuteMinutes: null }));
+const SHOWCASE = SEED_FLATS.slice(0, 6);
 
 const STEPS = [
   {

@@ -42,7 +42,7 @@ const QUICK_REPLIES = {
   ],
 } as const;
 
-/** How long to show "typing" after a message is sent, if no reply has arrived. */
+/** How long to show a demo account "typing" after a message is sent, if no reply has arrived. */
 const TYPING_FOR_MS = 7000;
 
 /**
@@ -62,6 +62,11 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   const end = useRef<HTMLDivElement>(null);
 
   const match = matches.data?.find((item) => item.id === matchId);
+  const otherIsDemo = match
+    ? match.side === "tenant"
+      ? match.listing.isSeed
+      : Boolean(match.applicant?.isSeed)
+    : false;
   const thread = messages.data ?? [];
   const count = thread.length;
   const lastFrom = thread[count - 1]?.from;
@@ -87,7 +92,9 @@ export function ChatScreen({ matchId }: { matchId: string }) {
     const body = cleanMessage(text);
     if (!body) return;
     setDraft("");
-    setTyping(true);
+    // Only a demo account is known to be about to answer. Telling someone that a real
+    // person "is typing" when nobody knows that would be a small lie.
+    setTyping(otherIsDemo);
     send.mutate(body, {
       onError: (error) => {
         setTyping(false);

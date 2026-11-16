@@ -5,7 +5,7 @@
  * readers get a real <progress> element; the bulbs themselves are decorative.
  *
  * As a chase (`chase`): every bulb is on and the light runs along the row.
- * Reserved for celebrations: a match or a superlike.
+ * Used for the match moment, for loaders, and round the landing page's sign.
  */
 export function MarqueeBulbs({
   total,

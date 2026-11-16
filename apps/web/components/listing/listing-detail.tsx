@@ -171,10 +171,7 @@ export function ListingDetail({
       <Block title="Neighbourhood">
         <AreaMap centre={listing.area} label={listing.locality} />
         <ul className="mt-4 flex flex-wrap gap-2">
-          {[
-            ...(listing.commuteMinutes === null ? [] : [`${listing.commuteMinutes} min to work`]),
-            ...listing.nearby,
-          ].map((place) => (
+          {listing.nearby.map((place) => (
             <li
               key={place}
               className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm"

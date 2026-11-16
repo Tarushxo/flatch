@@ -36,6 +36,13 @@
       "when": 1794811111032,
       "tag": "0004_slow_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794818044554,
+      "tag": "0005_shallow_ares",
+      "breakpoints": true
     }
   ]
 }

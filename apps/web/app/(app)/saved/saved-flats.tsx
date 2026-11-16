@@ -2,12 +2,12 @@
 
 import { formatRent, type Listing } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ScreenMessage } from "@/components/app-shell/screen-message";
 import { HeartIcon, TrashIcon } from "@/components/icons";
 import { CompatRing } from "@/components/listing/compat-ring";
-import { DetailSheet } from "@/components/listing/detail-sheet";
 import { FadeImage } from "@/components/listing/fade-image";
 import { MarqueeBulbs } from "@/components/motifs/marquee-bulbs";
 import { BedDrawing } from "@/components/motifs/neon-drawing";
@@ -17,9 +17,25 @@ import { SAVED_KEY } from "@/lib/deck/use-deck";
 import { PHOTO_SIZES } from "@/lib/photo";
 
 /** The flats saved with a swipe up. From here each one can be liked or removed. */
+// The details sheet (with the sheet library and the map) is only needed once someone opens a
+// flat, so it stays out of this screen's first download and is fetched when the page goes quiet.
+const loadDetailSheet = () => import("@/components/listing/detail-sheet");
+const DetailSheet = dynamic(() => loadDetailSheet().then((module) => module.DetailSheet), {
+  ssr: false,
+});
+
 export function SavedFlats() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState<Listing | null>(null);
+  // Once asked for, the sheet stays mounted so that it can animate shut.
+  const [sheetNeeded, setSheetNeeded] = useState(false);
+  useEffect(() => {
+    if (open) setSheetNeeded(true);
+  }, [open]);
+  useEffect(() => {
+    const warm = setTimeout(() => void loadDetailSheet(), 2500);
+    return () => clearTimeout(warm);
+  }, []);
 
   const saved = useQuery({
     queryKey: SAVED_KEY,
@@ -160,7 +176,7 @@ export function SavedFlats() {
         })}
       </ul>
 
-      <DetailSheet listing={open} onClose={() => setOpen(null)} />
+      {sheetNeeded ? <DetailSheet listing={open} onClose={() => setOpen(null)} /> : null}
     </div>
   );
 }
